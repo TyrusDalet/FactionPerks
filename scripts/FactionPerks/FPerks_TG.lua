@@ -78,18 +78,6 @@ end
 -- ============================================================
 --  onUpdate
 -- ============================================================
-local function onUpdate()
-    -- Chameleon sneak tracking
-    if hasChameleon25 or hasChameleon50 then
-        if self.controls.sneak == true and not chameleonActive then
-            applyChameleon()
-        elseif not self.controls.sneak == true and chameleonActive then
-            removeChameleon()
-            end
-    elseif chameleonActive then
-        removeChameleon()
-    end
-end
 
 local function onUpdate()
     -- Chameleon sneak tracking
@@ -207,3 +195,12 @@ interfaces.ErnPerkFramework.registerPerk({
         hasChameleon50 = false
     end,
 })
+
+-- ============================================================
+--  ENGINE CALLBACKS
+-- ============================================================
+return {
+    engineHandlers = {
+        onUpdate = onUpdate,
+    }
+}
