@@ -73,6 +73,7 @@ local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
 local storage    = require('openmw.storage')
+local ui         = require('openmw.ui')
 -- ============================================================
 --  STORAGE
 -- ============================================================
@@ -124,6 +125,8 @@ function DoMT4Attack(attack)
 
     -- mesage for debugging
     local msg = "Mephala's Kiss applied!"
+        ui.showMessage(msg, {})
+            print(msg)
 
     -- if the blow did health damage, produce the magic effect
     if attack.damage.health >= 0 then
