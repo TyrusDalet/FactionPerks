@@ -110,7 +110,7 @@ local function MT4AttackSuccessful(attack)
     -- Proceed
 
      -- player crouch check
-    if attack.attacker.type == types.Player and not PlayerIsSneaking then --If the attacker is the player, and PlayerIsSneaking is true back out
+    if attack.attacker.type == types.Player and not PlayerIsSneaking then --If the attacker is the player, and PlayerIsSneaking is false back out
         return false
     end
 
@@ -121,18 +121,24 @@ end
 
 function DoMT4Attack(attack)
 
-    if not MT4AttackSuccessful(attack) then return end --If the attack wasn't successful
+    if not MT4AttackSuccessful(attack) then return end --If the attack wasn't successful, the modifier isn't applied
 
     -- mesage for debugging
-    local msg = "Mephala's Kiss applied!"
+    local msg = "Mephala's Kiss Triggered!"
         ui.showMessage(msg, {})
             print(msg)
 
     -- if the blow did health damage, produce the magic effect
     if attack.damage.health >= 0 then
         types.Actor.activeSpells(self):add({
-        id = "FPerks_MT4_Lifesteal",
-        effects = {0}})
+        id = "FPerks_MT4_Lifesteal", -- Applies Mephala's Kiss
+        effects = {0}, -- Applies effect 0; the Absorb Health effect
+
+        --Ignores all resistances and reflections to apply no matter what
+        ignoreReflect = true,
+        ignoreResistances = true,
+        ignoreSpellAbsorption = true
+        }) 
     else
         return
     end

@@ -1,4 +1,5 @@
 local I = require('openmw.interfaces')
+
 require("scripts.FactionPerks.shared")
 
 I.Combat.addOnHitHandler(function(attack)
