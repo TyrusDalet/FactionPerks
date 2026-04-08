@@ -68,17 +68,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         types.Actor.spells(self):add("FPerks_MT1_Passive");
-
-        local logLine = mt1_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_MT1_Passive");
-
-        local logLine = mt1_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
@@ -101,18 +93,10 @@ interfaces.ErnPerkFramework.registerPerk({
     onAdd = function()
         types.Actor.spells(self):add("FPerks_MT2_Passive");
         types.Actor.spells(self):add("FPerks_MT2_Frenzy");
-
-        local logLine = mt2_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_MT2_Passive");
         types.Actor.spells(self):remove("FPerks_MT2_Frenzy");
-
-        local logLine = mt2_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
@@ -134,17 +118,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         types.Actor.spells(self):add("FPerks_MT3_Passive");
-
-        local logLine = mt3_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_MT3_Passive");
-
-        local logLine = mt3_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
@@ -156,7 +132,8 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "The Grand Master himself has commended your work. "
         .. "The shadows open for you whenever you call upon them.\n "
         .. "Requires Calm Before. "
-        .. "(+25 Strength, +75 Short Blade, grants Invisibility power)",
+        .. "(+25 Strength, +75 Short Blade, grants Invisibility power)\n\n "
+        .. "Weapon attacks whilst Sneaking inflict a lifesteal effect. ",
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(mt3_id),
@@ -168,18 +145,10 @@ interfaces.ErnPerkFramework.registerPerk({
         types.Actor.spells(self):add("FPerks_MT4_Passive");
         types.Actor.spells(self):add("FPerks_MT4_Invisibility");
         HasMT4 = true
-
-        local logLine = mt4_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_MT4_Passive");
         types.Actor.spells(self):remove("FPerks_MT4_Invisibility");
         HasMT4 = false
-
-        local logLine = mt4_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })

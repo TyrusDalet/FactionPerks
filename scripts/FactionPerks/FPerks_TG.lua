@@ -116,17 +116,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         types.Actor.spells(self):add("FPerks_TG1_Passive");
-
-        local logLine = tg1_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_TG1_Passive");
-
-        local logLine = tg1_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
@@ -147,16 +139,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         types.Actor.spells(self):add("FPerks_TG2_Passive");
-        local logLine = tg2_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_TG2_Passive");
-
-        local logLine = tg2_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
@@ -179,18 +164,10 @@ interfaces.ErnPerkFramework.registerPerk({
     onAdd = function()
         types.Actor.spells(self):add("FPerks_TG3_Passive");
         hasChameleon25 = true
-
-        local logLine = tg3_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_TG3_Passive");
         hasChameleon25 = false
-
-        local logLine = tg3_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
@@ -213,18 +190,10 @@ interfaces.ErnPerkFramework.registerPerk({
    onAdd = function()
         types.Actor.spells(self):add("FPerks_TG4_Passive");
         hasChameleon50 = true
-
-        local logLine = tg4_id .. " perk added!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_TG4_Passive");
         hasChameleon50 = false
-
-        local logLine = tg4_id .. " perk removed!"
-            ui.showMessage(logLine, {})
-            print(logLine)
     end,
 })
 
