@@ -69,14 +69,10 @@ ESP REQUIREMENTS - Created in FactionPerkSpells.ESP
 
 local ns         = require("scripts.FactionPerks.namespace")
 local interfaces = require("openmw.interfaces")
-local ui         = require('openmw.ui')
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
-local nearby     = require('openmw.nearby')
 local storage    = require('openmw.storage')
-local async      = require('openmw.async')
-local input      = require('openmw.input')
 -- ============================================================
 --  STORAGE
 -- ============================================================
@@ -133,7 +129,7 @@ function DoMT4Attack(attack)
     if attack.damage.health >= 0 then
         types.Actor.activeSpells(self):add({
         id = "FPerks_MT4_Lifesteal",
-        effects = {1}})
+        effects = {0}})
     else
         return
     end
