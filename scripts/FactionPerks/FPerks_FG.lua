@@ -120,9 +120,9 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(15),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_TG4_Passive");
+        types.Actor.spells(self):add("FPerks_FG4_Passive");
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_TG4_Passive");
+        types.Actor.spells(self):remove("FPerks_FG4_Passive");
     end
 })
