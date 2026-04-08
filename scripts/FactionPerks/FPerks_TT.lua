@@ -30,7 +30,7 @@ local R = interfaces.ErnPerkFramework.requirements
 
 -- ============================================================
 --  TRIBUNAL TEMPLE
---  Primary attribute: Willpower
+--  Primary attribute: Imtelligence
 --  Scaling: Reflect, Resist Paralysis, Resist Blight Disease
 --  Special: Almsivi Intervention (Ordinate Aspirant),
 --           1/day Cure power (Pilgrim Soul),
