@@ -20,9 +20,11 @@ local storage    = require('openmw.storage')
 local async      = require('openmw.async')
 local input      = require('openmw.input')
 
+require('scripts.FactionPerks.shared')
+
 
 local perkStore = storage.playerSection("FactionPerks")
-local hasMT4 = false
+local HasMT4 = false
 
 -- ============================================================
 --  CORE HELPERS
@@ -31,22 +33,17 @@ local hasMT4 = false
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
---[[
--- Morag Tong Life Steal sneak attacks
-    input.registerActionHandler(input.actions.Sneak.key, async:callback(function()
-        for _, actor in pairs(nearby.actors) do
-            actor:sendEvent("playerSneaking", not self.controls.sneak)
-        end
-    end))
 
-    interfaces.Combat.addOnHitHandler(function(attack)
-        if hasMT4 == true then --Checks to see if the player has the 4th Morag Tong perk
-            if self.controls.sneak == true and attack.sourceType == "melee" and attack.successful == true then --If the player is Sneaking and the attack they make is a melee strike that hits
-                -- Applies the Mephala's Kiss spell (FPerks_MT4_Lifesteal) to the target, with the player as the source
-            end
+-- Morag Tong Life Steal sneak attacks
+
+
+input.registerActionHandler(input.actions.Sneak.key, async:callback(function() --Whenever you're crouched
+    if HasMT4 == true then --If the player has MT perk 4
+        for _, actor in pairs(nearby.actors) do -- For each nearby actor
+        actor:sendEvent("playerSneaking", self.controls.sneak) --Send them an event handler saying that the player is sneaking -- IGNORE THE LLS THIS WORKS
         end
-    end)
-]]
+    end
+end))
 
 -- ============================================================
 --  MORAG TONG
@@ -119,7 +116,7 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('speed', 50),
         R().minimumLevel(10),
     },
-    oonAdd = function()
+    onAdd = function()
         types.Actor.spells(self):add("FPerks_MT3_Passive");
     end,
     onRemove = function()
@@ -146,11 +143,11 @@ interfaces.ErnPerkFramework.registerPerk({
     onAdd = function()
         types.Actor.spells(self):add("FPerks_MT4_Passive");
         types.Actor.spells(self):add("FPerks_MT4_Invisibility");
-        hasMT4 = true
+        HasMT4 = true
     end,
     onRemove = function()
         types.Actor.spells(self):remove("FPerks_MT4_Passive");
         types.Actor.spells(self):remove("FPerks_MT4_Invisibility");
-        hasMT4 = false
+        HasMT4 = false
     end,
 })

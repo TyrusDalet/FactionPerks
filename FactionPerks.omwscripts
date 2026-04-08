@@ -1,0 +1,5 @@
+PLAYER:scripts\FactionPerks\FPerks_MT.lua
+PLAYER:scripts\FactionPerks\FPerks_TG.lua
+PLAYER:scripts\FactionPerks\FPerks_TT.lua
+NPC:scripts\FactionPerks\npc.lua
+

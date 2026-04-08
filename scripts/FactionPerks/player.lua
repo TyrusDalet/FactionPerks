@@ -1,65 +1,3 @@
---[[
-Faction Perk Pack for OpenMW using ErnPerkFramework.
-All 10 vanilla joinable factions. 40 perks total.
-
-ESP REQUIREMENTS - Created in FactionPerkSpells.ESP
-  
-
-    TG:
-        FPerks_TG1_Passive               = Ability, +5 Agility, +10 Sneak, +10 Security
-        FPerks_TG2_Passive               = Ability, +15(10) Agility, +25 Sneak(15), +25 Acrobatics
-        FPerks_TG3_Passive               = Ability, +25(10) Agility, +50 Sneak(25), +50 Mercantile
-        FPerks_TG4_Passive               = Ability, +25 Luck, +75(65) Security
-        FPerks_TG3_Cham                  - Ability, 25 Chameleon
-        FPerks_TG4_Cham                  - Ability, 25 Chameleon
-
-    MT:
-
-        FPerks_MT2_Frenzy                - Spell, Frenzy, free, unlimited
-        FPerks_MT4_Invisibility          - Spell, Invisibility, free, unlimited
-
-    HH:
-
-
-
-    FG:
-
-        FPerks_FG4_Restore_Phys          - Ability, Restore Health 1pt + Restore Fatigue 1pt
-
-
-    IL:
-
-        FPerks_IL4_Restore_Phys          - Ability, Restore Health 1pt + Restore Fatigue 1pt
-
-    IC:
-
-        FPerks_IC4_AllAttributes         - Power, Fortify All Attributes +50 / 30s, 1/day
-
-    MG:
-
-    TT:
-
-     FPerks_TT2_Cure_All              - Power. Cure Disease + Cure Poison + Cure Blight Touch, 1/day
-     FPerks_TT4_Summon_Army           - Power, Summon 2 Greater Bonewalkers + 2 Bonelords / 60s, 1/day
-
-    HR:
-
-    HT:
-        FPerks_HT3_Restore_Magicka_1     - Ability, Restore Magicka 1pt  (HT P3)
-        FPerks_HT4_Restore_Magicka_2     - Ability, Restore Magicka 1pt  (HT P4, stacks)
-
-
-  Vanilla spell IDs used directly:
-  "orc_beserk"           FG Perk 3 
-  "adrenaline rush"      IL Perk 3
-  "divine intervention"  IC Perk 1
-  "almsivi intervention" TT Perk 1
-  "strong levitate"      HT Perk 1
-  "mark"                 HT Perk 2
-  "recall"               HT Perk 2
-
-]]
-
 local ns         = require("scripts.FactionPerks.namespace")
 local interfaces = require("openmw.interfaces")
 local ui         = require('openmw.ui')
@@ -68,27 +6,14 @@ local self       = require('openmw.self')
 local core       = require('openmw.core')
 local nearby     = require('openmw.nearby')
 local storage    = require('openmw.storage')
+local async      = require('openmw.async')
+local input      = require('openmw.input')
 
 -- ============================================================
 --  STORAGE
 -- ============================================================
 local perkStore = storage.playerSection("FactionPerks")
 
-
-
--- ============================================================
---  MAGIC EFFECTS - loaded once at startup
--- ============================================================
-local FX = {}
-local function loadFX()
-    local function fx(id)
-        local e = core.magic.effects.records[id]
-        if not e then print("WARNING Faction Perks: effect not found - " .. id) end
-        return e
-    end
-    FX.chameleon       = fx("chameleon")
-end
-loadFX()
 
 -- ============================================================
 --  CORE HELPERS
@@ -288,6 +213,8 @@ end
 --  onUpdate
 -- ============================================================
 local lastLevel = 0
+local hasMT4 = false
+
 local function onUpdate()
     -- Chameleon sneak tracking
     if hasChameleon25 or hasChameleon50 then
@@ -336,6 +263,21 @@ local function onUpdate()
     end
     ]]
 end
+
+-- Morag Tong Life Steal sneak attacks
+    input.registerActionHandler(input.actions.Sneak.key, async:callback(function()
+        for _, actor in pairs(nearby.actors) do
+            actor:sendEvent("playerSneaking", not self.controls.sneak)
+        end
+    end))
+
+    interfaces.Combat.addOnHitHandler(function(attack)
+        if hasMT4 == true then --Checks to see if the player has the 4th Morag Tong perk
+            if self.controls.sneak == true and attack.sourceType == "melee" and attack.successful == true then --If the player is Sneaking and the attack they make is a melee strike that hits
+                -- Applies the Mephala's Kiss spell (FPerks_MT4_Lifesteal) to the target, with the player as the source
+            end
+        end
+    end)
  
 -- ============================================================
 --  THIEVES GUILD
@@ -370,7 +312,7 @@ local tg2_id = ns .. "_tg_shadow_step"
 interfaces.ErnPerkFramework.registerPerk({
     id = tg2_id,
     localizedName = "Shadow Step",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have learned to move between pools of darkness with uncanny ease. "
         .. "Guards look straight through you.\n "
         .. "(+15 Agility, +25 Sneak, +25 Acrobatics)",
@@ -393,7 +335,7 @@ local tg3_id = ns .. "_tg_fence_network"
 interfaces.ErnPerkFramework.registerPerk({
     id = tg3_id,
     localizedName = "Fence Network",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have cultivated contacts willing to move stolen goods with no "
         .. "questions asked. When you crouch, shadow swallows you whole.\n "
         .. "Requires Shadow Step. "
@@ -419,7 +361,7 @@ local tg4_id = ns .. "_tg_master_thief"
 interfaces.ErnPerkFramework.registerPerk({
     id = tg4_id,
     localizedName = "Master Thief",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "There is no lock you cannot pick, no pocket you cannot cut. "
         .. "Crouch, and you vanish almost entirely from sight.\n "
         .. "Requires Fence Network. "
@@ -453,28 +395,32 @@ local mt1_id = ns .. "_mt_writ_bearer"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt1_id,
     localizedName = "Writ Bearer",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You carry the legal sanction of the Morag Tong. "
         .. "Your kills are honoured executions, not murders.\n "
-        .. "(+5 Speed, +10 Short Blade)",
+        .. "(+5 Speed, +10 Short Blade, +10 Speechcraft)",
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('morag tong', 0),
         R().minimumLevel(1),
     },
-    onAdd    = function() modStat("attribute","speed",5);  modStat("skill","short blade",10);  msg("Writ Bearer granted.") end,
-    onRemove = function() modStat("attribute","speed",-5); modStat("skill","short blade",-10); msg("Writ Bearer lost.")    end,
+    onAdd = function()
+        types.Actor.spells(self):add("FPerks_MT1_Passive");
+    end,
+    onRemove = function()
+        types.Actor.spells(self):remove("FPerks_MT1_Passive");
+    end,
 })
 
 local mt2_id = ns .. "_mt_blade_discipline"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt2_id,
     localizedName = "Blade Discipline",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Tong teaches economy of motion. Your strikes are precise "
         .. "and swift. You have learned to channel pure battle-fury at will.\n "
         .. "Requires Writ Bearer. "
-        .. "(+15 Speed, +25 Short Blade, +25 Unarmored, grants Frenzy power)",
+        .. "(+15 Speed, +25 Short Blade, +25 Light Armour, grants Frenzy power)",
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(mt1_id),
@@ -483,18 +429,12 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(5),
     },
     onAdd = function()
-        modStat("attribute","speed",   15)
-        modStat("skill","short blade", 25)
-        modStat("skill","unarmored",   25)
-        addSpell("FPerks_MT_Frenzy")
-        msg("Blade Discipline granted.")
+        types.Actor.spells(self):add("FPerks_MT2_Passive");
+        types.Actor.spells(self):add("FPerks_MT2_Frenzy");
     end,
     onRemove = function()
-        modStat("attribute","speed",   -15)
-        modStat("skill","short blade", -25)
-        modStat("skill","unarmored",   -25)
-        removeSpell("FPerks_MT_Frenzy")
-        msg("Blade Discipline lost.")
+        types.Actor.spells(self):remove("FPerks_MT2_Passive");
+        types.Actor.spells(self):remove("FPerks_MT2_Frenzy");
     end,
 })
 
@@ -502,11 +442,11 @@ local mt3_id = ns .. "_mt_calm_before"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt3_id,
     localizedName = "Calm Before",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have learned the art of stillness. "
         .. "A Tong assassin who cannot wait cannot succeed.\n "
         .. "Requires Blade Discipline. "
-        .. "(+20 Speed, +50 Sneak, +50 Short Blade)",
+        .. "(+25 Speed, +50 Sneak, +50 Short Blade)",
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(mt2_id),
@@ -514,19 +454,23 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('speed', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() modStat("attribute","speed",20);  modStat("skill","sneak",50);  modStat("skill","short blade",50);  msg("Calm Before granted.") end,
-    onRemove = function() modStat("attribute","speed",-20); modStat("skill","sneak",-50); modStat("skill","short blade",-50); msg("Calm Before lost.")    end,
+    oonAdd = function()
+        types.Actor.spells(self):add("FPerks_MT3_Passive");
+    end,
+    onRemove = function()
+        types.Actor.spells(self):remove("FPerks_MT3_Passive");
+    end,
 })
 
 local mt4_id = ns .. "_mt_honoured_executioner"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt4_id,
     localizedName = "Honoured Executioner",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Grand Master himself has commended your work. "
         .. "The shadows open for you whenever you call upon them.\n "
         .. "Requires Calm Before. "
-        .. "(+25 Speed, +75 Short Blade, grants Invisibility power)",
+        .. "(+25 Strength, +75 Short Blade, grants Invisibility power)",
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(mt3_id),
@@ -535,16 +479,14 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(15),
     },
     onAdd = function()
-        modStat("attribute","speed",   25)
-        modStat("skill","short blade", 75)
-        addSpell("FPerks_MT_Invisibility")
-        msg("Honoured Executioner granted.")
+        types.Actor.spells(self):add("FPerks_MT4_Passive");
+        types.Actor.spells(self):add("FPerks_MT4_Invisibility");
+        hasMT4 = true
     end,
     onRemove = function()
-        modStat("attribute","speed",   -25)
-        modStat("skill","short blade", -75)
-        removeSpell("FPerks_MT_Invisibility")
-        msg("Honoured Executioner lost.")
+        types.Actor.spells(self):remove("FPerks_MT4_Passive");
+        types.Actor.spells(self):remove("FPerks_MT4_Invisibility");
+        hasMT4 = false
     end,
 })
 
@@ -560,7 +502,7 @@ local hh1_id = ns .. "_hh_courtesies"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh1_id,
     localizedName = "Hlaalu Courtesies",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The formal pleasantries of Great House Hlaalu open many doors. "
         .. "Nearby merchants warm to you and find their resolve to haggle weakened.\n "
         .. "(+5 Personality, +10 Speechcraft, merchants +10 Disposition / -5 Mercantile)",
@@ -577,7 +519,7 @@ local hh2_id = ns .. "_hh_silver_tongue"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh2_id,
     localizedName = "Silver Tongue",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "Your words carry weight. Merchants sense your confidence "
         .. "and their prices soften further.\n "
         .. "Requires Hlaalu Courtesies. "
@@ -598,7 +540,7 @@ local hh3_id = ns .. "_hh_trade_acumen"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh3_id,
     localizedName = "Trade Acumen",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "Merchants treat you as one of their own, dropping their guard further.\n "
         .. "Requires Silver Tongue. "
         .. "(+20 Personality, +50 Mercantile, "
@@ -618,7 +560,7 @@ local hh4_id = ns .. "_hh_councillors_ear"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh4_id,
     localizedName = "Councillor's Ear",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "A Councillor of House Hlaalu considers you a trusted confidant. "
         .. "Merchants can barely bring themselves to refuse you anything.\n "
         .. "But your reputation precedes you everywhere now - people smile to your face "
@@ -665,7 +607,7 @@ local fg1_id = ns .. "_fg_dues_paid"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The basic drills are already sharpening your edge.\n "
         .. "(+5 Strength, +10 Fortify Attack)",
     art = "textures\\levelup\\knight", cost = 1,
@@ -681,7 +623,7 @@ local fg2_id = ns .. "_fg_iron_discipline"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg2_id,
     localizedName = "Iron Discipline",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Guild's contracts have hardened you. "
         .. "You wade into battle with the confidence of experience.\n "
         .. "Requires Dues Paid. "
@@ -701,7 +643,7 @@ local fg3_id = ns .. "_fg_battle_tested"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg3_id,
     localizedName = "Battle Tested",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
         .. "When the moment demands it, you can call upon a terrifying fury.\n "
         .. "Requires Iron Discipline. "
@@ -729,7 +671,7 @@ local fg4_id = ns .. "_fg_champion_of_the_guild"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg4_id,
     localizedName = "Champion of the Guild",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Fighters Guild holds you as one of its finest. "
         .. "Your body recovers on its own - health and fatigue knit themselves back "
         .. "even in the heat of battle.\n "
@@ -764,7 +706,7 @@ local mg1_id = ns .. "_mg_guild_initiate"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg1_id,
     localizedName = "Guild Initiate",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have passed the Guild's entrance rites. "
         .. "The library shelves are open to you.\n "
         .. "(+5 Intelligence, +10 Fortify Magicka)",
@@ -781,7 +723,7 @@ local mg2_id = ns .. "_mg_scholastic_rigour"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg2_id,
     localizedName = "Scholastic Rigour",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Guild's structured study has sharpened your mind considerably.\n "
         .. "Requires Guild Initiate. "
         .. "(+15 Intelligence, +25 Fortify Magicka)",
@@ -800,7 +742,7 @@ local mg3_id = ns .. "_mg_arcane_reservoir"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg3_id,
     localizedName = "Arcane Reservoir",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "Years of disciplined spellcasting have deepened your reserves. "
         .. "Your magicka pool expands with your intellect.\n "
         .. "Requires Scholastic Rigour. "
@@ -831,7 +773,7 @@ local mg4_id = ns .. "_mg_archmagisters_peer"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg4_id,
     localizedName = "Archmagister's Peer",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The senior mages regard you as a genuine equal. "
         .. "Your intellect feeds your power directly.\n "
         .. "Requires Arcane Reservoir. "
@@ -870,7 +812,7 @@ local il1_id = ns .. "_il_legion_recruit"
 interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
     localizedName = "Legion Recruit",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have sworn the oath and donned the cuirass. "
         .. "The Legion's drillmasters have improved your guard.\n "
         .. "(+5 Endurance, +10 Shield)",
@@ -887,7 +829,7 @@ local il2_id = ns .. "_il_shield_wall"
 interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have mastered the disciplined defensive formations of the Imperial army. \n"
         .. "Requires Legion Recruit. "
         .. "(+15 Endurance, +25 Shield)",
@@ -906,7 +848,7 @@ local il3_id = ns .. "_il_forced_march"
 interfaces.ErnPerkFramework.registerPerk({
     id = il3_id,
     localizedName = "Forced March",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Legion demands its soldiers keep pace regardless of terrain. "
         .. "When the situation demands it, you can push far beyond normal limits.\n "
         .. "Requires Shield Wall. "
@@ -934,7 +876,7 @@ local il4_id = ns .. "_il_legate"
 interfaces.ErnPerkFramework.registerPerk({
     id = il4_id,
     localizedName = "Legate",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You command the respect of every soldier who serves alongside you. "
         .. "The Emperor's discipline has forged your body into something that endures.\n "
         .. "Requires Forced March. "
@@ -970,7 +912,7 @@ local ic1_id = ns .. "_ic_lay_worshipper"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic1_id,
     localizedName = "Lay Worshipper",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have joined the Cult and attend its rites faithfully. "
         .. "The Nine Divines offer you modest but real protection.\n "
         .. "(+5 Willpower, +10 Resist Disease, +10 Resist Poison, "
@@ -998,7 +940,7 @@ local ic2_id = ns .. "_ic_charitable_hand"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic2_id,
     localizedName = "Charitable Hand",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have distributed alms and tended to the sick in the name of the Divines. "
         .. "Your faith has strengthened your body as well as your spirit.\n "
         .. "Requires Lay Worshipper. "
@@ -1018,7 +960,7 @@ local ic3_id = ns .. "_ic_divine_favour"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic3_id,
     localizedName = "Divine Favour",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Divines have marked you as a servant of true worth.\n "
         .. "Requires Charitable Hand. "
         .. "(+20 Willpower, +50 Resist Disease, +50 Resist Poison, +50 Resist Normal Weapons)",
@@ -1037,7 +979,7 @@ local ic4_id = ns .. "_ic_blessed_of_the_nine"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic4_id,
     localizedName = "Blessed of the Nine",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Nine Divines have extended their grace to you directly. "
         .. "Once each day you may call upon their full blessing.\n "
         .. "Requires Divine Favour. "
@@ -1053,7 +995,7 @@ interfaces.ErnPerkFramework.registerPerk({
     onAdd = function()
         modStat("attribute","willpower",25)
         modEffect(FX.resistDisease,75); modEffect(FX.resistPoison,75); modEffect(FX.resistNormalWpn,75)
-        addSpell("myperkpack_ic_allattrib_power")
+        addSpell("FPerks_IC4_AllAttributes")
         msg("Blessed of the Nine granted.")
     end,
     onRemove = function()
@@ -1077,10 +1019,10 @@ local tt1_id = ns .. "_tt_ordinate_aspirant"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt1_id,
     localizedName = "Ordinate Aspirant",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have taken up the Temple's creed and begun study of its mysteries. "
         .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.\n "
-        .. "(+5 Willpower, +10 Reflect, +10 Resist Paralysis, "
+        .. "(+5 Intelligence, +10 Reflect, +10 Resist Paralysis, "
         .. "+10 Resist Blight Disease, grants Almsivi Intervention)",
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
@@ -1088,16 +1030,12 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(1),
     },
     onAdd = function()
-        modStat("attribute","willpower",5)
-        modEffect(FX.reflect,10); modEffect(FX.resistParalysis,10); modEffect(FX.resistBlight,10)
-        addSpell("almsivi intervention")
-        msg("Ordinate Aspirant granted.")
+        types.Actor.spells(self):add("FPerks_TT1_Passive");
+        types.Actor.spells(self):add("Almsivi Intervention");
     end,
     onRemove = function()
-        modStat("attribute","willpower",-5)
-        modEffect(FX.reflect,-10); modEffect(FX.resistParalysis,-10); modEffect(FX.resistBlight,-10)
-        removeSpell("almsivi intervention")
-        msg("Ordinate Aspirant lost.")
+        types.Actor.spells(self):remove("FPerks_TT1_Passive");
+        types.Actor.spells(self):remove("Almsivi Intervention");
     end,
 })
 
@@ -1105,11 +1043,11 @@ local tt2_id = ns .. "_tt_pilgrim_soul"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt2_id,
     localizedName = "Pilgrim Soul",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have walked the Pilgrimages of the Seven Graces. "
         .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.\n "
         .. "Requires Ordinate Aspirant. "
-        .. "(+15 Willpower, +25 Reflect, +25 Resist Paralysis, +25 Resist Blight Disease, "
+        .. "(+15 Intelligence, +25 Reflect, +25 Resist Paralysis, +25 Resist Blight Disease, "
         .. "1/day Cure Disease + Cure Poison + Cure Blight on Touch)",
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
@@ -1119,16 +1057,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(5),
     },
     onAdd = function()
-        modStat("attribute","willpower",15)
-        modEffect(FX.reflect,25); modEffect(FX.resistParalysis,25); modEffect(FX.resistBlight,25)
-        addSpell("FPerks_TT_Cure_All")
-        msg("Pilgrim Soul granted.")
+        types.Actor.spells(self):add("FPerks_TT2_Passive");
     end,
     onRemove = function()
-        modStat("attribute","willpower",-15)
-        modEffect(FX.reflect,-25); modEffect(FX.resistParalysis,-25); modEffect(FX.resistBlight,-25)
-        removeSpell("FPerks_TT_Cure_All")
-        msg("Pilgrim Soul lost.")
+        types.Actor.spells(self):remove("FPerks_TT2_Passive");
     end,
 })
 
@@ -1136,10 +1068,10 @@ local tt3_id = ns .. "_tt_voice_of_reclamation"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt3_id,
     localizedName = "Voice of Reclamation",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "The Temple's holy authority now speaks through you.\n "
         .. "Requires Pilgrim Soul. "
-        .. "(+20 Willpower, +50 Reflect, +50 Resist Paralysis, +50 Resist Blight Disease)",
+        .. "(+25 Intelligence, +50 Reflect, +50 Resist Paralysis, +50 Resist Blight Disease)",
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(tt2_id),
@@ -1147,19 +1079,23 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('willpower', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() modStat("attribute","willpower",20);  modEffect(FX.reflect, 50); modEffect(FX.resistParalysis, 50); modEffect(FX.resistBlight, 50); msg("Voice of Reclamation granted.") end,
-    onRemove = function() modStat("attribute","willpower",-20); modEffect(FX.reflect,-50); modEffect(FX.resistParalysis,-50); modEffect(FX.resistBlight,-50); msg("Voice of Reclamation lost.")    end,
+     onAdd = function()
+        types.Actor.spells(self):add("FPerks_TT3_Passive");
+    end,
+    onRemove = function()
+        types.Actor.spells(self):remove("FPerks_TT3_Passive");
+    end,
 })
 
 local tt4_id = ns .. "_tt_hand_of_almsivi"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt4_id,
     localizedName = "Hand of ALMSIVI",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You are an instrument of Vivec, Almalexia, and Sotha Sil. "
         .. "Once each day you may call upon honoured ancestors to fight at your side.\n "
         .. "Requires Voice of Reclamation. "
-        .. "(+25 Willpower, +75 Reflect, +75 Resist Paralysis, +75 Resist Blight Disease, "
+        .. "(+25 Personality, +75 Reflect, +75 Resist Paralysis, +75 Resist Blight Disease, "
         .. "1/day Summon 2 Greater Bonewalkers + 2 Bonelords for 60s)",
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
@@ -1168,17 +1104,13 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('willpower', 75),
         R().minimumLevel(15),
     },
-    onAdd = function()
-        modStat("attribute","willpower",25)
-        modEffect(FX.reflect,75); modEffect(FX.resistParalysis,75); modEffect(FX.resistBlight,75)
-        addSpell("FPerks_TT_Summon_Army")
-        msg("Hand of ALMSIVI granted.")
+     onAdd = function()
+        types.Actor.spells(self):add("FPerks_TT4_Passive");
+        types.Actor.spells(self):add("FPerks_TT4_Summon_Army");
     end,
     onRemove = function()
-        modStat("attribute","willpower",-25)
-        modEffect(FX.reflect,-75); modEffect(FX.resistParalysis,-75); modEffect(FX.resistBlight,-75)
-        removeSpell("FPerks_TT_Summon_Army")
-        msg("Hand of ALMSIVI lost.")
+        types.Actor.spells(self):remove("FPerks_TT4_Passive");
+        types.Actor.spells(self):remove("FPerks_TT4_Summon_Army");
     end,
 })
 
@@ -1196,7 +1128,7 @@ local hr1_id = ns .. "_hr_redoran_pledge"
 interfaces.ErnPerkFramework.registerPerk({
     id = hr1_id,
     localizedName = "Redoran Pledge",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\n"
         .. "(+5 Endurance, +10 Spear, +10 Athletics)",
     art = "textures\\levelup\\knight", cost = 1,
@@ -1212,7 +1144,7 @@ local hr2_id = ns .. "_hr_burden_of_duty"
 interfaces.ErnPerkFramework.registerPerk({
     id = hr2_id,
     localizedName = "Burden of Duty",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "Redoran warriors do not complain - they endure. "
         .. "The weight of armour and obligation have become one and the same to you.\n "
         .. "Requires Redoran Pledge. "
@@ -1232,7 +1164,7 @@ local hr3_id = ns .. "_hr_unbroken_line"
 interfaces.ErnPerkFramework.registerPerk({
     id = hr3_id,
     localizedName = "Unbroken Line",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "House Redoran does not retreat. You have internalised this truth "
         .. "until it became something closer to armour than principle.\n "
         .. "Requires Burden of Duty. "
@@ -1252,7 +1184,7 @@ local hr4_id = ns .. "_hr_guardian_of_the_house"
 interfaces.ErnPerkFramework.registerPerk({
     id = hr4_id,
     localizedName = "Guardian of the House",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You are House Redoran's shield made flesh. Your honour is "
         .. "unimpeachable, your resolve unyielding - and your strength and endurance "
         .. "are doubled while you stand. Rest strips the fury from you.\n "
@@ -1306,7 +1238,7 @@ local ht1_id = ns .. "_ht_uninvited_student"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht1_id,
     localizedName = "Uninvited Student",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "House Telvanni does not recruit - it tolerates those strong enough "
         .. "to push their way in. You have done so. For now, that is enough.\n "
         .. "(+5 Intelligence, +10 Enchant, +10 Alchemy, +10 Spell Absorption, "
@@ -1336,7 +1268,7 @@ local ht2_id = ns .. "_ht_tower_sorcery"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht2_id,
     localizedName = "Tower Sorcery",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "Telvanni wizards are defined by their mastery of enchantment. "
         .. "You have begun to understand the principles that animate their towers and servants.\n "
         .. "Requires Uninvited Student. "
@@ -1369,7 +1301,7 @@ local ht3_id = ns .. "_ht_self_made_power"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht3_id,
     localizedName = "Self-Made Power",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "House Telvanni respects only power earned, never granted. "
         .. "You have shaped yourself through relentless study.\n "
         .. "Requires Tower Sorcery. "
@@ -1404,7 +1336,7 @@ local ht4_id = ns .. "_ht_telvanni_lord"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht4_id,
     localizedName = "Telvanni Lord",
-    --hiden = true,
+    --hidden = true,
     localizedDescription = "You are acknowledged by the Telvanni masters - a rare concession "
         .. "from those who acknowledge no one. The heights are yours to claim.\n "
         .. "But you have become something other people find deeply unsettling. "
