@@ -1,9 +1,9 @@
  --[[
  MT:
         FPerks_MT1_Passive               - +5 Speed, +10 Short Blade, +10 Speechcraft
-        FPerks_MT2_Passive               - +15 Speed(10), +25 Short Blade(15), +25 Light Armour 
-        FPerks_MT3_Passive               - +25 Speed(15), +50 Sneak, +50 Short Blade(25)
-        FPerks_MT4_Passive               - +25 Strength, +75 Short Blade(25), +75 Sneak(25)
+        FPerks_MT2_Passive               - +15 Speed, +25 Short Blade, +25 Light Armour 
+        FPerks_MT3_Passive               - +25 Speed, +50 Sneak, +50 Short Blade
+        FPerks_MT4_Passive               - +25 Strength, +75 Short Blade, +75 Sneak
         FPerks_MT2_Frenzy                - Spell, Frenzy, free, unlimited
         FPerks_MT4_Invisibility          - Spell, Invisibility, free, unlimited
         FPerks_MT4_Lifesteal             - Spell Effect, Absorb Life 25pts 5s
@@ -33,9 +33,73 @@ local HasMT4 = false
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
+-- Create a table with all the Faction spell effects in it
+local perkTable = {
+    [1] = { passive = {"FPerks_MT1_Passive"} },
+    [2] = { passive = {"FPerks_MT2_Passive"} },
+    [3] = { passive = {"FPerks_MT3_Passive"} },
+    [4] = { 
+            passive = {"FPerks_MT4_Passive"},
+            flags = { HasMT4 = true }
+            }
+}
+
+
+-- Flag Handler - allows us to controll the state of the HasMT4 flag from multiple locations
+local flagHandlers = {
+    HasMT4 = function(v)
+        HasMT4 = v
+    end
+}
+
+-- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
+local function setRank(NewRank)
+-- Removes all other effects by interating through the table, then for each object within THAT table, runs through those
+
+    -- Removing
+    for _, rankData in pairs(perkTable) do
+    -- Remove spell effects
+        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
+            for i = 1, #rankData.passive do
+                types.Actor.spells(self):remove(rankData.passive[i]) 
+            end
+        end
+
+    -- Reset flags via handlers
+        if rankData.flags then
+            for flag, _ in pairs(rankData.flags) do
+                if flagHandlers[flag] then
+                    flagHandlers[flag](false)
+                end
+            end
+        end
+    end
+    
+
+    -- Stop here if no rank (used for onRemove)
+    if not NewRank or not perkTable[NewRank] then return end
+
+local rankData = perkTable[NewRank]
+
+    -- Add spell effects
+    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
+        for i = 1, #rankData.passive do 
+            types.Actor.spells(self):add(rankData.passive[i])
+        end
+    end
+
+    -- Apply flags via handlers
+    if rankData.flags then
+        for flag, value in pairs(rankData.flags) do
+            if flagHandlers[flag] then
+                flagHandlers[flag](value)
+            end
+        end
+    end
+end
+
 
 -- Morag Tong Life Steal sneak attacks
-
 
 input.registerActionHandler(input.actions.Sneak.key, async:callback(function() --Whenever you're crouched
     if HasMT4 == true then --If the player has MT perk 4
@@ -67,10 +131,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(1),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_MT1_Passive");
+        setRank(1)
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MT1_Passive");
+        setRank(nil)
     end,
 })
 
@@ -91,11 +155,11 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(5),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_MT2_Passive");
+        setRank(2)
         types.Actor.spells(self):add("FPerks_MT2_Frenzy");
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MT2_Passive");
+        setRank(nil)
         types.Actor.spells(self):remove("FPerks_MT2_Frenzy");
     end,
 })
@@ -117,10 +181,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(10),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_MT3_Passive");
+        setRank(3)
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MT3_Passive");
+        setRank(nil)
     end,
 })
 
@@ -142,13 +206,11 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(15),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_MT4_Passive");
+        setRank(4)
         types.Actor.spells(self):add("FPerks_MT4_Invisibility");
-        HasMT4 = true
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MT4_Passive");
+        setRank(nil)
         types.Actor.spells(self):remove("FPerks_MT4_Invisibility");
-        HasMT4 = false
     end,
 })

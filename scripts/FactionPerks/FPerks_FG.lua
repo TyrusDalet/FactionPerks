@@ -3,9 +3,9 @@
     FG:
 
         FPerks_FG1_Passive              - +5 Strength, +10 Fortify Health
-        FPerks_FG2_Passive              - +15(10) Strength, +25(15) Fortify Health
-        FPerks_FG3_Passive              - +25(10) Strength, +50(25) Fortify Health
-        FPerks_FG4_Passive              - +25 Endurance, +75(25) Fortify Health, Restore Health 1pt/s, Restore Fatigue 1pt/s
+        FPerks_FG2_Passive              - +15 Strength, +25 Fortify Health
+        FPerks_FG3_Passive              - +25 Strength, +50 Fortify Health
+        FPerks_FG4_Passive              - +25 Endurance, +75 Fortify Health, Restore Health 1pt/s, Restore Fatigue 1pt/s
         FPerks_FG3_Enrage               - Power, Fortify Health 50pts, Fortify Fatigue 200pts, Fortify Attack 100pts, 30s duration.
 
 
@@ -23,6 +23,42 @@ local core       = require('openmw.core')
 
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
+
+
+-- Create a table with all the Faction spell effects in it, each object is the perk of that rank
+local perkTable = {
+    [1] = { passive = {"FPerks_FG1_Passive"} },
+    [2] = { passive = {"FPerks_FG2_Passive"} },
+    [3] = { passive = {"FPerks_FG3_Passive"} },
+    [4] = { passive = {"FPerks_FG4_Passive"} }
+}
+
+-- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
+local function setRank(NewRank)
+-- Removes all other effects by interating through the table, then for each object within THAT table, runs through those
+
+    -- Removing
+    for _, rankData in pairs(perkTable) do
+    -- Remove spell effects
+        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
+            for i = 1, #rankData.passive do
+                types.Actor.spells(self):remove(rankData.passive[i]) 
+            end
+        end
+    end
+
+-- Stop here if no rank (used for onRemove)
+    if not NewRank or not perkTable[NewRank] then return end
+
+local rankData = perkTable[NewRank]
+
+    -- Add spell effects
+    if rankData.passive then --If the object in that table location is a string (spell effect) run a command to add it
+        for i = 1, #rankData.passive do 
+            types.Actor.spells(self):add(rankData.passive[i])
+        end
+    end
+end
 
 --- ============================================================
 --  FIGHTERS GUILD
@@ -45,10 +81,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(1),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_FG1_Passive");
+        setRank(1)
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_FG1_Passive");
+        setRank(nil)
     end
 })
 
@@ -69,10 +105,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(5),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_FG2_Passive");
+        setRank(2)
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_FG2_Passive");
+        setRank(nil)
     end
 })
 
@@ -93,11 +129,11 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(10),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_FG3_Passive");
+        setRank(3)
         types.Actor.spells(self):add("FPerks_FG3_Enrage");
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_FG3_Passive");
+        setRank(nil)
         types.Actor.spells(self):remove("FPerks_FG3_Enrage");
     end
 })
@@ -120,9 +156,9 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(15),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_FG4_Passive");
+        setRank(4)
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_FG4_Passive");
+        setRank(nil)
     end
 })

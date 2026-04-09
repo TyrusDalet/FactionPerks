@@ -1,11 +1,11 @@
 --[[
-
     MG:
         FPerks_MG1_Passive          - +5 Intelligence, +10 Fortify Magicka
-        FPerks_MG2_Passive          - +15(10) Intelligence, +25(15) Fortify Magicka
-        FPerks_MG3_Passive          - +25(10) Intelligence, +50(25) Fortify Magicka, 0.5xINT Max Magicka
-        FPerks_MG4_Passive          - +25 Willpower, +75(25) Fortify Magicka, 1.0XINT (0.5) Max Magicka
-
+        FPerks_MG2_Passive          - +15 Intelligence, +25 Fortify Magicka
+        FPerks_MG3_Passive          - +25 Intelligence, +50 Fortify Magicka,
+                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
+        FPerks_MG4_Passive          - +25 Willpower, +75 Fortify Magicka,
+                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
@@ -13,21 +13,47 @@ local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
-local storage    = require('openmw.storage')
 
-local perkStore = storage.playerSection("FactionPerks")
-
--- ============================================================
---  CORE HELPERS
--- ============================================================
-
--- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
+
+local perkTable = {
+    [1] = { passive = {"FPerks_MG1_Passive"} },
+    [2] = { passive = {"FPerks_MG2_Passive"} },
+    [3] = { passive = {"FPerks_MG3_Passive"} },
+    [4] = { passive = {"FPerks_MG4_Passive"} },
+}
+
+-- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
+local function setRank(NewRank)
+-- Removes all other effects by iterating through the table, then for each object within THAT table, runs through those
+
+    -- Removing
+    for _, rankData in pairs(perkTable) do
+    -- Remove spell effects
+        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
+            for i = 1, #rankData.passive do
+                types.Actor.spells(self):remove(rankData.passive[i])
+            end
+        end
+    end
+
+-- Stop here if no rank (used for onRemove)
+    if not NewRank or not perkTable[NewRank] then return end
+
+    local rankData = perkTable[NewRank]
+
+    -- Add spell effects
+    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
+        for i = 1, #rankData.passive do
+            types.Actor.spells(self):add(rankData.passive[i])
+        end
+    end
+end
 
 -- ============================================================
 --  MAGES GUILD
---  Primary attribute: Intelligence
---  Scaling: Fortify Magicka (flat) + INT-scaled bonus at P3/P4
+--  Primary attribute: Intelligence (P1-P3), Willpower (P4)
+--  Scaling: Fortify Magicka, Fortify Maximum Magicka
 -- ============================================================
 
 local mg1_id = ns .. "_mg_guild_initiate"
@@ -43,12 +69,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumFactionRank('mages guild', 0),
         R().minimumLevel(1),
     },
-    onAdd = function()
-        types.Actor.spells(self):add("FPerks_MG1_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MG1_Passive");
-    end,
+    onAdd    = function() setRank(1) end,
+    onRemove = function() setRank(nil) end,
 })
 
 local mg2_id = ns .. "_mg_scholastic_rigour"
@@ -66,12 +88,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('intelligence', 40),
         R().minimumLevel(5),
     },
-        onAdd = function()
-        types.Actor.spells(self):add("FPerks_MG2_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MG2_Passive");
-    end,
+    onAdd    = function() setRank(2) end,
+    onRemove = function() setRank(nil) end,
 })
 
 local mg3_id = ns .. "_mg_arcane_reservoir"
@@ -91,12 +109,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('intelligence', 50),
         R().minimumLevel(10),
     },
-        onAdd = function()
-        types.Actor.spells(self):add("FPerks_MG3_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MG3_Passive");
-    end,
+    onAdd    = function() setRank(3) end,
+    onRemove = function() setRank(nil) end,
 })
 
 local mg4_id = ns .. "_mg_archmagisters_peer"
@@ -116,10 +130,6 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('intelligence', 75),
         R().minimumLevel(15),
     },
-        onAdd = function()
-        types.Actor.spells(self):add("FPerks_MG4_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_MG4_Passive");
-    end,
+    onAdd    = function() setRank(4) end,
+    onRemove = function() setRank(nil) end,
 })

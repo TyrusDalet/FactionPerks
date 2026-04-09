@@ -1,12 +1,13 @@
 --[[
-
     IL:
         FPerks_IL1_Passive          - +5 Endurance, +10 Fortify Fatigue, +10 Medium Armour, +10 Heavy Armour
-        FPerks_IL2_Passive          - +15(10) Endurance, +25(15) Fortify Fatigue, +25 Block
-        FPerks_IL3_Passive          - +25(10) Endurance, +50(25) Fortify Fatigue, +50 Athletics
-        FPerks_IL4_Passive          - +25 Strength, +75(25) Fortify Fatigue, +75(65) Heavy Armour, Restore Health 1pt/s, Restore Fatigue 1pt/s
-        FPerks_IL3_Prowess          
+        FPerks_IL2_Passive          - +15 Endurance, +25 Fortify Fatigue, +25 Block
+        FPerks_IL3_Passive          - +25 Endurance, +50 Fortify Fatigue, +50 Athletics
+        FPerks_IL4_Passive          - +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour,
+                                      Restore Health 1pt/s, Restore Fatigue 1pt/s
 
+    Non-table spells (granted once, not removed on rank-up):
+        FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
@@ -15,19 +16,47 @@ local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
 
--- ============================================================
---  CORE HELPERS
--- ============================================================
-
--- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
+
+local perkTable = {
+    [1] = { passive = {"FPerks_IL1_Passive"} },
+    [2] = { passive = {"FPerks_IL2_Passive"} },
+    [3] = { passive = {"FPerks_IL3_Passive"} },
+    [4] = { passive = {"FPerks_IL4_Passive", "FPerks_IL4_Restore_Phys"} }, --Too many effects granted at this level for a single spell effect
+}
+
+-- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
+local function setRank(NewRank)
+-- Removes all other effects by iterating through the table, then for each object within THAT table, runs through those
+
+    -- Removing
+    for _, rankData in pairs(perkTable) do
+    -- Remove spell effects
+        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
+            for i = 1, #rankData.passive do
+                types.Actor.spells(self):remove(rankData.passive[i])
+            end
+        end
+    end
+
+-- Stop here if no rank (used for onRemove)
+    if not NewRank or not perkTable[NewRank] then return end
+
+    local rankData = perkTable[NewRank]
+
+    -- Add spell effects
+    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
+        for i = 1, #rankData.passive do
+            types.Actor.spells(self):add(rankData.passive[i])
+        end
+    end
+end
 
 -- ============================================================
 --  IMPERIAL LEGION
---  Primary attribute: Endurance
---  Scaling: Fortify Fatigue
---  Special: vanilla Adrenaline Rush power (Forced March),
---           Restore Health + Fatigue ability (Legate)
+--  Primary attribute: Endurance (P1-P3), Strength (P4)
+--  Scaling: Fortify Fatigue, Block, Athletics, Heavy Armour
+--  Special: Legion's Prowess power (P3), Restore ability (P4)
 -- ============================================================
 
 local il1_id = ns .. "_il_legion_recruit"
@@ -43,12 +72,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumFactionRank('imperial legion', 0),
         R().minimumLevel(1),
     },
-    onAdd = function()
-        types.Actor.spells(self):add("FPerks_IL1_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_IL1_Passive");
-    end
+    onAdd    = function() setRank(1) end,
+    onRemove = function() setRank(nil) end,
 })
 
 local il2_id = ns .. "_il_shield_wall"
@@ -56,7 +81,7 @@ interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
     --hidden = true,
-    localizedDescription = "You have mastered the disciplined defensive formations of the Imperial army. \n"
+    localizedDescription = "You have mastered the disciplined defensive formations of the Imperial army.\n "
         .. "Requires Legion Recruit. "
         .. "(+15 Endurance, +25 Fortify Fatigue, +25 Block)",
     art = "textures\\levelup\\knight", cost = 2,
@@ -66,12 +91,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 40),
         R().minimumLevel(5),
     },
-    onAdd = function()
-    types.Actor.spells(self):add("FPerks_IL2_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_IL2_Passive");
-    end
+    onAdd    = function() setRank(2) end,
+    onRemove = function() setRank(nil) end,
 })
 
 local il3_id = ns .. "_il_forced_march"
@@ -91,13 +112,13 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(10),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_IL3_Passive");
-        types.Actor.spells(self):add("FPerks_IL3_Prowess");
+        setRank(3)
+        types.Actor.spells(self):add("FPerks_IL3_Prowess")
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_IL3_Passive");
-        types.Actor.spells(self):remove("FPerks_IL3_Prowess");
-    end
+        setRank(nil)
+        types.Actor.spells(self):remove("FPerks_IL3_Prowess")
+    end,
 })
 
 local il4_id = ns .. "_il_legate"
@@ -108,7 +129,8 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You command the respect of every soldier who serves alongside you. "
         .. "The Emperor's discipline has forged your body into something that endures.\n "
         .. "Requires Forced March. "
-        .. "(+25 Strength, +75 Fortify Fatigue, +75 Heavy Armour, Restore Health 1pt/s, Restore Fatigue 1pt/s)",
+        .. "(+25 Strength, +75 Fortify Fatigue, +75 Heavy Armour, "
+        .. "Restore Health 1pt/s, Restore Fatigue 1pt/s)",
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(il3_id),
@@ -116,10 +138,6 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 75),
         R().minimumLevel(15),
     },
-     onAdd = function()
-        types.Actor.spells(self):add("FPerks_IL4_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_IL4_Passive");
-    end
+    onAdd    = function() setRank(4) end,
+    onRemove = function() setRank(nil) end,
 })

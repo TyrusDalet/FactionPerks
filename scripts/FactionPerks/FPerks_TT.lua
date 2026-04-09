@@ -1,40 +1,68 @@
 --[[
-TT:
-        FPerks_TT1_Passive               - +5 Intelligence, +10 Reflect, +10 Resist Paralysis +10 Resist Blight Disease
-        FPerks_TT2_Passive               = +15 Intelligence (10), +25 Reflect(15), +25 Resist Paralysis(15), +25 Resist Blight Disease(15)
-        FPerks_TT3_Passive               = +25 Intelligence (19), +50 Reflect(25), +50 Resist Paralysis(25), +50 Resist Blight Disease(25)
-        FPerks_TT4_Passive               - +25 Personality, +75 Reflect(25), +75 Resist Paralysis(25), +75 Resist Blight Disease(25)
-        FPerks_TT2_Cure_All              - Power. Cure Disease + Cure Poison + Cure Blight Touch, 1/day
-        FPerks_TT4_Summon_Army           - Power, Summon 2 Greater Bonewalkers + 2 Bonelords / 60s, 1/day
+    TT:
+        FPerks_TT1_Passive          - +5 Intelligence, +10 Reflect, +10 Resist Paralysis,
+                                      +10 Resist Blight Disease
+        FPerks_TT2_Passive          - +15 Intelligence, +25 Reflect, +25 Resist Paralysis,
+                                      +25 Resist Blight Disease
+        FPerks_TT3_Passive          - +25 Intelligence, +50 Reflect, +50 Resist Paralysis,
+                                      +50 Resist Blight Disease
+        FPerks_TT4_Passive          - +25 Personality, +75 Reflect, +75 Resist Paralysis,
+                                      +75 Resist Blight Disease
+
+    Non-table spells (granted once, not removed on rank-up):
+        "almsivi intervention"      Vanilla spell (P1)
+        FPerks_TT2_Cure_All         Power (P2)
+        FPerks_TT4_Summon_Army      Power (P4)
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
 local interfaces = require("openmw.interfaces")
-local ui         = require('openmw.ui')
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
-local nearby     = require('openmw.nearby')
-local storage    = require('openmw.storage')
 
-local perkStore = storage.playerSection("FactionPerks")
-
-
--- ============================================================
---  CORE HELPERS
--- ============================================================
-
--- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
+local perkTable = {
+    [1] = { passive = {"FPerks_TT1_Passive"} },
+    [2] = { passive = {"FPerks_TT2_Passive"} },
+    [3] = { passive = {"FPerks_TT3_Passive"} },
+    [4] = { passive = {"FPerks_TT4_Passive"} },
+}
+
+-- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
+local function setRank(NewRank)
+-- Removes all other effects by iterating through the table, then for each object within THAT table, runs through those
+
+    -- Removing
+    for _, rankData in pairs(perkTable) do
+    -- Remove spell effects
+        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
+            for i = 1, #rankData.passive do
+                types.Actor.spells(self):remove(rankData.passive[i])
+            end
+        end
+    end
+
+-- Stop here if no rank (used for onRemove)
+    if not NewRank or not perkTable[NewRank] then return end
+
+    local rankData = perkTable[NewRank]
+
+    -- Add spell effects
+    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
+        for i = 1, #rankData.passive do
+            types.Actor.spells(self):add(rankData.passive[i])
+        end
+    end
+end
 
 -- ============================================================
 --  TRIBUNAL TEMPLE
---  Primary attribute: Intelligence
+--  Primary attribute: Intelligence (P1-P3), Personality (P4)
 --  Scaling: Reflect, Resist Paralysis, Resist Blight Disease
---  Special: Almsivi Intervention (Ordinate Aspirant),
---           1/day Cure power (Pilgrim Soul),
---           1/day Summon honoured ancestors power (Hand of ALMSIVI)
+--  Special: Almsivi Intervention (P1), Cure All power (P2),
+--           Summon Army power (P4)
 -- ============================================================
 
 local tt1_id = ns .. "_tt_ordinate_aspirant"
@@ -52,12 +80,12 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(1),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_TT1_Passive");
-        types.Actor.spells(self):add("Almsivi Intervention");
+        setRank(1)
+        types.Actor.spells(self):add("almsivi intervention")
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_TT1_Passive");
-        types.Actor.spells(self):remove("Almsivi Intervention");
+        setRank(nil)
+        types.Actor.spells(self):remove("almsivi intervention")
     end,
 })
 
@@ -79,10 +107,12 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(5),
     },
     onAdd = function()
-        types.Actor.spells(self):add("FPerks_TT2_Passive");
+        setRank(2)
+        types.Actor.spells(self):add("FPerks_TT2_Cure_All")
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_TT2_Passive");
+        setRank(nil)
+        types.Actor.spells(self):remove("FPerks_TT2_Cure_All")
     end,
 })
 
@@ -101,12 +131,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('willpower', 50),
         R().minimumLevel(10),
     },
-     onAdd = function()
-        types.Actor.spells(self):add("FPerks_TT3_Passive");
-    end,
-    onRemove = function()
-        types.Actor.spells(self):remove("FPerks_TT3_Passive");
-    end,
+    onAdd    = function() setRank(3) end,
+    onRemove = function() setRank(nil) end,
 })
 
 local tt4_id = ns .. "_tt_hand_of_almsivi"
@@ -126,12 +152,12 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('willpower', 75),
         R().minimumLevel(15),
     },
-     onAdd = function()
-        types.Actor.spells(self):add("FPerks_TT4_Passive");
-        types.Actor.spells(self):add("FPerks_TT4_Summon_Army");
+    onAdd = function()
+        setRank(4)
+        types.Actor.spells(self):add("FPerks_TT4_Summon_Army")
     end,
     onRemove = function()
-        types.Actor.spells(self):remove("FPerks_TT4_Passive");
-        types.Actor.spells(self):remove("FPerks_TT4_Summon_Army");
+        setRank(nil)
+        types.Actor.spells(self):remove("FPerks_TT4_Summon_Army")
     end,
 })
