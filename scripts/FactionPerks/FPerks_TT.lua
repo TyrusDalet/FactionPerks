@@ -23,6 +23,12 @@ local core       = require('openmw.core')
 
 local R = interfaces.ErnPerkFramework.requirements
 
+local function notExpelled(factionId)
+    return R().custom(function()
+        return not types.NPC.isExpelled(self, factionId)
+    end, "Must not be expelled from " .. factionId)
+end
+
 local perkTable = {
     [1] = { passive = {"FPerks_TT1_Passive"} },
     [2] = { passive = {"FPerks_TT2_Passive"} },
@@ -78,6 +84,7 @@ interfaces.ErnPerkFramework.registerPerk({
     requirements = {
         R().minimumFactionRank('temple', 0),
         R().minimumLevel(1),
+        notExpelled('temple')
     },
     onAdd = function()
         setRank(1)

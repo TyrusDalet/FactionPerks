@@ -32,6 +32,12 @@ local perkStore = storage.playerSection("FactionPerks")
 
 local R = interfaces.ErnPerkFramework.requirements
 
+local function notExpelled(factionId)
+    return R().custom(function()
+        return not types.NPC.isExpelled(self, factionId)
+    end, "Must not be expelled from " .. factionId)
+end
+
 local perkTable = {
     [1] = { passive = {"FPerks_HT1_Passive"} },
     [2] = { passive = {"FPerks_HT2_Passive"} },
@@ -140,6 +146,7 @@ interfaces.ErnPerkFramework.registerPerk({
     requirements = {
         R().minimumFactionRank('telvanni', 0),
         R().minimumLevel(1),
+        notExpelled('telvanni')
     },
     onAdd = function()
         setRank(1)

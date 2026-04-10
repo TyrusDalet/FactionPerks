@@ -32,6 +32,11 @@ local R = interfaces.ErnPerkFramework.requirements
 local hasChameleon25  = false
 local hasChameleon50  = false
 
+local function notExpelled(factionId)
+    return R().custom(function()
+        return not types.NPC.isExpelled(self, factionId)
+    end, "Must not be expelled from " .. factionId)
+end
 
 -- Create a table with all the Faction spell effects in it
 local perkTable = {
@@ -176,6 +181,7 @@ interfaces.ErnPerkFramework.registerPerk({
     requirements = {
         R().minimumFactionRank('thieves guild', 0),
         R().minimumLevel(1),
+        notExpelled('thieves guild')
     },
     onAdd = function()
         setRank(1)

@@ -33,6 +33,12 @@ local HasMT4 = false
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
+local function notExpelled(factionId)
+    return R().custom(function()
+        return not types.NPC.isExpelled(self, factionId)
+    end, "Must not be expelled from " .. factionId)
+end
+
 -- Create a table with all the Faction spell effects in it
 local perkTable = {
     [1] = { passive = {"FPerks_MT1_Passive"} },
@@ -129,6 +135,7 @@ interfaces.ErnPerkFramework.registerPerk({
     requirements = {
         R().minimumFactionRank('morag tong', 0),
         R().minimumLevel(1),
+        notExpelled('morag tong')
     },
     onAdd = function()
         setRank(1)

@@ -28,6 +28,13 @@ local perkStore = storage.playerSection("FactionPerks")
 
 local R = interfaces.ErnPerkFramework.requirements
 
+-- Custom requirement forcing player to not be expelled from the faction
+local function notExpelled(factionId)
+    return R().custom(function()
+        return not types.NPC.isExpelled(self, factionId)
+    end, "Must not be expelled from " .. factionId)
+end
+
 -- Create a table with all the Faction spell effects in it, each object is the perk of that rank
 local perkTable = {
     [1] = { passive = {"FPerks_HR1_Passive"} },
@@ -173,6 +180,7 @@ interfaces.ErnPerkFramework.registerPerk({
     requirements = {
         R().minimumFactionRank('redoran', 0),
         R().minimumLevel(1),
+        notExpelled('redoran')
     },
     onAdd    = function() setRank(1) end,
     onRemove = function() setRank(nil) end,
