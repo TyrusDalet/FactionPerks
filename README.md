@@ -39,7 +39,9 @@ others up to snuff
 # Perks 
 
 All perks in a faction build off of one another
+
 If the perks modify the same attribute or skill, the largest effect applies
+
 Otherwise, the effect persists as you take more perks
 
 # Great Houses #
