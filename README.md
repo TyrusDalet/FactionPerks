@@ -68,7 +68,9 @@ and beyond that point have reduced scaling.
 
   ### Perk 1: Redoran Pledge
   +5 Strength, +10 Spear, +10 Athletics
+  
   Honour the Great House:
+  
     Strength of Great House Redoran
 
   ### Perk 2: Burden of Duty
@@ -85,7 +87,9 @@ and beyond that point have reduced scaling.
 
   ### Perk 1: Hlaalu Courtesies
   +5 Personality, +10 Speechcraft
+  
   Honour The Great House:
+  
     Guile of Great House Hlaalu
 
   ### Perk 2: Silver Tongue
