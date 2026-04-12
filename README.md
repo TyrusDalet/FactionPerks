@@ -153,13 +153,18 @@ and beyond that point have reduced scaling.
 
   ### Perk 3: Forced March
   +25 Endurance, +50 Fortify Fatigue, +50 Athletics
+  
   Grants Power:
+  
     Legion's Prowess
+    
       Fortify Athletics, Strength, Speed, Endurance, Health 50pts for 30s
 
   ### Perk 4: Legate
   +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour
+  
   Restore Health 1pt/s
+  
   Restore Fatigue 1pt/s
 
 
@@ -167,7 +172,9 @@ and beyond that point have reduced scaling.
 
   ### Perk 1: Lay Worshipper
   +5 Willpower, +10 Resist Disease, +10 Resist Poison, +10 Resist Normal Weapons
+  
   Grants Spell:
+  
     Divine Intervention
 
   ### Perk 2: Charitable Hand
@@ -178,8 +185,11 @@ and beyond that point have reduced scaling.
 
   ### Perk 4: Blessed of the Nine
   +25 Personality, +75 Resist Disease, +75 Resist Poison, +75 Resist Normal Weapons
+  
   Grants Power:
+  
     Blessing of the Nine
+    
       Fortify all Attributes 50pts for 30s
 
 
@@ -193,10 +203,12 @@ and beyond that point have reduced scaling.
 
   ### Perk 3: Fence Network
   +20 Agility, +50 Sneak, +50 Mercantile
+  
   25% Chameleon while sneaking
 
   ### Perk 4: Master Thief
   +25 Luck, +75 Security
+  
   50% Chameleon while sneaking
 
 
@@ -210,15 +222,20 @@ and beyond that point have reduced scaling.
 
   ### Perk 3: Battle-Tested
   +25 Strength, +50 Fortify Health
+  
   Grants Power:
+  
     Martial Rage
+    
       Fortify Health 50pts for 30s
       Fortify Fatigue 200pts for 30s
       Fortify Attack 100pts for 30s
 
   ### Perk 4: Champion of the Guild
   +25 Endurance, +75 Fortify Health
+  
   Restore Health 1pt/s
+  
   Restore Fatigue 1pt/s
 
 
@@ -232,10 +249,12 @@ and beyond that point have reduced scaling.
 
   ### Perk 3: Arcane Reservoir
   +25 Intelligence, +50 Fortify Magicka
+  
   Fortify Maximum Magicka 0.5x INT
 
   ### Perk 4: Archmagister's Peer
   +25 Willpower, +75 Fortify Magicka
+  
   Fortify Maximum Magicka 1.0x INT
 
 
@@ -245,13 +264,18 @@ and beyond that point have reduced scaling.
 
   ### Perk 1: Ordinate Aspirant
   +5 Intelligence, +10 Reflect, +10 Resist Paralysis, +10 Resist Blight Disease
+  
   Grants Spell:
+  
     Almsivi Intervention
 
   ### Perk 2: Pilgrim Soul
   +15 Intelligence, +25 Reflect, +25 Resist Paralysis, +25 Resist Blight Disease
+  
   Grants Power:
+  
     Touch of ALMSIVI
+    
       Cure Common Disease, Cure Blight Disease, Cure Poison on Touch
 
   ### Perk 3: Voice of Reclaimation
@@ -259,8 +283,11 @@ and beyond that point have reduced scaling.
 
   ### Perk 4: Hand of ALMSIVI
   +25 Personality, +75 Reflect, +75 Resist Paralysis, +75 Resist Blight Disease
+  
   Grants Power:
+  
     Call Honoured Ancestors
+    
       Summon 2x Greater Bonewalker 60s
       Summon 2x Bonelord 60s
 
@@ -272,8 +299,11 @@ and beyond that point have reduced scaling.
 
   ### Perk 2: Blade Discipline
   +15 Speed, +25 Short Blade, +25 Light Armour
+  
   Grants Spell:
+  
     Mephala's Touch
+    
       Frenzy Humanoid 50pts for 30s
 
   ### Perk 3: Calm Before
@@ -281,7 +311,11 @@ and beyond that point have reduced scaling.
 
   ### Perk 4: Honoured Executioner
   +25 Strength, +75 Short Blade
+  
   Weapon attacks whilst sneaking apply a 25pt for 5s Absorb Health effect
+  
   Grants Power:
+  
     Mephala's Shroud
+    
       Invisibility for 60s
