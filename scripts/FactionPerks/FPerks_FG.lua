@@ -12,6 +12,8 @@
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
+local utils      = require("scripts.FactionPerks.utils")
+local notExpelled = utils.notExpelled
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
@@ -24,12 +26,6 @@ local core       = require('openmw.core')
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
-local function notExpelled(factionId)
-    return R().custom(function()
-        return not types.NPC.isExpelled(self, factionId)
-    end, "Must not be expelled from " .. factionId)
-end
-
 
 -- Create a table with all the Faction spell effects in it, each object is the perk of that rank
 local perkTable = {
@@ -39,32 +35,7 @@ local perkTable = {
     [4] = { passive = {"FPerks_FG4_Passive"} }
 }
 
--- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
-local function setRank(NewRank)
--- Removes all other effects by interating through the table, then for each object within THAT table, runs through those
-
-    -- Removing
-    for _, rankData in pairs(perkTable) do
-    -- Remove spell effects
-        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
-            for i = 1, #rankData.passive do
-                types.Actor.spells(self):remove(rankData.passive[i]) 
-            end
-        end
-    end
-
--- Stop here if no rank (used for onRemove)
-    if not NewRank or not perkTable[NewRank] then return end
-
-local rankData = perkTable[NewRank]
-
-    -- Add spell effects
-    if rankData.passive then --If the object in that table location is a string (spell effect) run a command to add it
-        for i = 1, #rankData.passive do 
-            types.Actor.spells(self):add(rankData.passive[i])
-        end
-    end
-end
+local setRank = utils.makeSetRank(perkTable, nil)
 
 --- ============================================================
 --  FIGHTERS GUILD
@@ -84,8 +55,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('fighters guild', 0),
-        R().minimumLevel(1),
-        notExpelled('fighters guild')
+        R().minimumLevel(1)
     },
     onAdd = function()
         setRank(1)
@@ -127,7 +97,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
         .. "When the moment demands it, you can call upon a terrifying fury.\n "
         .. "Requires Iron Discipline. "
-        .. "(+25 Strength, +50 Fortify Health, grants Martial Discipline power)",
+        .. "(+25 Strength, +50 Fortify Health, grants Martial Rage power)",
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(fg2_id),

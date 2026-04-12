@@ -4,13 +4,15 @@
         FPerks_IL2_Passive          - +15 Endurance, +25 Fortify Fatigue, +25 Block
         FPerks_IL3_Passive          - +25 Endurance, +50 Fortify Fatigue, +50 Athletics
         FPerks_IL4_Passive          - +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour,
-                                      Restore Health 1pt/s, Restore Fatigue 1pt/s
+        FPerks_IL4_Restore_Phys     - Restore Health 1pt/s, Restore Fatigue 1pt/s
 
     Non-table spells (granted once, not removed on rank-up):
         FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
+local utils      = require("scripts.FactionPerks.utils")
+local notExpelled = utils.notExpelled
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
@@ -18,45 +20,14 @@ local core       = require('openmw.core')
 
 local R = interfaces.ErnPerkFramework.requirements
 
-local function notExpelled(factionId)
-    return R().custom(function()
-        return not types.NPC.isExpelled(self, factionId)
-    end, "Must not be expelled from " .. factionId)
-end
-
 local perkTable = {
     [1] = { passive = {"FPerks_IL1_Passive"} },
     [2] = { passive = {"FPerks_IL2_Passive"} },
     [3] = { passive = {"FPerks_IL3_Passive"} },
-    [4] = { passive = {"FPerks_IL4_Passive", "FPerks_IL4_Restore_Phys"} }, --Too many effects granted at this level for a single spell effect
+    [4] = { passive = {"FPerks_IL4_Passive", "FPerks_IL4_Restore_Phys"} },
 }
 
--- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
-local function setRank(NewRank)
--- Removes all other effects by iterating through the table, then for each object within THAT table, runs through those
-
-    -- Removing
-    for _, rankData in pairs(perkTable) do
-    -- Remove spell effects
-        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
-            for i = 1, #rankData.passive do
-                types.Actor.spells(self):remove(rankData.passive[i])
-            end
-        end
-    end
-
--- Stop here if no rank (used for onRemove)
-    if not NewRank or not perkTable[NewRank] then return end
-
-    local rankData = perkTable[NewRank]
-
-    -- Add spell effects
-    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
-        for i = 1, #rankData.passive do
-            types.Actor.spells(self):add(rankData.passive[i])
-        end
-    end
-end
+local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
 --  IMPERIAL LEGION
@@ -76,8 +47,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('imperial legion', 0),
-        R().minimumLevel(1),
-        notExpelled('imperial legion')
+        R().minimumLevel(1)
     },
     onAdd    = function() setRank(1) end,
     onRemove = function() setRank(nil) end,

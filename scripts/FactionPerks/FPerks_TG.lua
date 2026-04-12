@@ -22,94 +22,39 @@ local ui        = require('openmw.ui')
 -- ============================================================
 local perkStore = storage.playerSection("FactionPerks")
 
-
 -- ============================================================
 --  CORE HELPERS
 -- ============================================================
 
 -- Shorthand requirement builders
-local R = interfaces.ErnPerkFramework.requirements
-local hasChameleon25  = false
-local hasChameleon50  = false
+local R      = interfaces.ErnPerkFramework.requirements
+local utils  = require("scripts.FactionPerks.utils")
+local notExpelled = utils.notExpelled
 
-local function notExpelled(factionId)
-    return R().custom(function()
-        return not types.NPC.isExpelled(self, factionId)
-    end, "Must not be expelled from " .. factionId)
-end
+local hasChameleon25 = false
+local hasChameleon50 = false
 
 -- Create a table with all the Faction spell effects in it
 local perkTable = {
     [1] = { passive = {"FPerks_TG1_Passive"} },
     [2] = { passive = {"FPerks_TG2_Passive"} },
-    [3] = { 
+    [3] = {
             passive = {"FPerks_TG3_Passive"},
-            flags = { hasChameleon25 = true }
-            },
-    [4] = { 
+            flags   = { hasChameleon25 = true },
+           },
+    [4] = {
             passive = {"FPerks_TG4_Passive"},
-            flags = { hasChameleon50 = true }
-            }
+            flags   = { hasChameleon50 = true },
+           },
 }
 
-
--- Flag Handler - allows us to controll the state of the HasMT4 flag from multiple locations
+-- Flag Handler - allows us to control the state of the chameleon flags from multiple locations
 local flagHandlers = {
-
-    hasChameleon25 = function(v)
-        hasChameleon25 = v
-    end,
-
-    hasChameleon50 = function(v)
-        hasChameleon50 = v
-    end
+    hasChameleon25 = function(v) hasChameleon25 = v end,
+    hasChameleon50 = function(v) hasChameleon50 = v end,
 }
 
--- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
-local function setRank(NewRank)
--- Removes all other effects by interating through the table, then for each object within THAT table, runs through those
-
-    -- Removing
-    for _, rankData in pairs(perkTable) do
-    -- Remove spell effects
-        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
-            for i = 1, #rankData.passive do
-                types.Actor.spells(self):remove(rankData.passive[i]) 
-            end
-        end
-
-    -- Reset flags via handlers
-        if rankData.flags then
-            for flag, _ in pairs(rankData.flags) do
-                if flagHandlers[flag] then
-                    flagHandlers[flag](false)
-                end
-            end
-        end
-    end
-    
-
-    -- Stop here if no rank (used for onRemove)
-    if not NewRank or not perkTable[NewRank] then return end
-
-local rankData = perkTable[NewRank]
-
-    -- Add spell effects
-    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
-        for i = 1, #rankData.passive do 
-            types.Actor.spells(self):add(rankData.passive[i])
-        end
-    end
-
-    -- Apply flags via handlers
-    if rankData.flags then
-        for flag, value in pairs(rankData.flags) do
-            if flagHandlers[flag] then
-                flagHandlers[flag](value)
-            end
-        end
-    end
-end
+local setRank = utils.makeSetRank(perkTable, flagHandlers)
 
 -- ============================================================
 --  CHAMELEON (Thieves Guild P3 / P4)
@@ -118,24 +63,23 @@ local chameleonActive = false
 
 local function chameleonMag()
     local m = 0
-    if hasChameleon25 then m = 25 end
-    if hasChameleon50 then m = 50 end
+    if hasChameleon25 then m = m + 25 end
+    if hasChameleon50 then m = m + 50 end
     return m
 end
 local function applyChameleon()
     if not chameleonActive then
         local m = chameleonMag()
-        if m == 25 then 
+        if m >= 25 then 
             types.Actor.spells(self):add("FPerks_TG3_Cham") 
             chameleonActive = true
 
-        elseif m == 50 then 
-            types.Actor.spells(self):add("FPerks_TG4_Cham") 
-            chameleonActive = true
+            if m == 50 then 
+                types.Actor.spells(self):add("FPerks_TG4_Cham") 
+            end
         end
     end
 end
-
 local function removeChameleon()
     if chameleonActive then
         types.Actor.spells(self):remove("FPerks_TG3_Cham")
@@ -180,8 +124,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 1,
     requirements = {
         R().minimumFactionRank('thieves guild', 0),
-        R().minimumLevel(1),
-        notExpelled('thieves guild')
+        R().minimumLevel(1)
     },
     onAdd = function()
         setRank(1)

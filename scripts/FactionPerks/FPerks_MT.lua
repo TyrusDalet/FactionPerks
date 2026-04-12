@@ -24,6 +24,8 @@ require('scripts.FactionPerks.shared')
 
 
 local perkStore = storage.playerSection("FactionPerks")
+local utils  = require("scripts.FactionPerks.utils")
+local notExpelled = utils.notExpelled
 local HasMT4 = false
 
 -- ============================================================
@@ -33,76 +35,23 @@ local HasMT4 = false
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
-local function notExpelled(factionId)
-    return R().custom(function()
-        return not types.NPC.isExpelled(self, factionId)
-    end, "Must not be expelled from " .. factionId)
-end
-
 -- Create a table with all the Faction spell effects in it
 local perkTable = {
     [1] = { passive = {"FPerks_MT1_Passive"} },
     [2] = { passive = {"FPerks_MT2_Passive"} },
     [3] = { passive = {"FPerks_MT3_Passive"} },
-    [4] = { 
+    [4] = {
             passive = {"FPerks_MT4_Passive"},
-            flags = { HasMT4 = true }
-            }
+            flags   = { HasMT4 = true }
+           },
 }
 
-
--- Flag Handler - allows us to controll the state of the HasMT4 flag from multiple locations
+-- Flag Handler - allows us to control the state of the HasMT4 flag from multiple locations
 local flagHandlers = {
-    HasMT4 = function(v)
-        HasMT4 = v
-    end
+    HasMT4 = function(v) HasMT4 = v end,
 }
 
--- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
-local function setRank(NewRank)
--- Removes all other effects by interating through the table, then for each object within THAT table, runs through those
-
-    -- Removing
-    for _, rankData in pairs(perkTable) do
-    -- Remove spell effects
-        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
-            for i = 1, #rankData.passive do
-                types.Actor.spells(self):remove(rankData.passive[i]) 
-            end
-        end
-
-    -- Reset flags via handlers
-        if rankData.flags then
-            for flag, _ in pairs(rankData.flags) do
-                if flagHandlers[flag] then
-                    flagHandlers[flag](false)
-                end
-            end
-        end
-    end
-    
-
-    -- Stop here if no rank (used for onRemove)
-    if not NewRank or not perkTable[NewRank] then return end
-
-local rankData = perkTable[NewRank]
-
-    -- Add spell effects
-    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
-        for i = 1, #rankData.passive do 
-            types.Actor.spells(self):add(rankData.passive[i])
-        end
-    end
-
-    -- Apply flags via handlers
-    if rankData.flags then
-        for flag, value in pairs(rankData.flags) do
-            if flagHandlers[flag] then
-                flagHandlers[flag](value)
-            end
-        end
-    end
-end
+local setRank = utils.makeSetRank(perkTable, flagHandlers)
 
 
 -- Morag Tong Life Steal sneak attacks
@@ -134,8 +83,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('morag tong', 0),
-        R().minimumLevel(1),
-        notExpelled('morag tong')
+        R().minimumLevel(1)
     },
     onAdd = function()
         setRank(1)

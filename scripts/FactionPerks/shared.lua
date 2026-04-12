@@ -7,58 +7,101 @@ ESP REQUIREMENTS - Created in FactionPerkSpells.ESP
 
     TG:
         FPerks_TG1_Passive               = Ability, +5 Agility, +10 Sneak, +10 Security
-        FPerks_TG2_Passive               = Ability, +15(10) Agility, +25 Sneak(15), +25 Acrobatics
-        FPerks_TG3_Passive               = Ability, +25(10) Agility, +50 Sneak(25), +50 Mercantile
-        FPerks_TG4_Passive               = Ability, +25 Luck, +75(65) Security
+        FPerks_TG2_Passive               = Ability, +15 Agility, +25 Sneak, +25 Acrobatics
+        FPerks_TG3_Passive               = Ability, +25 Agility, +50 Sneak, +50 Mercantile
+        FPerks_TG4_Passive               = Ability, +25 Luck, +75 Security
         FPerks_TG3_Cham                  - Ability, 25 Chameleon
-        FPerks_TG4_Cham                  - Ability, 25 Chameleon
+        FPerks_TG4_Cham                  - Ability, 50 Chameleon
 
     MT:
         FPerks_MT1_Passive               - +5 Speed, +10 Short Blade, +10 Speechcraft
-        FPerks_MT2_Passive               - +15 Speed(10), +25 Short Blade(15), +25 Light Armour 
-        FPerks_MT3_Passive               - +25 Speed(15), +50 Sneak, +50 Short Blade(25)
-        FPerks_MT4_Passive               - +25 Strength, +75 Short Blade(25), +75 Sneak(25)
+        FPerks_MT2_Passive               - +15 Speed, +25 Short Blade, +25 Light Armour 
+        FPerks_MT3_Passive               - +25 Speed, +50 Sneak, +50 Short Blade
+        FPerks_MT4_Passive               - +25 Strength, +75 Short Blade, +75 Sneak
         FPerks_MT2_Frenzy                - Spell, Frenzy, free, unlimited
         FPerks_MT4_Invisibility          - Spell, Invisibility, free, unlimited
         FPerks_MT4_Lifesteal             - Spell Effect, Absorb Life 25pts 5s
 
     HH:
-
-
+        FPerks_HH1_Passive          - +5 Personality, +10 Speechcraft
+        FPerks_HH2_Passive          - +15(10) Personality, +25(15) Speechcraft, +25 Illusion
+        FPerks_HH3_Passive          - +25(10) Personality, +50(25) Mercantile
+        FPerks_HH4_Passive          - +25 Personality, +75(25) Speechcraft
 
     FG:
 
-        FPerks_FG4_Restore_Phys          - Ability, Restore Health 1pt + Restore Fatigue 1pt
-
+        FPerks_FG1_Passive              - +5 Strength, +10 Fortify Health
+        FPerks_FG2_Passive              - +15 Strength, +25 Fortify Health
+        FPerks_FG3_Passive              - +25 Strength, +50 Fortify Health
+        FPerks_FG4_Passive              - +25 Endurance, +75 Fortify Health, Restore Health 1pt/s, Restore Fatigue 1pt/s
+        FPerks_FG3_Enrage               - Power, Fortify Health 50pts, Fortify Fatigue 200pts, Fortify Attack 100pts, 30s duration.
 
     IL:
+        FPerks_IL1_Passive          - +5 Endurance, +10 Fortify Fatigue, +10 Medium Armour, +10 Heavy Armour
+        FPerks_IL2_Passive          - +15 Endurance, +25 Fortify Fatigue, +25 Block
+        FPerks_IL3_Passive          - +25 Endurance, +50 Fortify Fatigue, +50 Athletics
+        FPerks_IL4_Passive          - +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour,
+        FPerks_IL4_Restore_Phys     - Restore Health 1pt/s, Restore Fatigue 1pt/s
 
-        FPerks_IL4_Restore_Phys          - Ability, Restore Health 1pt + Restore Fatigue 1pt
+    Non-table spells (granted once, not removed on rank-up):
+        FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
 
-    IC:
+   IC:
+        FPerks_IC1_Passive          - +5 Willpower, +10 Resist Disease, +10 Resist Poison,
+                                      +10 Resist Normal Weapons
+        FPerks_IC2_Passive          - +15 Willpower, +25 Resist Disease, +25 Resist Poison,
+                                      +25 Resist Normal Weapons
+        FPerks_IC3_Passive          - +25 Willpower, +50 Resist Disease, +50 Resist Poison,
+                                      +50 Resist Normal Weapons
+        FPerks_IC4_Passive          - +25 Personality, +75 Resist Disease, +75 Resist Poison,
+                                      +75 Resist Normal Weapons
 
-        FPerks_IC4_AllAttributes         - Power, Fortify All Attributes +50 / 30s, 1/day
+        Non-table spells (granted once, not removed on rank-up):
+        "divine intervention"       Vanilla spell (P1)
+        FPerks_IC4_AllAttributes    Power (P4)
 
     MG:
+        FPerks_MG1_Passive          - +5 Intelligence, +10 Fortify Magicka
+        FPerks_MG2_Passive          - +15 Intelligence, +25 Fortify Magicka
+        FPerks_MG3_Passive          - +25 Intelligence, +50 Fortify Magicka,
+                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
+        FPerks_MG4_Passive          - +25 Willpower, +75 Fortify Magicka,
+                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
 
     TT:
-        FPerks_TT1_Passive               - +5 Intelligence, +10 Reflect, +10 Resist Paralysis +10 Resist Blight Disease
-        FPerks_TT2_Passive               = +15 Intelligence (10), +25 Reflect(15), +25 Resist Paralysis(15), +25 Resist Blight Disease(15)
-        FPerks_TT3_Passive               = +25 Intelligence (19), +50 Reflect(25), +50 Resist Paralysis(25), +50 Resist Blight Disease(25)
-        FPerks_TT4_Passive               - +25 Personality, +75 Reflect(25), +75 Resist Paralysis(25), +75 Resist Blight Disease(25)
-        FPerks_TT2_Cure_All              - Power. Cure Disease + Cure Poison + Cure Blight Touch, 1/day
-        FPerks_TT4_Summon_Army           - Power, Summon 2 Greater Bonewalkers + 2 Bonelords / 60s, 1/day
+        FPerks_TT1_Passive          - +5 Intelligence, +10 Reflect, +10 Resist Paralysis,
+                                      +10 Resist Blight Disease
+        FPerks_TT2_Passive          - +15 Intelligence, +25 Reflect, +25 Resist Paralysis,
+                                      +25 Resist Blight Disease
+        FPerks_TT3_Passive          - +25 Intelligence, +50 Reflect, +50 Resist Paralysis,
+                                      +50 Resist Blight Disease
+        FPerks_TT4_Passive          - +25 Personality, +75 Reflect, +75 Resist Paralysis,
+                                      +75 Resist Blight Disease
 
-    HR:
+    Non-table spells (granted once, not removed on rank-up):
+        FPerks_TT2_Cure_All         Power (P2)
+        FPerks_TT4_Summon_Army      Power (P4)
+        
+   HR:
+        FPerks_HR1_Passive          - +5 Endurance, +10 Spear, +10 Athletics
+        FPerks_HR2_Passive          - +15(10) Endurance, +25(15) Heavy Armor, +25 Block
+        FPerks_HR3_Passive          - +25(10) Endurance, +50(25) Spear, +50(25) Block
+        FPerks_HR4_Passive          - +25 Strength, +75(25) Spear, +75(25) Heavy Armor
 
     HT:
-        FPerks_HT3_Restore_Magicka_1     - Ability, Restore Magicka 1pt  (HT P3)
-        FPerks_HT4_Restore_Magicka_2     - Ability, Restore Magicka 1pt  (HT P4, stacks)
+        FPerks_HT1_Passive          - +5 Intelligence, +10 Enchant, +10 Alchemy,
+                                      +10 Spell Absorption
+        FPerks_HT2_Passive          - +15 Intelligence, +25 Enchant, +25 Alchemy,
+                                      +25 Spell Absorption
+        FPerks_HT3_Passive          - +25 Intelligence, +50 Enchant, +50 Alchemy,
+                                      +50 Spell Absorption,
+                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
+        FPerks_HT4_Passive          - +25 Willpower, +75 Enchant, +75 Alchemy,
+                                      +75 Spell Absorption,
+                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
 
 
   Vanilla spell IDs used directly:
-  "orc_beserk"           FG Perk 3 
-  "adrenaline rush"      IL Perk 3
   "divine intervention"  IC Perk 1
   "almsivi intervention" TT Perk 1
   "strong levitate"      HT Perk 1

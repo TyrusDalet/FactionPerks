@@ -16,18 +16,14 @@
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
+local utils      = require("scripts.FactionPerks.utils")
+local notExpelled = utils.notExpelled
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
 
 local R = interfaces.ErnPerkFramework.requirements
-
-local function notExpelled(factionId)
-    return R().custom(function()
-        return not types.NPC.isExpelled(self, factionId)
-    end, "Must not be expelled from " .. factionId)
-end
 
 local perkTable = {
     [1] = { passive = {"FPerks_TT1_Passive"} },
@@ -36,32 +32,7 @@ local perkTable = {
     [4] = { passive = {"FPerks_TT4_Passive"} },
 }
 
--- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
-local function setRank(NewRank)
--- Removes all other effects by iterating through the table, then for each object within THAT table, runs through those
-
-    -- Removing
-    for _, rankData in pairs(perkTable) do
-    -- Remove spell effects
-        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
-            for i = 1, #rankData.passive do
-                types.Actor.spells(self):remove(rankData.passive[i])
-            end
-        end
-    end
-
--- Stop here if no rank (used for onRemove)
-    if not NewRank or not perkTable[NewRank] then return end
-
-    local rankData = perkTable[NewRank]
-
-    -- Add spell effects
-    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
-        for i = 1, #rankData.passive do
-            types.Actor.spells(self):add(rankData.passive[i])
-        end
-    end
-end
+local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
 --  TRIBUNAL TEMPLE
@@ -83,8 +54,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
         R().minimumFactionRank('temple', 0),
-        R().minimumLevel(1),
-        notExpelled('temple')
+        R().minimumLevel(1)
     },
     onAdd = function()
         setRank(1)

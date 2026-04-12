@@ -12,31 +12,33 @@
                                       Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
 
     Non-table spells (granted once, not removed on rank-up):
-        "strong levitate"           Vanilla spell (P1)
-        "mark"                      Vanilla spell (P2)
-        "recall"                    Vanilla spell (P2)
+        "strong levitate"             Vanilla spell (P1)
+        "mark"                        Vanilla spell (P2)
+        "recall"                      Vanilla spell (P2)
 
-    DOWNSIDE at P4: -30 Disposition with all NPCs.
-    Applied via UiModeChanged on interaction, removed when dialogue closes.
-    Same event system as Hlaalu merchant effects - no global polling needed.
+    Honour The Great House (P1+): Wit of the Telvanni
+        When the player drinks a potion, a scaled bonus is applied
+        to each of its effects via activeEffects:modify + cleanup timer.
+        Application is delayed 0.1s via async so the engine has time
+        to process the potion before we augment its effects.
+        Cleanup fires at duration + 0.1s to reverse each bonus.
+        At rep cap:  +150% of base magnitude (total 250% effect)
+        Post-cap:    continues growing at 30% of pre-cap rate.
+        Shows "You Honour House Telvanni." on first potion
+        consumed per session while the perk is held.
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
+local utils      = require("scripts.FactionPerks.utils")
+local notExpelled = utils.notExpelled
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
-local core       = require('openmw.core')
-local storage    = require('openmw.storage')
+local ui         = require('openmw.ui')
 
-local perkStore = storage.playerSection("FactionPerks")
+local async      = require('openmw.async')
 
 local R = interfaces.ErnPerkFramework.requirements
-
-local function notExpelled(factionId)
-    return R().custom(function()
-        return not types.NPC.isExpelled(self, factionId)
-    end, "Must not be expelled from " .. factionId)
-end
 
 local perkTable = {
     [1] = { passive = {"FPerks_HT1_Passive"} },
@@ -45,93 +47,169 @@ local perkTable = {
     [4] = { passive = {"FPerks_HT4_Passive"} },
 }
 
--- Increase the rank of the PerkTable, applying the new effects, and removing the old one.
-local function setRank(NewRank)
--- Removes all other effects by iterating through the table, then for each object within THAT table, runs through those
-
-    -- Removing
-    for _, rankData in pairs(perkTable) do
-    -- Remove spell effects
-        if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to remove it
-            for i = 1, #rankData.passive do
-                types.Actor.spells(self):remove(rankData.passive[i])
-            end
-        end
-    end
-
--- Stop here if no rank (used for onRemove)
-    if not NewRank or not perkTable[NewRank] then return end
-
-    local rankData = perkTable[NewRank]
-
-    -- Add spell effects
-    if rankData.passive then --If the object in that table location is a passive (spell effect) run a command to add it
-        for i = 1, #rankData.passive do
-            types.Actor.spells(self):add(rankData.passive[i])
-        end
-    end
-end
+local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
 --  HOUSE TELVANNI
 --  Primary attribute: Intelligence (P1-P3), Willpower (P4)
 --  Scaling: Enchant, Alchemy, Spell Absorption,
 --           Fortify Maximum Magicka
+--  Honour The Great House (P1+): Wit of the Telvanni —
+--           potion effects are augmented based on faction rep.
+--           At rep cap: full additional magnitude (effectively
+--           double the potion's effects). Beyond cap: trickles.
 --  Special: Strong Levitate (P1), Mark + Recall (P2),
 --           Restore Magicka abilities (P3 + P4 stacking).
---  DOWNSIDE at P4: -30 Disposition with all NPCs,
---           applied on interaction via UiModeChanged.
 -- ============================================================
 
 -- ============================================================
---  TELVANNI GLOBAL DISP DOWNSIDE
---  Applied to every NPC the player speaks to while P4 is held.
---  Removed the moment dialogue closes. Reuses the Hlaalu
---  global events since the underlying operation is identical.
+--  WIT OF THE TELVANNI — Honour The Great House
+--
+--  When the player drinks a potion, we augment each of its
+--  effects via activeEffects:modify, scaled by honourScale.
+--
+--  The core problem with applying immediately in onActivate is
+--  timing: onActivate fires BEFORE the engine processes the
+--  potion, so the effects are not yet active. We solve this
+--  by scheduling the bonus application 0.1 simulation seconds
+--  later via async:newUnsavableSimulationTimer, by which point
+--  the engine has consumed the potion and the effects are live.
+--
+--  Because activeEffects:modify is permanent until reversed,
+--  we also schedule a cleanup callback at duration - 0.1s to
+--  remove the bonus once the potion naturally expires.
+--
+--  The timers are unsaveable — if the player saves and loads
+--  mid-potion the bonus disappears, which is an acceptable
+--  edge case given the complexity of tracking this across saves.
+--
+--  At rep cap:  +150% extra magnitude (total 250% of base)
+--  Post-cap:    continues at 30% of pre-cap rate (honourScale)
 -- ============================================================
 
-local HT_TALK_MODES = {
-    Barter         = true,
-    Dialogue       = true,
-    Training       = true,
-    SpellBuying    = true,
-    MerchantRepair = true,
-    Enchanting     = true,
-    Companion      = true,
+local hasWitOfTelvanni = false
+local telvMsgShown     = false
+
+-- ============================================================
+--  Effect classification tables.
+--  Fortify Attribute/Skill: engine writes the stat once at
+--    application time and ignores the active effect magnitude
+--    thereafter. We must write directly to the stat modifier
+--    and reverse it ourselves on cleanup.
+--  Restore Health/Magicka/Fatigue: restoration rate is cached
+--    at application time. We apply the total bonus (bonus *
+--    duration) as an instant lump-sum to the dynamic stat
+--    current value. No cleanup needed — it's a one-time add.
+--  Everything else (Night-Eye, Chameleon, etc.): engine reads
+--    the active effect magnitude every frame, so
+--    activeEffects:modify works correctly here.
+-- ============================================================
+
+local FORTIFY_ATTR = { ["fortifyattribute"] = true }
+local FORTIFY_SKILL = { ["fortifyskill"] = true }
+local RESTORE_DYN = {
+    ["restorehealth"]  = "health",
+    ["restoremagicka"] = "magicka",
+    ["restorefatigue"] = "fatigue",
 }
 
-local HT_PENALTY    = -30
-local htPenaltyNpc  = nil
-local htHasPenalty  = false   -- true when P4 is held
-
-local function htApplyPenalty(npc)
-    if not htHasPenalty then return end
-    core.sendGlobalEvent("FPerks_HH_ApplyMerchant", { npc = npc, disp = HT_PENALTY, merc = 0 })
-    htPenaltyNpc = npc
+local function applyFortifyAttr(attrId, bonus)
+    local stat = types.Actor.stats.attributes[attrId]
+    if stat then stat(self).modifier = stat(self).modifier + bonus end
 end
 
-local function htRemovePenalty()
-    if not htPenaltyNpc then return end
-    core.sendGlobalEvent("FPerks_HH_RemoveMerchant", { npc = htPenaltyNpc, disp = HT_PENALTY, merc = 0 })
-    htPenaltyNpc = nil
+local function applyFortifySkill(skillId, bonus)
+    local stat = types.NPC.stats.skills[skillId]
+    if stat then stat(self).modifier = stat(self).modifier + bonus end
 end
 
-local function htOnUiModeChanged(data)
-    if not htHasPenalty then return end
-
-    if not data.newMode then
-        htRemovePenalty()
-        return
+local function applyRestoreDyn(dynKey, bonus, duration)
+    -- Apply total bonus as instant lump sum: bonus magnitude * duration
+    local total = bonus * duration
+    if total <= 0 then return end
+    local dyn = types.Actor.stats.dynamic[dynKey]
+    if dyn then
+        local s = dyn(self)
+        s.current = math.min(s.current + total, s.base + s.modifier)
     end
+end
 
-    if HT_TALK_MODES[data.newMode] and data.arg then
-        local npc = data.arg
-        if npc == htPenaltyNpc then return end
-        htRemovePenalty()
-        if types.NPC.objectIsInstance(npc) then
-            htApplyPenalty(npc)
+local function TelvanniWit(object)
+    if not hasWitOfTelvanni then return end
+    local isPotion     = types.Potion.objectIsInstance(object)
+    local isIngredient = types.Ingredient.objectIsInstance(object)
+    if not isPotion and not isIngredient then return end
+
+    local scale = utils.honourScale('telvanni') * 1.5
+    if scale <= 0 then return end
+
+    local record = (isPotion and types.Potion.record(object))
+               or  (isIngredient and types.Ingredient.record(object))
+    if not record or not record.effects then return end
+
+    -- Build bonus list before timer fires — record may be gone by then
+    local bonuses = {}
+    for _, effectParams in ipairs(record.effects) do
+        local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
+        local bonus   = math.floor(baseMag * scale)
+        if bonus > 0 then
+            bonuses[#bonuses + 1] = {
+                id         = effectParams.id,
+                extraParam = effectParams.affectedAttribute
+                          or effectParams.affectedSkill
+                          or nil,
+                bonus      = bonus,
+                duration   = effectParams.duration,
+            }
         end
     end
+
+    if #bonuses == 0 then return end
+    local timer = 0.1
+
+    -- Apply after engine has processed the potion (0.1s delay)
+    async:newUnsavableSimulationTimer(timer, function()
+        local activeEffects = types.Actor.activeEffects(self)
+
+        for _, b in ipairs(bonuses) do
+            local dynKey = RESTORE_DYN[b.id]
+
+            if FORTIFY_ATTR[b.id] and b.extraParam then
+                -- Write directly to attribute modifier; cleanup reverses it
+                applyFortifyAttr(b.extraParam, b.bonus)
+                async:newUnsavableSimulationTimer(b.duration - timer, function()
+                    applyFortifyAttr(b.extraParam, -b.bonus)
+                end)
+
+            elseif FORTIFY_SKILL[b.id] and b.extraParam then
+                -- Write directly to skill modifier; cleanup reverses it
+                applyFortifySkill(b.extraParam, b.bonus)
+                async:newUnsavableSimulationTimer(b.duration - timer, function()
+                    applyFortifySkill(b.extraParam, -b.bonus)
+                end)
+
+            elseif dynKey then
+                -- Restoration: apply total bonus as instant lump sum
+                applyRestoreDyn(dynKey, b.bonus, b.duration)
+
+            else
+                -- Night-Eye, Chameleon, etc.: activeEffects:modify works
+                if b.extraParam then
+                    activeEffects:modify(b.bonus, b.id, b.extraParam)
+                else
+                    activeEffects:modify(b.bonus, b.id)
+                end
+                async:newUnsavableSimulationTimer(b.duration - timer, function()
+                    if b.extraParam then
+                        activeEffects:modify(-b.bonus, b.id, b.extraParam)
+                    else
+                        activeEffects:modify(-b.bonus, b.id)
+                    end
+                end)
+            end
+        end
+    ui.showMessage("You Honour the Wit of House Telvanni.")
+    end)
 end
 
 local ht1_id = ns .. "_ht_uninvited_student"
@@ -141,20 +219,23 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "House Telvanni does not recruit - it tolerates those strong enough "
         .. "to push their way in. You have done so. For now, that is enough.\n "
         .. "(+5 Intelligence, +10 Enchant, +10 Alchemy, +10 Spell Absorption, "
-        .. "grants Strong Levitate)",
+        .. "grants Strong Levitate)\n\n"
+        .. "Honour the Wit of the Great House Telvanni: Scaling alchemical magnitude with Telvanni Reputation\n"
+        .. "Scaled Restoration effects are applied instantly",
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
         R().minimumFactionRank('telvanni', 0),
         R().minimumLevel(1),
-        notExpelled('telvanni')
     },
     onAdd = function()
         setRank(1)
         types.Actor.spells(self):add("strong levitate")
+        hasWitOfTelvanni = true
     end,
     onRemove = function()
         setRank(nil)
         types.Actor.spells(self):remove("strong levitate")
+        hasWitOfTelvanni = false
     end,
 })
 
@@ -204,9 +285,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(3)
+        types.Actor.spells(self):add("FPerks_HT3_Restore_Magicka_1")
     end,
     onRemove = function()
         setRank(nil)
+        types.Actor.spells(self):remove("FPerks_HT3_Restore_Magicka_1")
     end,
 })
 
@@ -216,14 +299,10 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Telvanni Lord",
     localizedDescription = "You are acknowledged by the Telvanni masters - a rare concession "
         .. "from those who acknowledge no one. The heights are yours to claim.\n "
-        .. "But you have become something other people find deeply unsettling. "
-        .. "Your isolation and accumulated power have made you alien - ordinary folk "
-        .. "sense it before you even open your mouth, and they want nothing to do with you.\n "
         .. "Requires Self-Made Power. "
         .. "(+25 Willpower, +75 Enchant, +75 Alchemy, +75 Spell Absorption, "
         .. "Fortify Maximum Magicka 1.0x Intelligence, "
-        .. "additional Restore Magicka 1pt/s.\n "
-        .. "DOWNSIDE: -30 Disposition with all NPCs.)",
+        .. "additional Restore Magicka 2pt/s)",
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {
         R().hasPerk(ht3_id),
@@ -233,12 +312,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(4)
-        htHasPenalty = true
     end,
     onRemove = function()
         setRank(nil)
-        htHasPenalty = false
-        htRemovePenalty()
     end,
 })
 
@@ -246,7 +322,7 @@ interfaces.ErnPerkFramework.registerPerk({
 --  ENGINE CALLBACKS
 -- ============================================================
 return {
-    eventHandlers = {
-        UiModeChanged = htOnUiModeChanged,
+    engineHandlers = {
+        onConsume = TelvanniWit,
     },
 }
