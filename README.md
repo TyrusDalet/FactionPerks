@@ -50,15 +50,18 @@ They scale up to an expected value based on the reputation required to reach max
 and beyond that point have reduced scaling.
 
   Strength of Great House Redoran:
+  
     Damage Threshold, weapon attacks that do less damage than this threshold have their damage negated
     doubled vs Sixth House members and Dreugh.
     Value at Archmaster requirement: 20
 
   Guile of Great House Hlaalu:
+  
     Increased Disposition with Merchants, and reduces Merchants Mercantile to get you better deals
     Value at Grandmaster requirement: +100 Disposition, -30 Mercantile
 
   Wit of Great House Telvanni:
+  
     Consumed potions and ingredients will trigger a second time with increased magnitude
     Value at Archmagister requirement: 150% magnitude (For a total of 250% effect)
     Restore Health/Magicka/Fatigue effects are currently applied instantly
@@ -106,25 +109,35 @@ and beyond that point have reduced scaling.
 
   ### Perk 1: Uninvited Student
   +5 Intelligence, +10 Enchant, +10 Alchemy, +10 Spell Absorption
+  
   Grants Spell:
+  
     Strong Levitate
+    
   Honour the Great House:
+  
     Wit of Great House Telvanni
 
   ### Perk 2: Tower Sorcery
   +15 Intelligence, +25 Enchant, +25 Alchemy, +25 Spell Absorption
+  
   Grants Spells:
+  
     Mark
     Recall
 
   ### Perk 3: Self-Made Power
   +25 Intelligence, +50 Enchant, +50 Alchemy, +50 Spell Absorption
+  
   Fortify Maximum Magicka 0.5x INT
+  
   Restore Magicka 1pt/s
 
   ### Perk 4: Telvanni Lord
   +25 Willpower, +75 Enchant, +75 Alchemy, +75 Spell Absorption
+  
   Fortify Maximum Magicka 1.0x INT
+  
   Restore Magicka 2pts/s
 
 
