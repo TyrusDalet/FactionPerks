@@ -36,7 +36,7 @@ others up to snuff
 -----------------------------------------------------------------------------------
 
 
-## Perks ##
+# Perks 
 
 All perks in a faction build off of one another
 If the perks modify the same attribute or skill, the largest effect applies
@@ -66,7 +66,7 @@ and beyond that point have reduced scaling.
 
 ## House Redoran
 
-  # Perk 1: Redoran Pledge
+  ### Perk 1: Redoran Pledge
   +5 Strength, +10 Spear, +10 Athletics
   Honour the Great House:
     Strength of Great House Redoran
