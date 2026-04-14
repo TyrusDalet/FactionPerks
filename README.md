@@ -33,6 +33,20 @@ Which means that if you rest or wait, the effect isn't removed
 Yes, House Telvanni has the most benefits, I want that to be the baseline, but I'm still coming up with ways to bring the
 others up to snuff
 
+## TO DO
+
+Figure out why IC smite isn't triggering properly.
+
+Rebalance perk spells and bonus attributes/abilities.
+
+Confirm MG passive is entirely working (time consuming)
+
+Tweak HT passive: spell effects granted by Wit of House Telvanni should clear themselves on rest to remain consistent with vanilla experience. Try to get it to apply to all enchantments, rather than just self targetting on-cast enchantments
+
+Choose more apropriate sound for IL shield reflect trigger
+
+Figure out why FG counterattack plays no sound
+
 -----------------------------------------------------------------------------------
 
 
