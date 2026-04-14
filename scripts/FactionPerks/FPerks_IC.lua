@@ -16,11 +16,12 @@
 
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
-local notExpelled = utils.notExpelled
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
+local ui          = require('openmw.ui')
+local ambient     = require('openmw.ambient')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -30,6 +31,31 @@ local perkTable = {
     [3] = { passive = {"FPerks_IC3_Passive"} },
     [4] = { passive = {"FPerks_IC4_Passive"} },
 }
+
+-- ============================================================
+--  SMITE FEEDBACK
+--  One message per Divine, chosen at random when the smite
+--  fires. Each reflects that Divine's domain and the context
+--  of striking the unholy. Sound uses the vanilla critical
+--  attack cue for a satisfying confirmation.
+-- ============================================================
+
+local IC_SMITE_MESSAGES = {
+    "Akatosh guides your hand.",
+    "By Arkay's grace, the dead shall not stand.",
+    "Dibella blesses your strike.",
+    "Julianos illuminates the weakness of your foe.",
+    "Kynareth's breath carries your blow true.",
+    "Mara shields the living through your hand.",
+    "Stendarr's mercy is not for the wicked.",
+    "Talos strengthens the arm of his faithful.",
+    "Zenithar rewards your devotion.",
+}
+
+local function onSmiteProc(data)
+    ambient.playSound("critical attack")
+    ui.showMessage(IC_SMITE_MESSAGES[math.random(#IC_SMITE_MESSAGES)])
+end
 
 local setRank = utils.makeSetRank(perkTable, nil)
 
@@ -118,3 +144,12 @@ interfaces.ErnPerkFramework.registerPerk({
         types.Actor.spells(self):remove("FPerks_IC4_AllAttributes")
     end,
 })
+
+-- ============================================================
+--  ENGINE CALLBACKS
+-- ============================================================
+return {
+    eventHandlers = {
+        FPerks_IC_SmiteProc = onSmiteProc,
+    },
+}

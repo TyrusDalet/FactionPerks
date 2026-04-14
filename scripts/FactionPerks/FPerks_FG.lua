@@ -13,11 +13,11 @@
 
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
-local notExpelled = utils.notExpelled
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
+local ambient     = require('openmw.ambient')
 
 -- ============================================================
 --  CORE HELPERS
@@ -35,7 +35,129 @@ local perkTable = {
     [4] = { passive = {"FPerks_FG4_Passive"} }
 }
 
+-- Perk id prep
+local fg1_id = ns .. "_fg_dues_paid"
+local fg2_id = ns .. "_fg_iron_discipline"
+local fg3_id = ns .. "_fg_battle_tested"
+local fg4_id = ns .. "_fg_champion_of_the_guild"
+
 local setRank = utils.makeSetRank(perkTable, nil)
+
+-- ============================================================
+--  FIGHTERS GUILD COUNTER ATTACK - Iron Discipline (P2+)
+--
+--  When an enemy misses the player with a weapon swing, if the
+--  player has a weapon equipped they immediately make a free
+--  damage roll with it against the attacker.
+--
+--  Damage approximates the vanilla formula:
+--    base  = random value around highest average damage type
+--    - Strength factor (0.5 + 0.5 - str/100)
+--    - Fatigue factor  (0.75 + 0.25 - currentFatigue/maxFatigue)
+--
+--  Cooldown: 10s at P2, 6s at P3, 1.5s at P4.
+--  Each counter costs the player a small amount of fatigue.
+--
+--  Sound reflects the attacker's armour weight so the feedback
+--  feels grounded. Played as a 2D ambient sound since
+--  playSound3d is restricted to self in local scripts.
+-- ============================================================
+
+local lastFGCounterTime = 0
+
+local function getArmorHitSound(actor)
+    -- Read the attacker's cuirass weight to approximate armour type.
+    -- Thresholds are approximate for vanilla cuirass weights:
+    --   Light  (Chitin, Netch Leather, Glass):    < 10
+    --   Medium (Bonemold, Indoril):               10 - 25
+    --   Heavy  (Iron, Steel, Orcish, Ebony):      > 25
+    local cuirass = types.Actor.getEquipment(actor, types.Actor.EQUIPMENT_SLOT.Cuirass)
+    if cuirass and types.Armor.objectIsInstance(cuirass) then
+        local weight = types.Armor.record(cuirass).weight
+        if weight < 10 then
+            return "light armor hit"
+        elseif weight < 25 then
+            return "medium armor hit"
+        else
+            return "heavy armor hit"
+        end
+    end
+    -- Unarmored or no cuirass - default to light
+    return "light armor hit"
+end
+
+
+local function getCounterDamage(weapon, attacker)
+    local rec = types.Weapon.record(weapon)
+
+    -- Find the highest average damage type as the base for the strike
+    local chop   = (rec.chopMinDamage   + rec.chopMaxDamage)   / 2
+    local slash  = (rec.slashMinDamage  + rec.slashMaxDamage)  / 2
+    local thrust = (rec.thrustMinDamage + rec.thrustMaxDamage) / 2
+    local best   = math.max(chop, slash, thrust)
+
+    -- Randomise around the best average (75% - 125% of it)
+    local base = best * (0.75 + math.random() * 0.5)
+
+    -- Strength factor: mirrors vanilla's roughly linear strength scaling
+    local str       = types.Actor.stats.attributes.strength(attacker).modified
+    local strFactor = 0.5 + 0.5 * (str / 100)
+
+    -- Fatigue factor: penalises exhausted attackers
+    local fatigue   = types.Actor.stats.dynamic.fatigue(attacker)
+    local maxFat    = math.max(fatigue.base + fatigue.modifier, 1)
+    local fatFactor = 0.75 + 0.25 * (fatigue.current / maxFat)
+
+    return math.floor(base * strFactor * fatFactor)
+end
+
+interfaces.Combat.addOnHitHandler(function(attack)
+    print("FG handler fired")
+    print("FG successful: " .. tostring(attack.successful))
+    print("FG weapon: " .. tostring(attack.weapon))
+    print("FG attacker: " .. tostring(attack.attacker))
+    
+    -- Weapon swings only - excludes hand-to-hand and spell damage
+    if attack.successful             then return end
+    if not attack.weapon             then return end
+    if not (attack.attacker and attack.attacker:isValid()) then return end
+
+    print('FG Passed Attack Tests')
+
+    -- Player must hold at least FG P2
+    if not R().hasPerk(fg2_id).check() then return end
+
+    local cooldown = 10
+    if     R().hasPerk(fg4_id).check() then cooldown = 1.5
+    elseif R().hasPerk(fg3_id).check() then cooldown = 6
+    end
+
+    print('FG Player has FG2+')
+
+    local now = core.getSimulationTime()
+    if (now - lastFGCounterTime) < cooldown then return end
+
+    -- Player must have a weapon equipped to counter with
+    local playerWeapon = types.Actor.getEquipment(self, types.Actor.EQUIPMENT_SLOT.CarriedRight)
+    print('FG: Player Weapom: '.. tostring(playerWeapon))
+    if not playerWeapon                          then return end
+    if not types.Weapon.objectIsInstance(playerWeapon) then return end
+
+    -- Calculate and apply counter damage directly to attacker's health
+    local dmg    = getCounterDamage(playerWeapon, self)
+    attack.attacker:sendEvent("FPerks_TakeDamage", { amount = dmg })
+    ambient.playSound("critical attack")
+
+    -- Small fatigue cost to represent the reactive strike
+    local fatigue = types.Actor.stats.dynamic.fatigue(self)
+    fatigue.current = math.max(0, fatigue.current - 8)
+
+    -- Play armour-appropriate hit sound at the player's position (2D)
+    ambient.playSound(getArmorHitSound(attack.attacker))
+
+    lastFGCounterTime = now
+    print("FG Counter Attack! Damage: " .. tostring(dmg))
+end)
 
 --- ============================================================
 --  FIGHTERS GUILD
@@ -45,7 +167,6 @@ local setRank = utils.makeSetRank(perkTable, nil)
 --           Restore Health + Fatigue ability (Champion of the Guild)
 -- ============================================================
 
-local fg1_id = ns .. "_fg_dues_paid"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
@@ -65,7 +186,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end
 })
 
-local fg2_id = ns .. "_fg_iron_discipline"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg2_id,
     localizedName = "Iron Discipline",
@@ -89,7 +209,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end
 })
 
-local fg3_id = ns .. "_fg_battle_tested"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg3_id,
     localizedName = "Battle Tested",
@@ -115,7 +234,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end
 })
 
-local fg4_id = ns .. "_fg_champion_of_the_guild"
 interfaces.ErnPerkFramework.registerPerk({
     id = fg4_id,
     localizedName = "Champion of the Guild",

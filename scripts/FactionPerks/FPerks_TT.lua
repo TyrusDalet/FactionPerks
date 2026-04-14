@@ -22,6 +22,7 @@ local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
+local nearby      = require('openmw.nearby')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -33,6 +34,56 @@ local perkTable = {
 }
 
 local setRank = utils.makeSetRank(perkTable, nil)
+
+-- ============================================================
+--  HONOURED ANCESTORS - Voice of Reclamation (P3+)
+--
+--  Ancestor Ghosts, Bonelords, and Bonewalkers do not attack
+--  the player while this perk is held. Non-summoned instances
+--  are calmed when they become active in the player's cell.
+--
+--  When the perk is lost (respec or expulsion), all nearby
+--  Honoured Ancestors have their fight modifier restored so
+--  they return to normal behaviour.
+--
+--  Summoned instances are excluded by the creature script via
+--  Follow AI package detection, so TT P4 summons are unaffected.
+-- ============================================================
+
+local hasTTHonouredAncestors = false
+
+local HONOURED_ANCESTOR_IDS = {
+    ["ancestor ghost"] = true,
+    ["bonelord"]       = true,
+    ["bonewalker"]     = true,
+}
+
+local function isHonouredAncestorActor(actor)
+    if not types.Creature.objectIsInstance(actor) then return false end
+    local id = (types.Creature.record(actor).id or ""):lower()
+    for name, _ in pairs(HONOURED_ANCESTOR_IDS) do
+        if id:find(name, 1, true) then return true end
+    end
+    return false
+end
+
+-- Called from P3 onRemove. Iterates nearby actors and sends restore
+-- to any calmed Honoured Ancestors so their fight values are reset.
+local function restoreNearbyAncestors()
+    for _, actor in pairs(nearby.actors) do
+        if isHonouredAncestorActor(actor) then
+            actor:sendEvent(ns .. "_TT_RestoreAncestor", {})
+        end
+    end
+end
+
+-- Received from FPerks_TT_creature.lua when an Honoured Ancestor
+-- becomes active. If the perk is held, calm it immediately.
+local function ancestorSpawned(data)
+    if not hasTTHonouredAncestors then return end
+    if not data.creature or not data.creature:isValid() then return end
+    data.creature:sendEvent(ns .. "_TT_CalmAncestor", {})
+end
 
 -- ============================================================
 --  TRIBUNAL TEMPLE
@@ -98,7 +149,9 @@ interfaces.ErnPerkFramework.registerPerk({
     id = tt3_id,
     localizedName = "Voice of Reclamation",
     --hidden = true,
-    localizedDescription = "The Temple's holy authority now speaks through you.\n "
+    localizedDescription = "The Temple's holy authority now speaks through you. "
+        .. "Ancestor Ghosts, Bonelords, and Bonewalkers recognise you as a servant "
+        .. "of ALMSIVI and will not raise their hand against you.\n "
         .. "Requires Pilgrim Soul. "
         .. "(+25 Intelligence, +50 Reflect, +50 Resist Paralysis, +50 Resist Blight Disease)",
     art = "textures\\levelup\\healer", cost = 3,
@@ -108,8 +161,15 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('willpower', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() setRank(3) end,
-    onRemove = function() setRank(nil) end,
+    onAdd = function()
+        setRank(3)
+        hasTTHonouredAncestors = true
+    end,
+    onRemove = function()
+        setRank(nil)
+        hasTTHonouredAncestors = false
+        restoreNearbyAncestors()
+    end,
 })
 
 local tt4_id = ns .. "_tt_hand_of_almsivi"
@@ -138,3 +198,12 @@ interfaces.ErnPerkFramework.registerPerk({
         types.Actor.spells(self):remove("FPerks_TT4_Summon_Army")
     end,
 })
+
+-- ============================================================
+--  ENGINE CALLBACKS
+-- ============================================================
+return {
+    eventHandlers = {
+        [ns .. "_TT_AncestorSpawned"] = ancestorSpawned,
+    },
+}

@@ -174,3 +174,83 @@ function DoMT4Attack(attack)
     end
 end
 
+-- ============================================================
+--  IMPERIAL CULT SMITE
+--  Active from P3. When the player strikes an undead, daedra,
+--  or vampire with a weapon, divine damage is dealt directly
+--  to the target's health, bypassing all resistances.
+--
+--  Damage = Imperial Cult faction rank - 10.
+--    Minimum at P3 (rank 7): 70 damage.
+--    Maximum at P4 (rank 10): 100 damage.
+--  Per-target cooldown: 10s at P3, 5s at P4.
+--
+--  Perk presence is checked via the player's passive spell
+--  list - no flag passing required.
+--  DoICSmite is a global function called from npc.lua.
+-- ============================================================
+
+local lastICSmiteTime = nil  -- per-NPC-instance cooldown; each NPC has its own Lua state
+
+local IC_SMITE_CREATURE_TYPES = {
+    [types.Creature.TYPE.Undead] = true,
+    [types.Creature.TYPE.Daedra] = true,
+}
+
+local function isSmiteTarget(actor)
+
+    -- Undead and Daedra by creature type record
+    if types.Creature.objectIsInstance(actor) then
+        local ctype = types.Creature.record(actor).type
+        if IC_SMITE_CREATURE_TYPES[ctype] then return true end
+    end
+
+    -- Vampires: any actor carrying the vampire attributes spell (NPC or creature)
+    for _, spell in pairs(types.Actor.spells(actor)) do
+        if spell.id == "vampire attributes" then return true end
+    end
+    return false
+    
+end
+
+function DoICSmite(attack)
+    -- Weapon hits only - melee or ranged, not spell damage
+    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
+            attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
+        return
+    end
+
+    -- Player must be the attacker
+    if not (attack.attacker and attack.attacker.type == types.Player) then return end
+
+    -- Check if the player holds IC P3 or P4 passive
+    local playerSpells = types.Actor.spells(attack.attacker)
+    local hasP3 = playerSpells['fperks_ic3_passive'] ~= nil
+    if not hasP3 then return end
+    local hasP4 = playerSpells['fperks_ic4_passive'] ~= nil
+
+    -- Target must be smite-eligible
+    if not isSmiteTarget(self) then return end
+
+    -- Per-target cooldown: 5s at P4, 10s at P3
+    local cooldown = hasP4 and 5 or 10
+    local now = core.getSimulationTime()
+    if lastICSmiteTime and (now - lastICSmiteTime) < cooldown then return end
+
+    -- Damage = faction rank - 10 (rank is 1-indexed in OpenMW API)
+    local rank = types.NPC.getFactionRank(attack.attacker, 'imperial cult')
+    if not rank or rank == 0 then return end
+    local dmg = rank * 10
+
+    -- Apply divine damage directly to health, bypassing all magic systems
+    local healthStat = types.Actor.stats.dynamic.health(self)
+    healthStat.current = healthStat.current - dmg
+
+    -- Record cooldown for this NPC instance
+    lastICSmiteTime = now
+
+    -- Notify the player for sound and message feedback
+    attack.attacker:sendEvent("FPerks_IC_SmiteProc", { dmg = dmg })
+
+    print("IC Smite triggered! Damage: " .. tostring(dmg))
+end
