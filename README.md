@@ -63,22 +63,25 @@ and beyond that point have reduced scaling.
     Constant Effect enchantments are hard-capped at +200% power
 
 
-##House Redoran
+## House Redoran
 
-### Perk 1: Redoran Pledge +3 Str/End, +10 Health, +5 Blade/Blunt/Axe
+### Perk 1: Redoran Pledge 
++3 Str/End, +10 Health, +5 Blade/Blunt/Axe
 
 Honour the Great House:
 
     Strength of Great House Redoran
 
-### Perk 2: Burden of Duty +5 Str/End, +20 Health, +10 Blade/Blunt/Axe
+### Perk 2: Burden of Duty 
++5 Str/End, +20 Health, +10 Blade/Blunt/Axe
 
-### Perk 3: Unbroken Line +10 Str/End, +35 Health, +18 Blade/Blunt/Axe
+### Perk 3: Unbroken Line 
++10 Str/End, +35 Health, +18 Blade/Blunt/Axe
 
-### Perk 4: Guardian of the House +15 Str/End, +50 Health, +25
-Blade/Blunt/Axe
+### Perk 4: Guardian of the House 
++15 Str/End, +50 Health, +25 Blade/Blunt/Axe
 
-##House Hlaalu
+## House Hlaalu
 
 ### Perk 1: Hlaalu Courtesies +3 Per/Agi, +5 Merc/Speech
 
