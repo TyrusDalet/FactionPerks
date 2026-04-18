@@ -94,16 +94,19 @@ local UNIQUE_LOCATIONS = {
     ["mournhold temple: high chapel"]         = true,
     ["sotha sil, dome of sotha sil"]   = true,
     ["magas volar"]   = true,
-    ["solthsteim, mortrag glacier: huntsman's hall"]   = true,
+    ["solsthteim, mortrag glacier: huntsman's hall"]   = true,
 
     --TR
     ["vorthas uldun, chambers of methats uldun"]   = true,
     ["mala tor, lattagarlas"]   = true,
     ["old ebonheart, guild of mages: entrance hall"]   = true,
     ["the space gone missing, outer caverns"]   = true,
+    
     --PT
-
+    ["garlas agea, aransel"] = true,
+    
     --SHotN
+    
 }
 
 local function isPlaceOfPower(cellName)
