@@ -1,17 +1,21 @@
 --[[
     IC:
-        FPerks_IC1_Passive          - +5 Willpower, +10 Resist Disease, +10 Resist Poison,
-                                      +10 Resist Normal Weapons
-        FPerks_IC2_Passive          - +15 Willpower, +25 Resist Disease, +25 Resist Poison,
-                                      +25 Resist Normal Weapons
-        FPerks_IC3_Passive          - +25 Willpower, +50 Resist Disease, +50 Resist Poison,
-                                      +50 Resist Normal Weapons
-        FPerks_IC4_Passive          - +25 Personality, +75 Resist Disease, +75 Resist Poison,
-                                      +75 Resist Normal Weapons
+        FPerks_IC1_Passive          - +3 Willpower, +3 Personality, +5 Speechcraft, +5 Restoration
+        FPerks_IC2_Passive          - +5 Willpower, +5 Personality, +10 Speechcraft, +10 Restoration
+        FPerks_IC3_Passive          - +10 Willpower, +10 Personality, +18 Speechcraft, +18 Restoration
+        FPerks_IC4_Passive          - +15 Willpower, +15 Personality, +25 Speechcraft, +25 Restoration
 
     Non-table spells (granted once, not removed on rank-up):
         "divine intervention"       Vanilla spell (P1)
         FPerks_IC4_AllAttributes    Power (P4)
+
+    Divine Smite (P3+):
+        When the player strikes an undead, daedra, or vampire
+        with a weapon, divine damage is dealt directly to the
+        target bypassing all resistances.
+        Damage = Imperial Cult faction rank x 10.
+        Per-target cooldown: 10s at P3, 5s at P4.
+        Detected via npc.lua and creature.lua hit handlers.
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
@@ -20,8 +24,8 @@ local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
-local ui          = require('openmw.ui')
-local ambient     = require('openmw.ambient')
+local ui         = require('openmw.ui')
+local ambient    = require('openmw.ambient')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -31,6 +35,8 @@ local perkTable = {
     [3] = { passive = {"FPerks_IC3_Passive"} },
     [4] = { passive = {"FPerks_IC4_Passive"} },
 }
+
+local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
 --  SMITE FEEDBACK
@@ -57,7 +63,13 @@ local function onSmiteProc(data)
     ui.showMessage(IC_SMITE_MESSAGES[math.random(#IC_SMITE_MESSAGES)])
 end
 
-local setRank = utils.makeSetRank(perkTable, nil)
+-- ============================================================
+--  IMPERIAL CULT PERKS
+--  Primary attributes: Willpower, Personality
+--  Scaling: Speechcraft, Restoration
+--  Special: Divine Intervention (P1), Divine Smite (P3+),
+--           Fortify All Attributes power (P4)
+-- ============================================================
 
 local ic1_id = ns .. "_ic_lay_worshipper"
 interfaces.ErnPerkFramework.registerPerk({
@@ -65,8 +77,8 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Lay Worshipper",
     localizedDescription = "You have joined the Cult and attend its rites faithfully. "
         .. "The Nine Divines offer you modest but real protection.\n "
-        .. "(+5 Willpower, +10 Resist Disease, +10 Resist Poison, "
-        .. "+10 Resist Normal Weapons, grants Divine Intervention)",
+        .. "(+3 Willpower, +3 Personality, +5 Speechcraft, +5 Restoration, "
+        .. "grants Divine Intervention)",
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
         R().minimumFactionRank('imperial cult', 0),
@@ -89,7 +101,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You have distributed alms and tended to the sick in the name of the Divines. "
         .. "Your faith has strengthened your body as well as your spirit.\n "
         .. "Requires Lay Worshipper. "
-        .. "(+15 Willpower, +25 Resist Disease, +25 Resist Poison, +25 Resist Normal Weapons)",
+        .. "(+5 Willpower, +5 Personality, +10 Speechcraft, +10 Restoration)",
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
         R().hasPerk(ic1_id),
@@ -105,9 +117,12 @@ local ic3_id = ns .. "_ic_divine_favour"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic3_id,
     localizedName = "Divine Favour",
-    localizedDescription = "The Divines have marked you as a servant of true worth.\n "
+    localizedDescription = "The Divines have marked you as a servant of true worth. "
+        .. "When you strike the unholy, divine power smites them through your hand.\n "
         .. "Requires Charitable Hand. "
-        .. "(+25 Willpower, +50 Resist Disease, +50 Resist Poison, +50 Resist Normal Weapons)",
+        .. "(+10 Willpower, +10 Personality, +18 Speechcraft, +18 Restoration)\n\n"
+        .. "Divine Smite: Striking undead, daedra, or vampires deals bonus divine damage "
+        .. "equal to your Imperial Cult rank x 10. 10s cooldown per target.",
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(ic2_id),
@@ -124,10 +139,12 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ic4_id,
     localizedName = "Blessed of the Nine",
     localizedDescription = "The Nine Divines have extended their grace to you directly. "
-        .. "Once each day you may call upon their full blessing.\n "
+        .. "Once each day you may call upon their full blessing. "
+        .. "The cooldown on Divine Smite is halved.\n "
         .. "Requires Divine Favour. "
-        .. "(+25 Personality, +75 Resist Disease, +75 Resist Poison, +75 Resist Normal Weapons, "
-        .. "1/day Fortify All Attributes +50 for 30s)",
+        .. "(+15 Willpower, +15 Personality, +25 Speechcraft, +25 Restoration, "
+        .. "1/day Fortify All Attributes +50 for 30s)\n\n"
+        .. "Divine Smite cooldown reduced to 5s per target.",
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
         R().hasPerk(ic3_id),

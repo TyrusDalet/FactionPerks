@@ -1,9 +1,9 @@
- --[[
+--[[
  MT:
-        FPerks_MT1_Passive               - +5 Speed, +10 Short Blade, +10 Speechcraft
-        FPerks_MT2_Passive               - +15 Speed, +25 Short Blade, +25 Light Armour 
-        FPerks_MT3_Passive               - +25 Speed, +50 Sneak, +50 Short Blade
-        FPerks_MT4_Passive               - +25 Strength, +75 Short Blade, +75 Sneak
+        FPerks_MT1_Passive               - +3 Speed, +3 Agility, +5 Sneak, +5 Acrobatics
+        FPerks_MT2_Passive               - +5 Speed, +5 Agility, +10 Sneak, +10 Acrobatics
+        FPerks_MT3_Passive               - +10 Speed, +10 Agility, +18 Sneak, +18 Acrobatics
+        FPerks_MT4_Passive               - +15 Speed, +15 Agility, +25 Sneak, +25 Acrobatics
         FPerks_MT2_Frenzy                - Spell, Frenzy, free, unlimited
         FPerks_MT4_Invisibility          - Spell, Invisibility, free, unlimited
         FPerks_MT4_Lifesteal             - Spell Effect, Absorb Life 25pts 5s
@@ -51,6 +51,12 @@ local flagHandlers = {
     HasMT4 = function(v) HasMT4 = v end,
 }
 
+-- Perk id prep
+local mt1_id = ns .. "_mt_writ_bearer"
+local mt2_id = ns .. "_mt_blade_discipline"
+local mt3_id = ns .. "_mt_calm_before"
+local mt4_id = ns .. "_mt_honoured_executioner"
+
 local setRank = utils.makeSetRank(perkTable, flagHandlers)
 
 
@@ -66,20 +72,20 @@ end))
 
 -- ============================================================
 --  MORAG TONG
---  Primary attribute: Speed
---  Scaling: Short Blade, Unarmored, Sneak
+--  Primary attributes: Speed, Agility
+--  Scaling: Sneak, Acrobatics
 --  Special: Frenzy power (Blade Discipline),
---           Invisibility power (Honoured Executioner)
+--           Invisibility power (Honoured Executioner),
+--           Lifesteal on sneak attack (Honoured Executioner)
 -- ============================================================
 
-local mt1_id = ns .. "_mt_writ_bearer"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt1_id,
     localizedName = "Writ Bearer",
     --hidden = true,
     localizedDescription = "You carry the legal sanction of the Morag Tong. "
         .. "Your kills are honoured executions, not murders.\n "
-        .. "(+5 Speed, +10 Short Blade, +10 Speechcraft)",
+        .. "(+3 Speed, +3 Agility, +5 Sneak, +5 Acrobatics)",
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('morag tong', 0),
@@ -93,7 +99,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
 })
 
-local mt2_id = ns .. "_mt_blade_discipline"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt2_id,
     localizedName = "Blade Discipline",
@@ -101,7 +106,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "The Tong teaches economy of motion. Your strikes are precise "
         .. "and swift. You have learned to channel pure battle-fury at will.\n "
         .. "Requires Writ Bearer. "
-        .. "(+15 Speed, +25 Short Blade, +25 Light Armour, grants Frenzy power)",
+        .. "(+5 Speed, +5 Agility, +10 Sneak, +10 Acrobatics, grants Frenzy power)",
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(mt1_id),
@@ -119,7 +124,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
 })
 
-local mt3_id = ns .. "_mt_calm_before"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt3_id,
     localizedName = "Calm Before",
@@ -127,7 +131,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You have learned the art of stillness. "
         .. "A Tong assassin who cannot wait cannot succeed.\n "
         .. "Requires Blade Discipline. "
-        .. "(+25 Speed, +50 Sneak, +50 Short Blade)",
+        .. "(+10 Speed, +10 Agility, +18 Sneak, +18 Acrobatics)",
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(mt2_id),
@@ -143,7 +147,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
 })
 
-local mt4_id = ns .. "_mt_honoured_executioner"
 interfaces.ErnPerkFramework.registerPerk({
     id = mt4_id,
     localizedName = "Honoured Executioner",
@@ -151,8 +154,8 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "The Grand Master himself has commended your work. "
         .. "The shadows open for you whenever you call upon them.\n "
         .. "Requires Calm Before. "
-        .. "(+25 Strength, +75 Short Blade, grants Invisibility power)\n\n "
-        .. "Weapon attacks whilst Sneaking inflict a lifesteal effect. ",
+        .. "(+15 Speed, +15 Agility, +25 Sneak, +25 Acrobatics, grants Invisibility power)\n\n "
+        .. "Weapon attacks whilst Sneaking inflict a lifesteal effect.",
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(mt3_id),

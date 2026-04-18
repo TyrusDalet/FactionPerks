@@ -1,18 +1,21 @@
 --[[
     IL:
-        FPerks_IL1_Passive          - +5 Endurance, +10 Fortify Fatigue, +10 Medium Armour, +10 Heavy Armour
-        FPerks_IL2_Passive          - +15 Endurance, +25 Fortify Fatigue, +25 Block
-        FPerks_IL3_Passive          - +25 Endurance, +50 Fortify Fatigue, +50 Athletics
-        FPerks_IL4_Passive          - +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour,
-        FPerks_IL4_Restore_Phys     - Restore Health 1pt/s, Restore Fatigue 1pt/s
+        FPerks_IL1_Passive          - +3 Endurance, +3 Strength, +5 Heavy Armour,
+                                      +5 Block, +10 Fortify Fatigue
+        FPerks_IL2_Passive          - +5 Endurance, +5 Strength, +10 Heavy Armour,
+                                      +10 Block, +20 Fortify Fatigue
+        FPerks_IL3_Passive          - +10 Endurance, +10 Strength, +18 Heavy Armour,
+                                      +18 Block, +35 Fortify Fatigue
+        FPerks_IL4_Passive          - +15 Endurance, +15 Strength, +25 Heavy Armour,
+                                      +25 Block, +50 Fortify Fatigue
 
     Non-table spells (granted once, not removed on rank-up):
         FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
 
     Legionary's Resolve (P2+):
         On successful block:
-            - Reflects 50% of blocked damage back to the attacker directly
-              (bypasses armour and magic resistance, consistent with IC Smite)
+            - Reflects damage to the attacker based on Block skill
+              (Block skill x 0.25, so 10 at skill 40, 25 at skill 100)
             - Restores a portion of the fatigue spent blocking:
                 P2: 30% of fatigue cost restored
                 P3: 50% of fatigue cost restored
@@ -26,9 +29,8 @@
         TIMING NOTE: If fatigueBeforeHit and post-block fatigue are identical
         (delta = 0), the engine deducted block fatigue before our hit handler
         ran. In that case we fall back to a proxy: fatigue restored is calculated
-        as a percentage of blocked health damage, which correlates naturally
-        with block cost since heavier hits cost more fatigue to block.
-        The proxy scalar is tuned to approximate vanilla block fatigue costs.
+        as a percentage of the reflect damage, which correlates naturally
+        with block cost.
 
         No cooldown - Block's hard cap of 50% damage reduction is the
         natural limiter on how often and how much this can proc.
@@ -49,7 +51,7 @@ local perkTable = {
     [1] = { passive = {"FPerks_IL1_Passive"} },
     [2] = { passive = {"FPerks_IL2_Passive"} },
     [3] = { passive = {"FPerks_IL3_Passive"} },
-    [4] = { passive = {"FPerks_IL4_Passive", "FPerks_IL4_Restore_Phys"} },
+    [4] = { passive = {"FPerks_IL4_Passive"} },  -- Restore_Phys removed from new design
 }
 
 -- Perk id prep
@@ -64,7 +66,7 @@ local setRank = utils.makeSetRank(perkTable, nil)
 --  LEGIONARY'S RESOLVE - Shield Wall (P2+)
 --
 --  On successful block:
---    Reflects 50% of blocked damage to the attacker.
+--    Reflects damage based on Block skill to the attacker.
 --    Restores a portion of the fatigue spent blocking,
 --    scaling with perk rank.
 --
@@ -85,9 +87,7 @@ local IL_FATIGUE_RESTORE = {
 
 -- Proxy scalar for fallback fatigue calculation.
 -- If delta is zero (engine deducted before our handler ran),
--- we estimate fatigue cost as blocked damage * this scalar.
--- Tuned to approximate vanilla block fatigue costs in practice.
--- Flag this for adjustment after in-game testing.
+-- estimate fatigue cost as reflect damage * this scalar.
 local IL_FATIGUE_PROXY_SCALAR = 0.5
 
 local function getILRank()
@@ -101,9 +101,6 @@ end
 --  HIT HANDLER
 --  Fires when the player is struck. Stores the attacker and
 --  a fatigue snapshot for the skill handler to read.
---  We also store raw incoming damage before the block reduction
---  is applied, so the reflect calculation uses the full value
---  and we can halve it to get the portion that was blocked.
 -- ============================================================
 
 interfaces.Combat.addOnHitHandler(function(attack)
@@ -137,12 +134,14 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     -- Reflect damage scales purely with Block skill.
     -- At Block 40:  10 damage
     -- At Block 100: 25 damage
-    local blockSkill  = types.NPC.stats.skills.block(self).modified
-    local reflectDmg  = math.floor(blockSkill * 0.25)
+    local blockSkill = types.NPC.stats.skills.block(self).modified
+    local reflectDmg = math.floor(blockSkill * 0.25)
 
+    -- Route damage through npc.lua/creature.lua - can't modify
+    -- another actor's stats directly from a player script
     ilLastAttacker:sendEvent("FPerks_TakeDamage", { amount = reflectDmg })
 
-    -- Fatigue restore — delta method with proxy fallback
+    -- Fatigue restore - delta method with proxy fallback
     local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
     local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
 
@@ -174,8 +173,11 @@ end)
 
 -- ============================================================
 --  IMPERIAL LEGION PERKS
+--  Primary attributes: Endurance, Strength
+--  Scaling: Heavy Armour, Block, Fortify Fatigue
+--  Special: Legion's Prowess power (P3),
+--           Legionary's Resolve block reflect (P2+)
 -- ============================================================
-
 
 interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
@@ -183,7 +185,7 @@ interfaces.ErnPerkFramework.registerPerk({
     --hidden = true,
     localizedDescription = "You have sworn the oath and donned the cuirass. "
         .. "The Legion's drillmasters have improved your guard.\n "
-        .. "(+5 Endurance, +10 Fortify Fatigue, +10 Medium Armour, +10 Heavy Armour)",
+        .. "(+3 Endurance, +3 Strength, +5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('imperial legion', 0),
@@ -193,7 +195,6 @@ interfaces.ErnPerkFramework.registerPerk({
     onRemove = function() setRank(nil) end,
 })
 
-
 interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
@@ -202,9 +203,9 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "of the Imperial army. When you block an attack, the force is turned "
         .. "back against your attacker, and the effort of blocking costs you less.\n "
         .. "Requires Legion Recruit. "
-        .. "(+15 Endurance, +25 Fortify Fatigue, +25 Block)\n\n"
-        .. "Legionary's Resolve: Blocking reflects 50%% of blocked damage to your "
-        .. "attacker. Restores 30%% of fatigue spent blocking.",
+        .. "(+5 Endurance, +5 Strength, +10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\n\n"
+        .. "Legionary's Resolve: Blocking reflects damage to your attacker "
+        .. "based on your Block skill. Restores 30%% of fatigue spent blocking.",
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(il1_id),
@@ -224,7 +225,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "of terrain. When the situation demands it, you can push far beyond "
         .. "normal limits. Blocking now restores 50%% of fatigue spent.\n "
         .. "Requires Shield Wall. "
-        .. "(+25 Endurance, +50 Fortify Fatigue, +50 Athletics, "
+        .. "(+10 Endurance, +10 Strength, +18 Heavy Armour, +18 Block, +35 Fortify Fatigue, "
         .. "grants Legion's Prowess power)",
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
@@ -251,8 +252,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "alongside you. The Emperor's discipline has forged your body into "
         .. "something that endures. Blocking now restores 75%% of fatigue spent.\n "
         .. "Requires Forced March. "
-        .. "(+25 Strength, +75 Fortify Fatigue, +75 Heavy Armour, "
-        .. "Restore Health 1pt/s, Restore Fatigue 1pt/s)",
+        .. "(+15 Endurance, +15 Strength, +25 Heavy Armour, +25 Block, +50 Fortify Fatigue)",
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(il3_id),

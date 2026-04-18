@@ -1,14 +1,16 @@
 --[[
 
     FG:
-
-        FPerks_FG1_Passive              - +5 Strength, +10 Fortify Health
-        FPerks_FG2_Passive              - +15 Strength, +25 Fortify Health
-        FPerks_FG3_Passive              - +25 Strength, +50 Fortify Health
-        FPerks_FG4_Passive              - +25 Endurance, +75 Fortify Health, Restore Health 1pt/s, Restore Fatigue 1pt/s
-        FPerks_FG3_Enrage               - Power, Fortify Health 50pts, Fortify Fatigue 200pts, Fortify Attack 100pts, 30s duration.
-
-
+        FPerks_FG1_Passive              - +3 Strength, +3 Endurance, +10 Fortify Health,
+                                          +5 Long Blade, +5 Blunt Weapon, +5 Axe
+        FPerks_FG2_Passive              - +5 Strength, +5 Endurance, +20 Fortify Health,
+                                          +10 Long Blade, +10 Blunt Weapon, +10 Axe
+        FPerks_FG3_Passive              - +10 Strength, +10 Endurance, +35 Fortify Health,
+                                          +18 Long Blade, +18 Blunt Weapon, +18 Axe
+        FPerks_FG4_Passive              - +15 Strength, +15 Endurance, +50 Fortify Health,
+                                          +25 Long Blade, +25 Blunt Weapon, +25 Axe
+        FPerks_FG3_Enrage               - Power, Fortify Health 50pts, Fortify Fatigue 200pts,
+                                          Fortify Attack 100pts, 30s duration.
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
@@ -17,7 +19,7 @@ local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
-local ambient     = require('openmw.ambient')
+local ambient    = require('openmw.ambient')
 
 -- ============================================================
 --  CORE HELPERS
@@ -25,7 +27,6 @@ local ambient     = require('openmw.ambient')
 
 -- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
-
 
 -- Create a table with all the Faction spell effects in it, each object is the perk of that rank
 local perkTable = {
@@ -52,11 +53,11 @@ local setRank = utils.makeSetRank(perkTable, nil)
 --
 --  Damage approximates the vanilla formula:
 --    base  = random value around highest average damage type
---    - Strength factor (0.5 + 0.5 - str/100)
---    - Fatigue factor  (0.75 + 0.25 - currentFatigue/maxFatigue)
+--    x Strength factor (0.5 + 0.5 x str/100)
+--    x Fatigue factor  (0.75 + 0.25 x currentFatigue/maxFatigue)
 --
 --  Cooldown: 10s at P2, 6s at P3, 1.5s at P4.
---  Each counter costs the player a small amount of fatigue.
+--  Each counter drains a small amount of player fatigue.
 --
 --  Sound reflects the attacker's armour weight so the feedback
 --  feels grounded. Played as a 2D ambient sound since
@@ -86,7 +87,6 @@ local function getArmorHitSound(actor)
     return "light armor hit"
 end
 
-
 local function getCounterDamage(weapon, attacker)
     local rec = types.Weapon.record(weapon)
 
@@ -112,17 +112,10 @@ local function getCounterDamage(weapon, attacker)
 end
 
 interfaces.Combat.addOnHitHandler(function(attack)
-    print("FG handler fired")
-    print("FG successful: " .. tostring(attack.successful))
-    print("FG weapon: " .. tostring(attack.weapon))
-    print("FG attacker: " .. tostring(attack.attacker))
-    
     -- Weapon swings only - excludes hand-to-hand and spell damage
     if attack.successful             then return end
     if not attack.weapon             then return end
     if not (attack.attacker and attack.attacker:isValid()) then return end
-
-    print('FG Passed Attack Tests')
 
     -- Player must hold at least FG P2
     if not R().hasPerk(fg2_id).check() then return end
@@ -132,21 +125,17 @@ interfaces.Combat.addOnHitHandler(function(attack)
     elseif R().hasPerk(fg3_id).check() then cooldown = 6
     end
 
-    print('FG Player has FG2+')
-
     local now = core.getSimulationTime()
     if (now - lastFGCounterTime) < cooldown then return end
 
     -- Player must have a weapon equipped to counter with
     local playerWeapon = types.Actor.getEquipment(self, types.Actor.EQUIPMENT_SLOT.CarriedRight)
-    print('FG: Player Weapom: '.. tostring(playerWeapon))
-    if not playerWeapon                          then return end
+    if not playerWeapon                               then return end
     if not types.Weapon.objectIsInstance(playerWeapon) then return end
 
-    -- Calculate and apply counter damage directly to attacker's health
-    local dmg    = getCounterDamage(playerWeapon, self)
+    -- Calculate and route counter damage through npc.lua/creature.lua
+    local dmg = getCounterDamage(playerWeapon, self)
     attack.attacker:sendEvent("FPerks_TakeDamage", { amount = dmg })
-    ambient.playSound("critical attack")
 
     -- Small fatigue cost to represent the reactive strike
     local fatigue = types.Actor.stats.dynamic.fatigue(self)
@@ -159,12 +148,12 @@ interfaces.Combat.addOnHitHandler(function(attack)
     print("FG Counter Attack! Damage: " .. tostring(dmg))
 end)
 
---- ============================================================
+-- ============================================================
 --  FIGHTERS GUILD
---  Primary attribute: Strength
---  Scaling: Fortify Attack (magic effect)
+--  Primary attributes: Strength, Endurance
+--  Scaling: Fortify Health, Long Blade, Blunt Weapon, Axe
 --  Special: Enrage power (Battle Tested),
---           Restore Health + Fatigue ability (Champion of the Guild)
+--           Counter attack on miss (Iron Discipline P2+)
 -- ============================================================
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -172,7 +161,8 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Dues Paid",
     --hidden = true,
     localizedDescription = "The basic drills are already sharpening your edge.\n "
-        .. "(+5 Strength, +10 Fortify Health)",
+        .. "(+3 Strength, +3 Endurance, +10 Fortify Health, "
+        .. "+5 Long Blade, +5 Blunt Weapon, +5 Axe)",
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('fighters guild', 0),
@@ -191,9 +181,13 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Iron Discipline",
     --hidden = true,
     localizedDescription = "The Guild's contracts have hardened you. "
-        .. "You wade into battle with the confidence of experience.\n "
+        .. "You wade into battle with the confidence of experience. "
+        .. "When an enemy swings and misses, you punish the opening immediately.\n "
         .. "Requires Dues Paid. "
-        .. "(+15 Strength, +25 Fortify Health)",
+        .. "(+5 Strength, +5 Endurance, +20 Fortify Health, "
+        .. "+10 Long Blade, +10 Blunt Weapon, +10 Axe)\n\n"
+        .. "Counter Attack: When an enemy misses you with a weapon, "
+        .. "you immediately strike back. 10s cooldown.",
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(fg1_id),
@@ -214,9 +208,12 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Battle Tested",
     --hidden = true,
     localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
-        .. "When the moment demands it, you can call upon a terrifying fury.\n "
+        .. "When the moment demands it, you can call upon a terrifying fury. "
+        .. "Your counter attack cooldown is reduced.\n "
         .. "Requires Iron Discipline. "
-        .. "(+25 Strength, +50 Fortify Health, grants Martial Rage power)",
+        .. "(+10 Strength, +10 Endurance, +35 Fortify Health, "
+        .. "+18 Long Blade, +18 Blunt Weapon, +18 Axe, grants Martial Rage power)\n\n"
+        .. "Counter Attack cooldown reduced to 6s.",
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(fg2_id),
@@ -239,10 +236,11 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Champion of the Guild",
     --hidden = true,
     localizedDescription = "The Fighters Guild holds you as one of its finest. "
-        .. "Your body recovers on its own - health and fatigue knit themselves back "
-        .. "even in the heat of battle.\n "
+        .. "Your counter attack is now almost instantaneous.\n "
         .. "Requires Battle Tested. "
-        .. "(+25 Endurance, +75 Fortify Health, Restore Health 1pt/s, Restore Fatigue 1pt/s)",
+        .. "(+15 Strength, +15 Endurance, +50 Fortify Health, "
+        .. "+25 Long Blade, +25 Blunt Weapon, +25 Axe)\n\n"
+        .. "Counter Attack cooldown reduced to 1.5s.",
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(fg3_id),

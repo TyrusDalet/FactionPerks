@@ -12,8 +12,9 @@ require("scripts.FactionPerks.shared")
 -- ============================================================
 
 I.Combat.addOnHitHandler(function(attack)
-    DoICSmite(attack)
     DoMT4Attack(attack)
+    DoICSmite(attack)
+
 end)
 
 local function takeDamage(data)
