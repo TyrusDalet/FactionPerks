@@ -65,39 +65,50 @@ and beyond that point have reduced scaling.
 
 ## House Redoran
 
+
 ### Perk 1: Redoran Pledge 
-+3 Str/End, +10 Health, +5 Blade/Blunt/Axe
++3 Str/End, +10 Health, +5 Medium Armour / Athletics
 
 Honour the Great House:
 
     Strength of Great House Redoran
 
 ### Perk 2: Burden of Duty 
-+5 Str/End, +20 Health, +10 Blade/Blunt/Axe
++5 Str/End, +20 Health, +10 Medium Armour / Athletics
 
 ### Perk 3: Unbroken Line 
-+10 Str/End, +35 Health, +18 Blade/Blunt/Axe
++10 Str/End, +35 Health, +18 Medium Armour / Athletics
 
 ### Perk 4: Guardian of the House 
-+15 Str/End, +50 Health, +25 Blade/Blunt/Axe
++15 Str/End, +50 Health, +25 Medium Armour / Athletics
+
+
 
 ## House Hlaalu
 
-### Perk 1: Hlaalu Courtesies +3 Per/Agi, +5 Merc/Speech
+
+### Perk 1: Hlaalu Courtesies 
++3 Per/Agi, +5 Mercantile / Speechcraft
 
 Honour The Great House:
 
     Guile of Great House Hlaalu
 
-### Perk 2: Silver Tongue +5 Per/Agi, +10 Merc/Speech
+### Perk 2: Silver Tongue 
++5 Per/Agi, +5 Mercantile / Speechcraft
 
-### Perk 3: Trade Acumen +10 Per/Agi, +18 Merc/Speech
+### Perk 3: Trade Acumen 
++10 Per/Agi, +5 Mercantile / Speechcraft
 
-### Perk 4: Councillor’s Ear +15 Per/Agi, +25 Merc/Speech
+### Perk 4: Councillor’s Ear 
++15 Per/Agi, +5 Mercantile / Speechcraft
 
-##House Telvanni
 
-### Perk 1: Uninvited Student +3 Int/Wil, +5 Enchant/Conj
+
+## House Telvanni
+
+### Perk 1: Uninvited Student 
++3 Int/Wil, +5 Enchant / Conjuration
 
 Grants Spell:
 
@@ -109,33 +120,38 @@ Honour the Great House:
 
     Wit of Great House Telvanni
 
-### Perk 2: Tower Sorcery +5 Int/Wil, +10 Enchant/Conj
+### Perk 2: Tower Sorcery 
++5 Int/Wil, +10 +5 Enchant / Conjuration
 
 Grants Spells:
 
     Tranasa's Spelltrap 
 
-### Perk 3: Self-Made Power +10 Int/Wil, +18 Enchant/Conj
+### Perk 3: Self-Made Power 
++10 Int/Wil, +18 +5 Enchant / Conjuration
 
-Fortify Maximum Magicka 0.5x INT
 
 Restore Magicka 1pt/s
 
-### Perk 4: Telvanni Lord +15 Int/Wil, +25 Enchant/Conj
-
-Fortify Maximum Magicka 1.0x INT
-
+### Perk 4: Telvanni Lord 
++15 Int/Wil, +25 +5 Enchant / Conjuration
 Restore Magicka 2pts/s
 
-#Imperial Factions
 
-##Imperial Legion
 
-### Perk 1: Legion Recruit +3 End/Str, +5 IvyArmour/Block, +10 Fatigue
+# Imperial Factions
 
-### Perk 2: Shield Wall +5 End/Str, +10 IvyArmour/Block, +20 Fatigue
+## Imperial Legion
 
-### Perk 3: Forced March +10 End/Str, +18 IvyArmour/Block, +35 Fatigue
+
+### Perk 1: Legion Recruit 
++3 End/Str, +5 Heavy Armour / Block, +10 Fatigue
+
+### Perk 2: Shield Wall 
++5 End/Str, +10 Heavy Armour / Block, +20 Fatigue
+
+### Perk 3: Forced March
++10 End/Str, +18 Heavy Armour / Block, +35 Fatigue
 
 Grants Power:
 
@@ -143,7 +159,8 @@ Grants Power:
 
       Fortify Athletics, Strength, Speed, Endurance, Health 50pts for 30s
 
-### Perk 4: Legate +15 End/Str, +25 IvyArmour/Block, +50 Fatigue
+### Perk 4: Legate 
++15 End/Str, +25 Heavy Armour / Blockk, +50 Fatigue
 
 Restore Health 1pt/s
 
