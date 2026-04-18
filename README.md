@@ -150,8 +150,16 @@ Restore Magicka 2pts/s
 ### Perk 2: Shield Wall 
 +5 End/Str, +10 Heavy Armour / Block, +20 Fatigue
 
+Legionary's Resolve:
+
+    Blocking does damage to your attacker
+    Damage is equal to 1/4 your Block Skill
+    Blocking restores 30% of fatigue used
+
 ### Perk 3: Forced March
 +10 End/Str, +18 Heavy Armour / Block, +35 Fatigue
+
+Blocking Fatigue Restoration: 50%
 
 Grants Power:
 
@@ -161,6 +169,8 @@ Grants Power:
 
 ### Perk 4: Legate 
 +15 End/Str, +25 Heavy Armour / Blockk, +50 Fatigue
+
+Blocking Fatigue Restoration: 75%
 
 Restore Health 1pt/s
 Restore Fatigue 1pt/s
@@ -181,8 +191,16 @@ Grants Spell:
 ### Perk 3: Divine Favour 
 +10 Wil/Per, +18 Speechcraft / Restoration
 
+Divine Smite:
+
+    Striking Undead, Vampires, or Daedra deals extra damage
+    Damage = 10x Imperial Cult Rank
+    10s Cooldown per target
+
 ### Perk 4: Blessed of the Nine 
 +15 Wil/Per, +25 Speechcraft / Restoration
+
+Smite Cooldown : 5s
 
 Grants Power:
 
@@ -219,8 +237,12 @@ Grants Power:
 ### Perk 2: Iron Discipline 
 +5 Str/End, +20 Health, +10 Long Blade / Blunt / Axe
 
+Counterattack with held weapon on enemy miss - 10s cooldown
+
 ### Perk 3: Battle-Tested 
 +10 Str/End, +35 Health, +18 Long Blade / Blunt / Axe
+
+Counterattack cooldown: 6s
 
 Grants Power:
 
@@ -233,6 +255,7 @@ Grants Power:
 ### Perk 4: Champion of the Guild 
 +15 Str/End, +50 Health, +25 Long Blade / Blunt / Axe
 
+Counterattack cooldown: 1.5s
 
 
 ## Mages Guild
@@ -242,6 +265,11 @@ Grants Power:
 
 ### Perk 2: Scholastic Rigour 
 +5 Int/End, +20 Magicka, +10 Destruction / Alteration
+
+Magical Cartography:
+
+    Visiting places of power grants 1% Resist Magicka and 2pts Detect Enchantment
+    Every 10 places visted grants 5% magicka refund on spells (max 25%)
 
 ### Perk 3: Arcane Reservoir 
 +10 Int/End, +35 Magicka, +18 Destruction / Alteration
@@ -280,6 +308,8 @@ Grants Power:
 
 ### Perk 3: Voice of Reclaimation 
 +10 Int/Wil, +18 Restoration / Mysticism
+
+Non-summoned Bonewalkers, Bonelords, and Ancestor Ghosts are no longer aggressive
 
 ### Perk 4: Hand of ALMSIVI 
 +15 Int/Wil, +25 Restoration / Mysticism
