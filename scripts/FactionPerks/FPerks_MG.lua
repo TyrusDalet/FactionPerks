@@ -87,13 +87,23 @@ local CELL_CHECK_INTERVAL = 2.0
 -- ============================================================
 
 local UNIQUE_LOCATIONS = {
-    ["mount kand"]          = true,
+
+    -- Vanilla
     ["akulakhan's chamber"] = true,
-    ["palace of vivec"]     = true,
-    ["ministry of truth"]   = true,
-    ["high palace"]         = true,
-    ["high chapel"]         = true,
-    ["dome of sotha sil"]   = true,
+    ["vivec, palace of vivec"]     = true,
+    ["mournhold temple: high chapel"]         = true,
+    ["sotha sil, dome of sotha sil"]   = true,
+    ["magas volar"]   = true,
+    ["solthsteim, mortrag glacier: huntsman's hall"]   = true,
+
+    --TR
+    ["vorthas uldun, chambers of methats uldun"]   = true,
+    ["mala tor, lattagarlas"]   = true,
+    ["old ebonheart, guild of mages: entrance hall"]   = true,
+    ["the space gone missing, outer caverns"]   = true,
+    --PT
+
+    --SHotN
 }
 
 local function isPlaceOfPower(cellName)
