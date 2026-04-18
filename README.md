@@ -130,11 +130,11 @@ Grants Spells:
 ### Perk 3: Self-Made Power 
 +10 Int/Wil, +18 Enchant / Conjuration
 
-
 Restore Magicka 1pt/s
 
 ### Perk 4: Telvanni Lord 
 +15 Int/Wil, +25 Enchant / Conjuration
+
 Restore Magicka 2pts/s
 
 
