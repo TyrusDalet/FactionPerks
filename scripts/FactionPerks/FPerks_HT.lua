@@ -9,6 +9,10 @@
         FPerks_HT4_Passive          - +15 Intelligence, +15 Willpower,
                                       +25 Enchant, +25 Conjuration
 
+    Non-table spells (granted once, not removed on rank-up):
+        "strong levitate"             Vanilla spell (P1)
+        "mark"                        Vanilla spell (P2)
+        "recall"                      Vanilla spell (P2)
 
     Honour The Great House (P1+): Wit of the Telvanni
 
@@ -279,12 +283,22 @@ local EQUIPMENT_CHECK_INTERVAL = 2.0
 local lastHTCellId            = nil  -- tracks cell changes for scale recalculation
 
 local function reverseConstantBoost(boost)
+    -- Each bonus stores its path so reversal uses the same route as application.
+    -- fortifyAttr and fortifySkill used the stat modifier path directly -
+    -- activeEffects:modify doesn't update those values for constant effects.
+    -- Everything else used activeEffects:modify and is reversed the same way.
     local activeEffects = types.Actor.activeEffects(self)
     for _, b in ipairs(boost.bonuses) do
-        if b.extraParam then
-            activeEffects:modify(-b.bonus, b.id, b.extraParam)
+        if b.path == "fortifyAttr" then
+            applyFortifyAttr(b.extraParam, -b.bonus)
+        elseif b.path == "fortifySkill" then
+            applyFortifySkill(b.extraParam, -b.bonus)
         else
-            activeEffects:modify(-b.bonus, b.id)
+            if b.extraParam then
+                activeEffects:modify(-b.bonus, b.id, b.extraParam)
+            else
+                activeEffects:modify(-b.bonus, b.id)
+            end
         end
     end
     print("HT Wit: Reversed constant boost for item " .. tostring(boost.itemId))
@@ -299,22 +313,49 @@ local function applyConstantBoost(slot, item, enchRecord)
     local activeEffects = types.Actor.activeEffects(self)
 
     for _, effectParams in ipairs(enchRecord.effects) do
-        local baseMag  = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
-        local bonus    = math.floor(baseMag * scale)
+        local baseMag    = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
+        local bonus      = math.floor(baseMag * scale)
         if bonus > 0 then
             local extraParam = effectParams.affectedAttribute
                            or effectParams.affectedSkill
                            or nil
-            if extraParam then
-                activeEffects:modify(bonus, effectParams.id, extraParam)
+
+            -- Fortify Attribute and Fortify Skill effects are managed by
+            -- the engine at application time - activeEffects:modify has no
+            -- effect on them for constant effects. Write directly to the
+            -- stat modifier instead, same as the CastOnUse path.
+            if FORTIFY_ATTR[effectParams.id] and extraParam then
+                applyFortifyAttr(extraParam, bonus)
+                bonuses[#bonuses + 1] = {
+                    id         = effectParams.id,
+                    extraParam = extraParam,
+                    bonus      = bonus,
+                    path       = "fortifyAttr",
+                }
+            elseif FORTIFY_SKILL[effectParams.id] and extraParam then
+                applyFortifySkill(extraParam, bonus)
+                bonuses[#bonuses + 1] = {
+                    id         = effectParams.id,
+                    extraParam = extraParam,
+                    bonus      = bonus,
+                    path       = "fortifySkill",
+                }
             else
-                activeEffects:modify(bonus, effectParams.id)
+                -- Everything else: activeEffects:modify works correctly
+                -- for constant effects that the engine reads each frame
+                -- (Chameleon, Night Eye, resistances, etc.)
+                if extraParam then
+                    activeEffects:modify(bonus, effectParams.id, extraParam)
+                else
+                    activeEffects:modify(bonus, effectParams.id)
+                end
+                bonuses[#bonuses + 1] = {
+                    id         = effectParams.id,
+                    extraParam = extraParam,
+                    bonus      = bonus,
+                    path       = "modify",
+                }
             end
-            bonuses[#bonuses + 1] = {
-                id         = effectParams.id,
-                extraParam = extraParam,
-                bonus      = bonus,
-            }
         end
     end
 
@@ -387,16 +428,14 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(1)
-        types.Actor.spells(self):add("Bound Cuirass")
-        types.Actor.spells(self):add("Bound Helm")
+        types.Actor.spells(self):add("strong levitate")
         hasWitOfTelvanni = true
         -- Apply constant effect boosts immediately for currently equipped items
         updateConstantEffects()
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("Bound Cuirass")
-        types.Actor.spells(self):remove("Bound Helm")
+        types.Actor.spells(self):remove("strong levitate")
         hasWitOfTelvanni     = false
         currentEnchantedItem = nil
         lastHTCellId         = nil
@@ -424,11 +463,13 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(2)
-        types.Actor.spells(self):add("Tranasa's Spelltrap")
+        types.Actor.spells(self):add("mark")
+        types.Actor.spells(self):add("recall")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("Tranasa's Spelltrap")
+        types.Actor.spells(self):remove("mark")
+        types.Actor.spells(self):remove("recall")
     end,
 })
 
