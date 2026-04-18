@@ -121,20 +121,20 @@ Honour the Great House:
     Wit of Great House Telvanni
 
 ### Perk 2: Tower Sorcery 
-+5 Int/Wil, +10 +5 Enchant / Conjuration
++5 Int/Wil, +10 Enchant / Conjuration
 
 Grants Spells:
 
     Tranasa's Spelltrap 
 
 ### Perk 3: Self-Made Power 
-+10 Int/Wil, +18 +5 Enchant / Conjuration
++10 Int/Wil, +18 Enchant / Conjuration
 
 
 Restore Magicka 1pt/s
 
 ### Perk 4: Telvanni Lord 
-+15 Int/Wil, +25 +5 Enchant / Conjuration
++15 Int/Wil, +25 Enchant / Conjuration
 Restore Magicka 2pts/s
 
 
@@ -163,22 +163,26 @@ Grants Power:
 +15 End/Str, +25 Heavy Armour / Blockk, +50 Fatigue
 
 Restore Health 1pt/s
-
 Restore Fatigue 1pt/s
 
-##Imperial Cult
 
-### Perk 1: Lay Worshipper +3 Wil/Per, +5 Speech/Resto
+## Imperial Cult
+
+### Perk 1: Lay Worshipper 
++3 Wil/Per, +5 Speechcraft / Restoration
 
 Grants Spell:
 
     Divine Intervention
 
-### Perk 2: Charitable Hand +5 Wil/Per, +10 Speech/Resto
+### Perk 2: Charitable Hand 
++5 Wil/Per, +10 Speechcraft / Restoration
 
-### Perk 3: Divine Favour +10 Wil/Per, +18 Speech/Resto
+### Perk 3: Divine Favour 
++10 Wil/Per, +18 Speechcraft / Restoration
 
-### Perk 4: Blessed of the Nine +15 Wil/Per, +25 Speech/Resto
+### Perk 4: Blessed of the Nine 
++15 Wil/Per, +25 Speechcraft / Restoration
 
 Grants Power:
 
@@ -186,27 +190,37 @@ Grants Power:
 
       Fortify all Attributes 50pts for 30s
 
-##Thieves Guild
 
-### Perk 1: Light Fingers +3 Agi/Spd, +5 Sneak/Security
+## Thieves Guild
 
-### Perk 2: Shadow Step +5 Agi/Spd, +10 Sneak/Security
+### Perk 1: Light Fingers 
++3 Agi/Spd, +5 Sneak / Security
 
-### Perk 3: Fence Network +10 Agi/Spd, +18 Sneak/Security
+### Perk 2: Shadow Step 
++5 Agi/Spd, +10 Sneak / Security
+
+### Perk 3: Fence Network 
++10 Agi/Spd, +18 Sneak / Security
 
 25% Chameleon while sneaking
 
-### Perk 4: Master Thief +15 Agi/Spd, +25 Sneak/Security
+### Perk 4: Master Thief 
++15 Agi/Spd, +25 Sneak / Security
 
 50% Chameleon while sneaking
 
-##Fighters Guild
 
-### Perk 1: Dues Paid +3 Str/End, +10 Health, +5 Blade/Blunt/Axe
 
-### Perk 2: Iron Discipline +5 Str/End, +20 Health, +10 Blade/Blunt/Axe
+## Fighters Guild
 
-### Perk 3: Battle-Tested +10 Str/End, +35 Health, +18 Blade/Blunt/Axe
+### Perk 1: Dues Paid 
++3 Str/End, +10 Health, +5 Long Blade / Blunt / Axe
+
+### Perk 2: Iron Discipline 
++5 Str/End, +20 Health, +10 Long Blade / Blunt / Axe
+
+### Perk 3: Battle-Tested 
++10 Str/End, +35 Health, +18 Long Blade / Blunt / Axe
 
 Grants Power:
 
@@ -216,34 +230,47 @@ Grants Power:
       Fortify Fatigue 200pts for 30s
       Fortify Attack 100pts for 30s
 
-### Perk 4: Champion of the Guild +15 Str/End, +50 Health, +25
-Blade/Blunt/Axe
+### Perk 4: Champion of the Guild 
++15 Str/End, +50 Health, +25 Long Blade / Blunt / Axe
 
-##Mages Guild
 
-### Perk 1: Guild Initiate +3 Int/End, +10 Magicka, +5 Dest/Alt
 
-### Perk 2: Scholastic Rigour +5 Int/End, +20 Magicka, +10 Dest/Alt
+## Mages Guild
 
-### Perk 3: Arcane Reservoir +10 Int/End, +35 Magicka, +18 Dest/Alt
+### Perk 1: Guild Initiate 
++3 Int/End, +10 Magicka, +5 Destruction / Alteration
+
+### Perk 2: Scholastic Rigour 
++5 Int/End, +20 Magicka, +10 Destruction / Alteration
+
+### Perk 3: Arcane Reservoir 
++10 Int/End, +35 Magicka, +18 Destruction / Alteration
 
 Fortify Maximum Magicka 0.5x INT
 
-### Perk 4: Archmagister’s Peer +15 Int/End, +50 Magicka, +25 Dest/Alt
+### Perk 4: Archmagister’s Peer 
++15 Int/End, +50 Magicka, +25 Destruction / Alteration
 
 Fortify Maximum Magicka 1.0x INT
 
-#Morrowind Factions
 
-##Tribunal Temple
 
-### Perk 1: Ordinate Aspirant +3 Int/Wil, +5 Resto/Myst
+# Morrowind Factions
+
+
+
+## Tribunal Temple
+
+
+### Perk 1: Ordinate Aspirant 
++3 Int/Wil, +5 Restoration / Mysticism
 
 Grants Spell:
 
     Almsivi Intervention
 
-### Perk 2: Pilgrim Soul +5 Int/Wil, +10 Resto/Myst
+### Perk 2: Pilgrim Soul 
++5 Int/Wil, +10 Restoration / Mysticism
 
 Grants Power:
 
@@ -251,9 +278,11 @@ Grants Power:
 
       Cure Common Disease, Cure Blight Disease, Cure Poison on Touch
 
-### Perk 3: Voice of Reclaimation +10 Int/Wil, +18 Resto/Myst
+### Perk 3: Voice of Reclaimation 
++10 Int/Wil, +18 Restoration / Mysticism
 
-### Perk 4: Hand of ALMSIVI +15 Int/Wil, +25 Resto/Myst
+### Perk 4: Hand of ALMSIVI 
++15 Int/Wil, +25 Restoration / Mysticism
 
 Grants Power:
 
@@ -262,11 +291,16 @@ Grants Power:
       Summon 2x Greater Bonewalker 60s
       Summon 2x Bonelord 60s
 
-##Morag Tong
 
-### Perk 1: Writ Bearer +3 Spd/Agi, +5 Sneak/Acrobatics
 
-### Perk 2: Blade Discipline +5 Spd/Agi, +10 Sneak/Acrobatics
+## Morag Tong
+
+
+### Perk 1: Writ Bearer 
++3 Spd/Agi, +5 Sneak / Acrobatics
+
+### Perk 2: Blade Discipline 
++5 Spd/Agi, +10 Sneak / Acrobatics
 
 Grants Spell:
 
@@ -274,9 +308,11 @@ Grants Spell:
 
       Frenzy Humanoid 50pts for 30s
 
-### Perk 3: Calm Before +10 Spd/Agi, +18 Sneak/Acrobatics
+### Perk 3: Calm Before 
++10 Spd/Agi, +18 Sneak / Acrobatics
 
-### Perk 4: Honoured Executioner +15 Spd/Agi, +25 Sneak/Acrobatics
+### Perk 4: Honoured Executioner 
++15 Spd/Agi, +25 Sneak / Acrobatics
 
 Weapon attacks whilst sneaking apply a 25pt for 5s Absorb Health effect
 
