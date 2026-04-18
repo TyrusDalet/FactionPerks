@@ -1,6 +1,6 @@
 local I = require('openmw.interfaces')
-local types      = require('openmw.types')
-
+local types = require('openmw.types')
+local pself  = require('openmw.self')
 require("scripts.FactionPerks.shared")
 
 -- ============================================================
@@ -12,11 +12,20 @@ require("scripts.FactionPerks.shared")
 -- ============================================================
 
 I.Combat.addOnHitHandler(function(attack)
-     DoMT4Attack(attack)
+    DoMT4Attack(attack)
+    DoICSmite(attack)
+
 end)
+
+local function takeDamage(data)
+    local health = types.Actor.stats.dynamic.health(pself)
+    health.current = health.current - data.amount
+end
+
 
 return {
     eventHandlers = {
         playerSneaking = UpdatePlayerSneakStatus,
+        FPerks_TakeDamage = takeDamage,
     }
 }

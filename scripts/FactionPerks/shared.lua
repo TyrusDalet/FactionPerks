@@ -1,115 +1,3 @@
---[[
-Faction Perk Pack for OpenMW using ErnPerkFramework.
-All 10 vanilla joinable factions. 40 perks total.
-
-ESP REQUIREMENTS - Created in FactionPerkSpells.ESP
-  
-
-    TG:
-        FPerks_TG1_Passive               = Ability, +5 Agility, +10 Sneak, +10 Security
-        FPerks_TG2_Passive               = Ability, +15 Agility, +25 Sneak, +25 Acrobatics
-        FPerks_TG3_Passive               = Ability, +25 Agility, +50 Sneak, +50 Mercantile
-        FPerks_TG4_Passive               = Ability, +25 Luck, +75 Security
-        FPerks_TG3_Cham                  - Ability, 25 Chameleon
-        FPerks_TG4_Cham                  - Ability, 50 Chameleon
-
-    MT:
-        FPerks_MT1_Passive               - +5 Speed, +10 Short Blade, +10 Speechcraft
-        FPerks_MT2_Passive               - +15 Speed, +25 Short Blade, +25 Light Armour 
-        FPerks_MT3_Passive               - +25 Speed, +50 Sneak, +50 Short Blade
-        FPerks_MT4_Passive               - +25 Strength, +75 Short Blade, +75 Sneak
-        FPerks_MT2_Frenzy                - Spell, Frenzy, free, unlimited
-        FPerks_MT4_Invisibility          - Spell, Invisibility, free, unlimited
-        FPerks_MT4_Lifesteal             - Spell Effect, Absorb Life 25pts 5s
-
-    HH:
-        FPerks_HH1_Passive          - +5 Personality, +10 Speechcraft
-        FPerks_HH2_Passive          - +15(10) Personality, +25(15) Speechcraft, +25 Illusion
-        FPerks_HH3_Passive          - +25(10) Personality, +50(25) Mercantile
-        FPerks_HH4_Passive          - +25 Personality, +75(25) Speechcraft
-
-    FG:
-
-        FPerks_FG1_Passive              - +5 Strength, +10 Fortify Health
-        FPerks_FG2_Passive              - +15 Strength, +25 Fortify Health
-        FPerks_FG3_Passive              - +25 Strength, +50 Fortify Health
-        FPerks_FG4_Passive              - +25 Endurance, +75 Fortify Health, Restore Health 1pt/s, Restore Fatigue 1pt/s
-        FPerks_FG3_Enrage               - Power, Fortify Health 50pts, Fortify Fatigue 200pts, Fortify Attack 100pts, 30s duration.
-
-    IL:
-        FPerks_IL1_Passive          - +5 Endurance, +10 Fortify Fatigue, +10 Medium Armour, +10 Heavy Armour
-        FPerks_IL2_Passive          - +15 Endurance, +25 Fortify Fatigue, +25 Block
-        FPerks_IL3_Passive          - +25 Endurance, +50 Fortify Fatigue, +50 Athletics
-        FPerks_IL4_Passive          - +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour,
-        FPerks_IL4_Restore_Phys     - Restore Health 1pt/s, Restore Fatigue 1pt/s
-
-    Non-table spells (granted once, not removed on rank-up):
-        FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
-
-   IC:
-        FPerks_IC1_Passive          - +5 Willpower, +10 Resist Disease, +10 Resist Poison,
-                                      +10 Resist Normal Weapons
-        FPerks_IC2_Passive          - +15 Willpower, +25 Resist Disease, +25 Resist Poison,
-                                      +25 Resist Normal Weapons
-        FPerks_IC3_Passive          - +25 Willpower, +50 Resist Disease, +50 Resist Poison,
-                                      +50 Resist Normal Weapons
-        FPerks_IC4_Passive          - +25 Personality, +75 Resist Disease, +75 Resist Poison,
-                                      +75 Resist Normal Weapons
-
-        Non-table spells (granted once, not removed on rank-up):
-        "divine intervention"       Vanilla spell (P1)
-        FPerks_IC4_AllAttributes    Power (P4)
-
-    MG:
-        FPerks_MG1_Passive          - +5 Intelligence, +10 Fortify Magicka
-        FPerks_MG2_Passive          - +15 Intelligence, +25 Fortify Magicka
-        FPerks_MG3_Passive          - +25 Intelligence, +50 Fortify Magicka,
-                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
-        FPerks_MG4_Passive          - +25 Willpower, +75 Fortify Magicka,
-                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
-
-    TT:
-        FPerks_TT1_Passive          - +5 Intelligence, +10 Reflect, +10 Resist Paralysis,
-                                      +10 Resist Blight Disease
-        FPerks_TT2_Passive          - +15 Intelligence, +25 Reflect, +25 Resist Paralysis,
-                                      +25 Resist Blight Disease
-        FPerks_TT3_Passive          - +25 Intelligence, +50 Reflect, +50 Resist Paralysis,
-                                      +50 Resist Blight Disease
-        FPerks_TT4_Passive          - +25 Personality, +75 Reflect, +75 Resist Paralysis,
-                                      +75 Resist Blight Disease
-
-    Non-table spells (granted once, not removed on rank-up):
-        FPerks_TT2_Cure_All         Power (P2)
-        FPerks_TT4_Summon_Army      Power (P4)
-        
-   HR:
-        FPerks_HR1_Passive          - +5 Endurance, +10 Spear, +10 Athletics
-        FPerks_HR2_Passive          - +15(10) Endurance, +25(15) Heavy Armor, +25 Block
-        FPerks_HR3_Passive          - +25(10) Endurance, +50(25) Spear, +50(25) Block
-        FPerks_HR4_Passive          - +25 Strength, +75(25) Spear, +75(25) Heavy Armor
-
-    HT:
-        FPerks_HT1_Passive          - +5 Intelligence, +10 Enchant, +10 Alchemy,
-                                      +10 Spell Absorption
-        FPerks_HT2_Passive          - +15 Intelligence, +25 Enchant, +25 Alchemy,
-                                      +25 Spell Absorption
-        FPerks_HT3_Passive          - +25 Intelligence, +50 Enchant, +50 Alchemy,
-                                      +50 Spell Absorption,
-                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
-        FPerks_HT4_Passive          - +25 Willpower, +75 Enchant, +75 Alchemy,
-                                      +75 Spell Absorption,
-                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
-
-
-  Vanilla spell IDs used directly:
-  "divine intervention"  IC Perk 1
-  "almsivi intervention" TT Perk 1
-  "strong levitate"      HT Perk 1
-  "mark"                 HT Perk 2
-  "recall"               HT Perk 2
-
-]]
-
 local ns         = require("scripts.FactionPerks.namespace")
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
@@ -174,3 +62,86 @@ function DoMT4Attack(attack)
     end
 end
 
+-- ============================================================
+--  IMPERIAL CULT SMITE
+--  Active from P3. When the player strikes an undead, daedra,
+--  or vampire with a weapon, divine damage is dealt directly
+--  to the target's health, bypassing all resistances.
+--
+--  Damage = Imperial Cult faction rank x 10.
+--    Minimum at P3 (rank 7): 70 damage.
+--    Maximum at P4 (rank 10): 100 damage.
+--  Per-target cooldown: 10s at P3, 5s at P4.
+--
+--  Perk presence is read directly from the player's spell list
+--  via types.Actor.spells(attack.attacker) - readable from any
+--  script context without needing cross-context flags.
+--  Called from both npc.lua and creature.lua hit handlers.
+-- ============================================================
+
+local lastICSmiteTime = nil  -- per-instance cooldown; each NPC/creature has its own Lua state
+
+local IC_SMITE_CREATURE_TYPES = {
+    [types.Creature.TYPE.Undead] = true,
+    [types.Creature.TYPE.Daedra] = true,
+}
+
+local function isSmiteTarget(actor)
+    -- Undead and Daedra by creature type record
+    if types.Creature.objectIsInstance(actor) then
+        local ctype = types.Creature.record(actor).type
+        if IC_SMITE_CREATURE_TYPES[ctype] then return true end
+    end
+    -- Vampires: any actor carrying the vampire attributes spell (NPC or creature)
+    for _, spell in pairs(types.Actor.spells(actor)) do
+        if spell.id == "vampire attributes" then return true end
+    end
+    return false
+end
+
+function DoICSmite(attack)
+    -- Weapon hits only - melee or ranged, not spell damage
+    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
+            attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
+        return
+    end
+
+    -- Player must be the attacker
+    if not (attack.attacker and attack.attacker.type == types.Player) then return end
+
+
+    -- Read player's spells directly - works from any script context
+    -- since we're reading attack.attacker, not self
+    local playerSpells = types.Actor.spells(attack.attacker)
+    local hasP3 = playerSpells['fperks_ic3_passive'] ~= nil
+    local hasP4 = playerSpells['fperks_ic4_passive'] ~= nil
+    if not hasP3 and not hasP4 then return end
+
+    -- Target must be smite-eligible
+    if not isSmiteTarget(self) then return end
+
+    local cooldown = 0
+
+    if hasP3 then cooldown = 10
+    else
+        cooldown = 5
+    end
+
+    local now = core.getSimulationTime()
+    if lastICSmiteTime and (now - lastICSmiteTime) < cooldown then return end
+
+    -- Damage = faction rank x 10
+    local rank = types.NPC.getFactionRank(attack.attacker, 'imperial cult')
+    if not rank or rank == 0 then return end
+    local dmg = rank * 10
+
+    -- Apply divine damage directly, bypassing all magic systems
+    local healthStat = types.Actor.stats.dynamic.health(self)
+    attack.successful = true
+    healthStat.current = healthStat.current - dmg
+
+    lastICSmiteTime = now
+    attack.attacker:sendEvent("FPerks_IC_SmiteProc", { dmg = dmg })
+
+    print("IC Smite triggered! Damage: " .. tostring(dmg))
+end

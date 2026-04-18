@@ -1,27 +1,35 @@
 --[[
     TT:
-        FPerks_TT1_Passive          - +5 Intelligence, +10 Reflect, +10 Resist Paralysis,
-                                      +10 Resist Blight Disease
-        FPerks_TT2_Passive          - +15 Intelligence, +25 Reflect, +25 Resist Paralysis,
-                                      +25 Resist Blight Disease
-        FPerks_TT3_Passive          - +25 Intelligence, +50 Reflect, +50 Resist Paralysis,
-                                      +50 Resist Blight Disease
-        FPerks_TT4_Passive          - +25 Personality, +75 Reflect, +75 Resist Paralysis,
-                                      +75 Resist Blight Disease
+        FPerks_TT1_Passive          - +3 Intelligence, +3 Willpower,
+                                      +5 Restoration, +5 Mysticism
+        FPerks_TT2_Passive          - +5 Intelligence, +5 Willpower,
+                                      +10 Restoration, +10 Mysticism
+        FPerks_TT3_Passive          - +10 Intelligence, +10 Willpower,
+                                      +18 Restoration, +18 Mysticism
+        FPerks_TT4_Passive          - +15 Intelligence, +15 Willpower,
+                                      +25 Restoration, +25 Mysticism
 
     Non-table spells (granted once, not removed on rank-up):
         "almsivi intervention"      Vanilla spell (P1)
         FPerks_TT2_Cure_All         Power (P2)
         FPerks_TT4_Summon_Army      Power (P4)
+
+    Honoured Ancestors (P3+):
+        Ancestor Ghosts, Bonelords, and Bonewalkers will not
+        attack the player. Non-summoned instances are calmed
+        when they become active in the player's cell.
+        Handled via creature.lua ping + player response pattern.
+        Reversed cleanly if the perk is lost.
 ]]
 
-local ns         = require("scripts.FactionPerks.namespace")
-local utils      = require("scripts.FactionPerks.utils")
+local ns          = require("scripts.FactionPerks.namespace")
+local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
-local interfaces = require("openmw.interfaces")
-local types      = require('openmw.types')
-local self       = require('openmw.self')
-local core       = require('openmw.core')
+local interfaces  = require("openmw.interfaces")
+local types       = require('openmw.types')
+local self        = require('openmw.self')
+local core        = require('openmw.core')
+local nearby      = require('openmw.nearby')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -35,11 +43,46 @@ local perkTable = {
 local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
---  TRIBUNAL TEMPLE
---  Primary attribute: Intelligence (P1-P3), Personality (P4)
---  Scaling: Reflect, Resist Paralysis, Resist Blight Disease
+--  HONOURED ANCESTORS - Voice of Reclamation (P3+)
+-- ============================================================
+
+local hasTTHonouredAncestors = false
+
+local HONOURED_ANCESTOR_IDS = {
+    ["ancestor ghost"] = true,
+    ["bonelord"]       = true,
+    ["bonewalker"]     = true,
+}
+
+local function isHonouredAncestorActor(actor)
+    if not types.Creature.objectIsInstance(actor) then return false end
+    local id = (types.Creature.record(actor).id or ""):lower()
+    for name, _ in pairs(HONOURED_ANCESTOR_IDS) do
+        if id:find(name, 1, true) then return true end
+    end
+    return false
+end
+
+local function restoreNearbyAncestors()
+    for _, actor in pairs(nearby.actors) do
+        if isHonouredAncestorActor(actor) then
+            actor:sendEvent(ns .. "_TT_RestoreAncestor", {})
+        end
+    end
+end
+
+local function ancestorSpawned(data)
+    if not hasTTHonouredAncestors then return end
+    if not data.creature or not data.creature:isValid() then return end
+    data.creature:sendEvent(ns .. "_TT_CalmAncestor", {})
+end
+
+-- ============================================================
+--  TRIBUNAL TEMPLE PERKS
+--  Primary attributes: Intelligence, Willpower
+--  Scaling: Restoration, Mysticism
 --  Special: Almsivi Intervention (P1), Cure All power (P2),
---           Summon Army power (P4)
+--           Honoured Ancestors (P3+), Summon Army power (P4)
 -- ============================================================
 
 local tt1_id = ns .. "_tt_ordinate_aspirant"
@@ -49,8 +92,8 @@ interfaces.ErnPerkFramework.registerPerk({
     --hidden = true,
     localizedDescription = "You have taken up the Temple's creed and begun study of its mysteries. "
         .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.\n "
-        .. "(+5 Intelligence, +10 Reflect, +10 Resist Paralysis, "
-        .. "+10 Resist Blight Disease, grants Almsivi Intervention)",
+        .. "(+3 Intelligence, +3 Willpower, +5 Restoration, +5 Mysticism, "
+        .. "grants Almsivi Intervention)",
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
         R().minimumFactionRank('temple', 0),
@@ -74,7 +117,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You have walked the Pilgrimages of the Seven Graces. "
         .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.\n "
         .. "Requires Ordinate Aspirant. "
-        .. "(+15 Intelligence, +25 Reflect, +25 Resist Paralysis, +25 Resist Blight Disease, "
+        .. "(+5 Intelligence, +5 Willpower, +10 Restoration, +10 Mysticism, "
         .. "1/day Cure Disease + Cure Poison + Cure Blight on Touch)",
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
@@ -98,9 +141,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = tt3_id,
     localizedName = "Voice of Reclamation",
     --hidden = true,
-    localizedDescription = "The Temple's holy authority now speaks through you.\n "
+    localizedDescription = "The Temple's holy authority now speaks through you. "
+        .. "Ancestor Ghosts, Bonelords, and Bonewalkers recognise you as a servant "
+        .. "of ALMSIVI and will not raise their hand against you.\n "
         .. "Requires Pilgrim Soul. "
-        .. "(+25 Intelligence, +50 Reflect, +50 Resist Paralysis, +50 Resist Blight Disease)",
+        .. "(+10 Intelligence, +10 Willpower, +18 Restoration, +18 Mysticism)",
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(tt2_id),
@@ -108,8 +153,15 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('willpower', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() setRank(3) end,
-    onRemove = function() setRank(nil) end,
+    onAdd = function()
+        setRank(3)
+        hasTTHonouredAncestors = true
+    end,
+    onRemove = function()
+        setRank(nil)
+        hasTTHonouredAncestors = false
+        restoreNearbyAncestors()
+    end,
 })
 
 local tt4_id = ns .. "_tt_hand_of_almsivi"
@@ -120,7 +172,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You are an instrument of Vivec, Almalexia, and Sotha Sil. "
         .. "Once each day you may call upon honoured ancestors to fight at your side.\n "
         .. "Requires Voice of Reclamation. "
-        .. "(+25 Personality, +75 Reflect, +75 Resist Paralysis, +75 Resist Blight Disease, "
+        .. "(+15 Intelligence, +15 Willpower, +25 Restoration, +25 Mysticism, "
         .. "1/day Summon 2 Greater Bonewalkers + 2 Bonelords for 60s)",
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
@@ -138,3 +190,12 @@ interfaces.ErnPerkFramework.registerPerk({
         types.Actor.spells(self):remove("FPerks_TT4_Summon_Army")
     end,
 })
+
+-- ============================================================
+--  ENGINE CALLBACKS
+-- ============================================================
+return {
+    eventHandlers = {
+        [ns .. "_TT_AncestorSpawned"] = ancestorSpawned,
+    },
+}

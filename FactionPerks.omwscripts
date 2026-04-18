@@ -1,5 +1,6 @@
 GLOBAL:scripts/FactionPerks/global.lua
 NPC:scripts/FactionPerks/npc.lua
+CREATURE:scripts/FactionPerks/creature.lua
 PLAYER:scripts/FactionPerks/FPerks_TG.lua
 PLAYER:scripts/FactionPerks/FPerks_MT.lua
 PLAYER:scripts/FactionPerks/FPerks_HH.lua

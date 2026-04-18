@@ -1,42 +1,50 @@
 --[[
     HT:
-        FPerks_HT1_Passive          - +5 Intelligence, +10 Enchant, +10 Alchemy,
-                                      +10 Spell Absorption
-        FPerks_HT2_Passive          - +15 Intelligence, +25 Enchant, +25 Alchemy,
-                                      +25 Spell Absorption
-        FPerks_HT3_Passive          - +25 Intelligence, +50 Enchant, +50 Alchemy,
-                                      +50 Spell Absorption,
-                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
-        FPerks_HT4_Passive          - +25 Willpower, +75 Enchant, +75 Alchemy,
-                                      +75 Spell Absorption,
-                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
+        FPerks_HT1_Passive          - +3 Intelligence, +3 Willpower,
+                                      +5 Enchant, +5 Conjuration
+        FPerks_HT2_Passive          - +5 Intelligence, +5 Willpower,
+                                      +10 Enchant, +10 Conjuration
+        FPerks_HT3_Passive          - +10 Intelligence, +10 Willpower,
+                                      +18 Enchant, +18 Conjuration
+        FPerks_HT4_Passive          - +15 Intelligence, +15 Willpower,
+                                      +25 Enchant, +25 Conjuration
 
-    Non-table spells (granted once, not removed on rank-up):
-        "strong levitate"             Vanilla spell (P1)
-        "mark"                        Vanilla spell (P2)
-        "recall"                      Vanilla spell (P2)
 
     Honour The Great House (P1+): Wit of the Telvanni
-        When the player drinks a potion, a scaled bonus is applied
-        to each of its effects via activeEffects:modify + cleanup timer.
-        Application is delayed 0.1s via async so the engine has time
-        to process the potion before we augment its effects.
-        Cleanup fires at duration + 0.1s to reverse each bonus.
-        At rep cap:  +150% of base magnitude (total 250% effect)
-        Post-cap:    continues growing at 30% of pre-cap rate.
-        Shows "You Honour House Telvanni." on first potion
-        consumed per session while the perk is held.
+
+        CAST ON USE:
+        When the player activates a Cast on Use enchanted item, self-range
+        effects are augmented via activeEffects:modify + cleanup timer.
+        Touch and Target range effects are excluded - activeEffects:modify
+        only affects the player, and reliable post-hoc modification of
+        target actors is not feasible from a player script.
+        Scale: honourScale * 1.5, capped behaviour per honourScale post-cap.
+        At rep cap: +150% bonus magnitude (250% total).
+        Detection: SkillProgression enchant handler confirms success,
+        reads getSelectedEnchantedItem directly since Cast on Use uses
+        the unequip animation group rather than spellcast.
+
+        CONSTANT EFFECT:
+        All equipped items with Constant Effect enchantments have their
+        effects augmented via activeEffects:modify. Tracked per equipment
+        slot - when items are equipped or unequipped, bonuses are reversed
+        and reapplied accordingly.
+        Scale: math.min(honourScale, 1.0), giving at most +100% bonus
+        magnitude (200% total), slightly less powerful than CastOnUse
+        since the effect is permanent.
+        Bonus updates when equipment changes, and is also recalculated
+        on cell change so faction reputation gains are reflected without
+        needing to re-equip.
 ]]
 
-local ns         = require("scripts.FactionPerks.namespace")
-local utils      = require("scripts.FactionPerks.utils")
-local notExpelled = utils.notExpelled
-local interfaces = require("openmw.interfaces")
-local types      = require('openmw.types')
-local self       = require('openmw.self')
-local ui         = require('openmw.ui')
-
-local async      = require('openmw.async')
+local ns          = require("scripts.FactionPerks.namespace")
+local utils       = require("scripts.FactionPerks.utils")
+local interfaces  = require("openmw.interfaces")
+local types       = require('openmw.types')
+local self        = require('openmw.self')
+local ui          = require('openmw.ui')
+local core        = require('openmw.core')
+local async       = require('openmw.async')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -50,64 +58,20 @@ local perkTable = {
 local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
---  HOUSE TELVANNI
---  Primary attribute: Intelligence (P1-P3), Willpower (P4)
---  Scaling: Enchant, Alchemy, Spell Absorption,
---           Fortify Maximum Magicka
---  Honour The Great House (P1+): Wit of the Telvanni —
---           potion effects are augmented based on faction rep.
---           At rep cap: full additional magnitude (effectively
---           double the potion's effects). Beyond cap: trickles.
---  Special: Strong Levitate (P1), Mark + Recall (P2),
---           Restore Magicka abilities (P3 + P4 stacking).
+--  WIT OF THE TELVANNI - shared state
 -- ============================================================
 
--- ============================================================
---  WIT OF THE TELVANNI — Honour The Great House
---
---  When the player drinks a potion, we augment each of its
---  effects via activeEffects:modify, scaled by honourScale.
---
---  The core problem with applying immediately in onActivate is
---  timing: onActivate fires BEFORE the engine processes the
---  potion, so the effects are not yet active. We solve this
---  by scheduling the bonus application 0.1 simulation seconds
---  later via async:newUnsavableSimulationTimer, by which point
---  the engine has consumed the potion and the effects are live.
---
---  Because activeEffects:modify is permanent until reversed,
---  we also schedule a cleanup callback at duration - 0.1s to
---  remove the bonus once the potion naturally expires.
---
---  The timers are unsaveable — if the player saves and loads
---  mid-potion the bonus disappears, which is an acceptable
---  edge case given the complexity of tracking this across saves.
---
---  At rep cap:  +150% extra magnitude (total 250% of base)
---  Post-cap:    continues at 30% of pre-cap rate (honourScale)
--- ============================================================
-
-local hasWitOfTelvanni = false
-local telvMsgShown     = false
+local hasWitOfTelvanni   = false
+local currentEnchantedItem = nil  -- cached by skill handler for CastOnUse path
 
 -- ============================================================
---  Effect classification tables.
---  Fortify Attribute/Skill: engine writes the stat once at
---    application time and ignores the active effect magnitude
---    thereafter. We must write directly to the stat modifier
---    and reverse it ourselves on cleanup.
---  Restore Health/Magicka/Fatigue: restoration rate is cached
---    at application time. We apply the total bonus (bonus *
---    duration) as an instant lump-sum to the dynamic stat
---    current value. No cleanup needed — it's a one-time add.
---  Everything else (Night-Eye, Chameleon, etc.): engine reads
---    the active effect magnitude every frame, so
---    activeEffects:modify works correctly here.
+--  EFFECT CLASSIFICATION TABLES
+--  Used by both CastOnUse and Constant Effect paths.
 -- ============================================================
 
-local FORTIFY_ATTR = { ["fortifyattribute"] = true }
-local FORTIFY_SKILL = { ["fortifyskill"] = true }
-local RESTORE_DYN = {
+local FORTIFY_ATTR  = { ["fortifyattribute"] = true }
+local FORTIFY_SKILL = { ["fortifyskill"]     = true }
+local RESTORE_DYN   = {
     ["restorehealth"]  = "health",
     ["restoremagicka"] = "magicka",
     ["restorefatigue"] = "fatigue",
@@ -124,7 +88,6 @@ local function applyFortifySkill(skillId, bonus)
 end
 
 local function applyRestoreDyn(dynKey, bonus, duration)
-    -- Apply total bonus as instant lump sum: bonus magnitude * duration
     local total = bonus * duration
     if total <= 0 then return end
     local dyn = types.Actor.stats.dynamic[dynKey]
@@ -134,66 +97,110 @@ local function applyRestoreDyn(dynKey, bonus, duration)
     end
 end
 
-local function TelvanniWit(object)
+-- ============================================================
+--  SHARED ENCHANTMENT RECORD READER
+--  Iterates item types to find an enchantment record on any
+--  equippable item type. Used by both CastOnUse and Constant
+--  Effect paths.
+-- ============================================================
+
+local ENCHANTABLE_TYPES = {
+    types.Weapon,
+    types.Armor,
+    types.Clothing,
+    types.Miscellaneous,
+    types.Book,
+}
+
+local function getEnchantmentRecord(item)
+    if not item or not item:isValid() then return nil end
+    for _, t in ipairs(ENCHANTABLE_TYPES) do
+        if t.objectIsInstance(item) then
+            local r = t.record(item)
+            if r and r.enchant and r.enchant ~= "" then
+                return core.magic.enchantments.records[r.enchant]
+            end
+            break
+        end
+    end
+    return nil
+end
+
+-- ============================================================
+--  CAST ON USE - Wit of the Telvanni
+--
+--  When the player activates a Cast on Use enchanted item,
+--  ALL effects regardless of range are augmented. This means
+--  both self-targeting and enemy-targeting effects benefit,
+--  making offensive enchanted items worth using.
+--
+--  Detection: SkillProgression enchant handler fires on success.
+--  getSelectedEnchantedItem is read directly here since Cast
+--  on Use uses the unequip animation, not the spellcast group.
+--
+--  Scale: honourScale * 1.5 (max +150%, total 250%).
+--  Cleanup: async timers reverse each bonus after its duration.
+-- ============================================================
+
+local function TelvanniWitEnchant(item)
     if not hasWitOfTelvanni then return end
-    local isPotion     = types.Potion.objectIsInstance(object)
-    local isIngredient = types.Ingredient.objectIsInstance(object)
-    if not isPotion and not isIngredient then return end
+    if not item or not item:isValid() then return end
+
+    local enchRecord = getEnchantmentRecord(item)
+    if not enchRecord then return end
+    if enchRecord.type ~= core.magic.ENCHANTMENT_TYPE.CastOnUse then return end
+    if not enchRecord.effects then return end
 
     local scale = utils.honourScale('telvanni') * 1.5
     if scale <= 0 then return end
 
-    local record = (isPotion and types.Potion.record(object))
-               or  (isIngredient and types.Ingredient.record(object))
-    if not record or not record.effects then return end
-
-    -- Build bonus list before timer fires — record may be gone by then
+    -- Build bonus list from self-range effects only.
+    -- Touch and Target effects cannot be reliably augmented on
+    -- the target actor from a player script, so are excluded.
+    -- The Telvanni wit reflects inward - self-mastery and
+    -- self-enhancement are the hallmark of their craft.
     local bonuses = {}
-    for _, effectParams in ipairs(record.effects) do
-        local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
-        local bonus   = math.floor(baseMag * scale)
-        if bonus > 0 then
-            bonuses[#bonuses + 1] = {
-                id         = effectParams.id,
-                extraParam = effectParams.affectedAttribute
-                          or effectParams.affectedSkill
-                          or nil,
-                bonus      = bonus,
-                duration   = effectParams.duration,
-            }
+    for _, effectParams in ipairs(enchRecord.effects) do
+        if effectParams.range == core.magic.RANGE.Self then
+            local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
+            local bonus   = math.floor(baseMag * scale)
+            if bonus > 0 then
+                bonuses[#bonuses + 1] = {
+                    id         = effectParams.id,
+                    extraParam = effectParams.affectedAttribute
+                              or effectParams.affectedSkill
+                              or nil,
+                    bonus      = bonus,
+                    duration   = effectParams.duration,
+                }
+            end
         end
     end
 
     if #bonuses == 0 then return end
     local timer = 0.1
 
-    -- Apply after engine has processed the potion (0.1s delay)
     async:newUnsavableSimulationTimer(timer, function()
         local activeEffects = types.Actor.activeEffects(self)
-
         for _, b in ipairs(bonuses) do
             local dynKey = RESTORE_DYN[b.id]
-
             if FORTIFY_ATTR[b.id] and b.extraParam then
-                -- Write directly to attribute modifier; cleanup reverses it
+                -- Attribute fortification: use stat modifier path for clean reversal
                 applyFortifyAttr(b.extraParam, b.bonus)
                 async:newUnsavableSimulationTimer(b.duration - timer, function()
                     applyFortifyAttr(b.extraParam, -b.bonus)
                 end)
-
             elseif FORTIFY_SKILL[b.id] and b.extraParam then
-                -- Write directly to skill modifier; cleanup reverses it
+                -- Skill fortification: use stat modifier path for clean reversal
                 applyFortifySkill(b.extraParam, b.bonus)
                 async:newUnsavableSimulationTimer(b.duration - timer, function()
                     applyFortifySkill(b.extraParam, -b.bonus)
                 end)
-
             elseif dynKey then
-                -- Restoration: apply total bonus as instant lump sum
+                -- Restore effects: apply as instant lump sum, no reversal needed
                 applyRestoreDyn(dynKey, b.bonus, b.duration)
-
             else
-                -- Night-Eye, Chameleon, etc.: activeEffects:modify works
+                -- Everything else: activeEffects:modify with cleanup timer
                 if b.extraParam then
                     activeEffects:modify(b.bonus, b.id, b.extraParam)
                 else
@@ -208,20 +215,171 @@ local function TelvanniWit(object)
                 end)
             end
         end
-    ui.showMessage("You Honour the Wit of House Telvanni.")
+        ui.showMessage("You Honour the Wit of House Telvanni.")
     end)
 end
+
+-- ============================================================
+--  ENCHANT SKILL HANDLER
+--  Fires only on successful Cast on Use activation since the
+--  Enchant skill only advances on success. Reads the selected
+--  enchanted item directly rather than caching from animation,
+--  since Cast on Use uses the unequip animation group.
+-- ============================================================
+
+interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
+    if skillId ~= "enchant"  then return end
+    if not hasWitOfTelvanni  then return end
+
+    local item = types.Actor.getSelectedEnchantedItem(self)
+    if not item then return end
+
+    TelvanniWitEnchant(item)
+end)
+
+-- ============================================================
+--  CONSTANT EFFECT - Wit of the Telvanni
+--
+--  Scans all equipment slots on a timer and on cell change.
+--  When a Constant Effect enchanted item is found, augments
+--  its effects via activeEffects:modify. Tracked per slot so
+--  bonuses are reversed cleanly when items change.
+--
+--  Cell change triggers a full recalculation so faction
+--  reputation gains are reflected without re-equipping.
+--
+--  Scale: math.min(honourScale, 1.0) (max +100%, total 200%).
+-- ============================================================
+
+local EQUIPMENT_SLOTS = {
+    types.Actor.EQUIPMENT_SLOT.Helmet,
+    types.Actor.EQUIPMENT_SLOT.Cuirass,
+    types.Actor.EQUIPMENT_SLOT.Greaves,
+    types.Actor.EQUIPMENT_SLOT.LeftPauldron,
+    types.Actor.EQUIPMENT_SLOT.RightPauldron,
+    types.Actor.EQUIPMENT_SLOT.LeftGauntlet,
+    types.Actor.EQUIPMENT_SLOT.RightGauntlet,
+    types.Actor.EQUIPMENT_SLOT.Boots,
+    types.Actor.EQUIPMENT_SLOT.Shirt,
+    types.Actor.EQUIPMENT_SLOT.Pants,
+    types.Actor.EQUIPMENT_SLOT.Skirt,
+    types.Actor.EQUIPMENT_SLOT.Robe,
+    types.Actor.EQUIPMENT_SLOT.LeftRing,
+    types.Actor.EQUIPMENT_SLOT.RightRing,
+    types.Actor.EQUIPMENT_SLOT.Amulet,
+    types.Actor.EQUIPMENT_SLOT.Belt,
+    types.Actor.EQUIPMENT_SLOT.CarriedRight,
+    types.Actor.EQUIPMENT_SLOT.CarriedLeft,
+}
+
+-- Keyed by slot number. Each entry: { itemId, bonuses = {{id, extraParam, bonus}...} }
+local activeConstantBoosts    = {}
+local equipmentCheckTimer     = 0
+local EQUIPMENT_CHECK_INTERVAL = 2.0
+local lastHTCellId            = nil  -- tracks cell changes for scale recalculation
+
+local function reverseConstantBoost(boost)
+    local activeEffects = types.Actor.activeEffects(self)
+    for _, b in ipairs(boost.bonuses) do
+        if b.extraParam then
+            activeEffects:modify(-b.bonus, b.id, b.extraParam)
+        else
+            activeEffects:modify(-b.bonus, b.id)
+        end
+    end
+    print("HT Wit: Reversed constant boost for item " .. tostring(boost.itemId))
+end
+
+local function applyConstantBoost(slot, item, enchRecord)
+    -- Scale capped at 1.0 for constant effects (200% total, less than CastOnUse's 250%)
+    local scale = math.min(utils.honourScale('telvanni'), 1.0)
+    if scale <= 0 then return end
+
+    local bonuses       = {}
+    local activeEffects = types.Actor.activeEffects(self)
+
+    for _, effectParams in ipairs(enchRecord.effects) do
+        local baseMag  = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
+        local bonus    = math.floor(baseMag * scale)
+        if bonus > 0 then
+            local extraParam = effectParams.affectedAttribute
+                           or effectParams.affectedSkill
+                           or nil
+            if extraParam then
+                activeEffects:modify(bonus, effectParams.id, extraParam)
+            else
+                activeEffects:modify(bonus, effectParams.id)
+            end
+            bonuses[#bonuses + 1] = {
+                id         = effectParams.id,
+                extraParam = extraParam,
+                bonus      = bonus,
+            }
+        end
+    end
+
+    if #bonuses > 0 then
+        activeConstantBoosts[slot] = {
+            itemId  = item.id,
+            bonuses = bonuses,
+        }
+        print("HT Wit: Applied constant boost for slot " .. tostring(slot))
+    end
+end
+
+local function removeAllConstantBoosts()
+    for slot, boost in pairs(activeConstantBoosts) do
+        reverseConstantBoost(boost)
+    end
+    activeConstantBoosts = {}
+end
+
+local function updateConstantEffects()
+    if not hasWitOfTelvanni then return end
+
+    for _, slot in ipairs(EQUIPMENT_SLOTS) do
+        local item    = types.Actor.getEquipment(self, slot)
+        local current = activeConstantBoosts[slot]
+
+        local currentItemId = (item and item:isValid()) and item.id or nil
+        local boostedItemId = current and current.itemId or nil
+
+        if currentItemId ~= boostedItemId then
+            -- Slot contents changed - reverse old boost if any
+            if current then
+                reverseConstantBoost(current)
+                activeConstantBoosts[slot] = nil
+            end
+
+            -- Apply new boost if item has a constant effect enchantment
+            if item and item:isValid() then
+                local enchRecord = getEnchantmentRecord(item)
+                if enchRecord and
+                   enchRecord.type == core.magic.ENCHANTMENT_TYPE.ConstantEffect then
+                    applyConstantBoost(slot, item, enchRecord)
+                end
+            end
+        end
+    end
+end
+
+-- ============================================================
+--  HOUSE TELVANNI PERKS
+-- ============================================================
 
 local ht1_id = ns .. "_ht_uninvited_student"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht1_id,
     localizedName = "Uninvited Student",
-    localizedDescription = "House Telvanni does not recruit - it tolerates those strong enough "
-        .. "to push their way in. You have done so. For now, that is enough.\n "
-        .. "(+5 Intelligence, +10 Enchant, +10 Alchemy, +10 Spell Absorption, "
+    localizedDescription = "House Telvanni does not recruit - it tolerates those strong "
+        .. "enough to push their way in. You have done so. For now, that is enough.\n "
+        .. "(+3 Intelligence, +3 Willpower, +5 Enchant, +5 Conjuration, "
         .. "grants Strong Levitate)\n\n"
-        .. "Honour the Wit of the Great House Telvanni: Scaling alchemical magnitude with Telvanni Reputation\n"
-        .. "Scaled Restoration effects are applied instantly",
+        .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
+        .. "that target yourself are augmented based on your Telvanni reputation. "
+        .. "At reputation cap: effects are 250%% of their base magnitude.\n"
+        .. "Constant Effect enchantments on equipped items are permanently "
+        .. "augmented. At reputation cap: effects are 200%% of their base magnitude.",
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
         R().minimumFactionRank('telvanni', 0),
@@ -229,13 +387,21 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(1)
-        types.Actor.spells(self):add("strong levitate")
+        types.Actor.spells(self):add("Bound Cuirass")
+        types.Actor.spells(self):add("Bound Helm")
         hasWitOfTelvanni = true
+        -- Apply constant effect boosts immediately for currently equipped items
+        updateConstantEffects()
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("strong levitate")
-        hasWitOfTelvanni = false
+        types.Actor.spells(self):remove("Bound Cuirass")
+        types.Actor.spells(self):remove("Bound Helm")
+        hasWitOfTelvanni     = false
+        currentEnchantedItem = nil
+        lastHTCellId         = nil
+        -- Reverse all constant effect boosts cleanly
+        removeAllConstantBoosts()
     end,
 })
 
@@ -244,9 +410,10 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht2_id,
     localizedName = "Tower Sorcery",
     localizedDescription = "Telvanni wizards are defined by their mastery of enchantment. "
-        .. "You have begun to understand the principles that animate their towers and servants.\n "
+        .. "You have begun to understand the principles that animate their towers "
+        .. "and servants.\n "
         .. "Requires Uninvited Student. "
-        .. "(+15 Intelligence, +25 Enchant, +25 Alchemy, +25 Spell Absorption, "
+        .. "(+5 Intelligence, +5 Willpower, +10 Enchant, +10 Conjuration, "
         .. "grants Mark and Recall)",
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
@@ -257,13 +424,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(2)
-        types.Actor.spells(self):add("mark")
-        types.Actor.spells(self):add("recall")
+        types.Actor.spells(self):add("Tranasa's Spelltrap")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("mark")
-        types.Actor.spells(self):remove("recall")
+        types.Actor.spells(self):remove("Tranasa's Spelltrap")
     end,
 })
 
@@ -274,8 +439,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "House Telvanni respects only power earned, never granted. "
         .. "You have shaped yourself through relentless study.\n "
         .. "Requires Tower Sorcery. "
-        .. "(+25 Intelligence, +50 Enchant, +50 Alchemy, +50 Spell Absorption, "
-        .. "Fortify Maximum Magicka 0.5x Intelligence, Restore Magicka 1pt/s)",
+        .. "(+10 Intelligence, +10 Willpower, +18 Enchant, +18 Conjuration)",
     art = "textures\\levelup\\mage", cost = 3,
     requirements = {
         R().hasPerk(ht2_id),
@@ -285,11 +449,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(3)
-        types.Actor.spells(self):add("FPerks_HT3_Restore_Magicka_1")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_HT3_Restore_Magicka_1")
     end,
 })
 
@@ -297,12 +459,11 @@ local ht4_id = ns .. "_ht_telvanni_lord"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht4_id,
     localizedName = "Telvanni Lord",
-    localizedDescription = "You are acknowledged by the Telvanni masters - a rare concession "
-        .. "from those who acknowledge no one. The heights are yours to claim.\n "
+    localizedDescription = "You are acknowledged by the Telvanni masters - a rare "
+        .. "concession from those who acknowledge no one. The heights are yours "
+        .. "to claim.\n "
         .. "Requires Self-Made Power. "
-        .. "(+25 Willpower, +75 Enchant, +75 Alchemy, +75 Spell Absorption, "
-        .. "Fortify Maximum Magicka 1.0x Intelligence, "
-        .. "additional Restore Magicka 2pt/s)",
+        .. "(+15 Intelligence, +15 Willpower, +25 Enchant, +25 Conjuration)",
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {
         R().hasPerk(ht3_id),
@@ -310,19 +471,39 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('intelligence', 75),
         R().minimumLevel(15),
     },
-    onAdd = function()
-        setRank(4)
-    end,
-    onRemove = function()
-        setRank(nil)
-    end,
+    onAdd    = function() setRank(4) end,
+    onRemove = function() setRank(nil) end,
 })
 
 -- ============================================================
 --  ENGINE CALLBACKS
 -- ============================================================
+
+local function onUpdate(dt)
+    if not hasWitOfTelvanni then return end
+
+    -- Cell change check: recalculate constant effect scale when the
+    -- player moves to a new cell. This reflects faction reputation
+    -- gains without requiring re-equipping. Clears the boost cache
+    -- first so updateConstantEffects sees all slots as changed.
+    local cell   = self.cell
+    local cellId = cell and cell.id or nil
+    if cellId ~= lastHTCellId then
+        lastHTCellId = cellId
+        removeAllConstantBoosts()
+        updateConstantEffects()
+    end
+
+    -- Periodic equipment change check
+    equipmentCheckTimer = equipmentCheckTimer - dt
+    if equipmentCheckTimer <= 0 then
+        equipmentCheckTimer = EQUIPMENT_CHECK_INTERVAL
+        updateConstantEffects()
+    end
+end
+
 return {
     engineHandlers = {
-        onConsume = TelvanniWit,
+        onUpdate = onUpdate,
     },
 }

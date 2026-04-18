@@ -25,13 +25,6 @@ to bring that level of uniqueness to each other faction.
 While the mod innately has compatability with TR_Factions, I eventually want to look at adding perks for Tamriel Rebuilt, Project Cyrodiil, and Skyrim Home of the Nords factions
 But I might handle that in a seperate mod.
 
-## Known Issues
-The only major issue I've managed to sniff out, that I will be looking at fixing (but it isn't a massive detriment)
-is that the extra potion effects in Wit of House Telvanni have their duration handled in real life seconds
-Which means that if you rest or wait, the effect isn't removed
-
-Yes, House Telvanni has the most benefits, I want that to be the baseline, but I'm still coming up with ways to bring the
-others up to snuff
 
 -----------------------------------------------------------------------------------
 
@@ -64,257 +57,265 @@ and beyond that point have reduced scaling.
 
   Wit of Great House Telvanni:
   
-    Consumed potions and ingredients will trigger a second time with increased magnitude
+    Constant Effect and Cast On use Enchantments will trigger a second time with increased magnitude
     Value at Archmagister requirement: 150% magnitude (For a total of 250% effect)
     Restore Health/Magicka/Fatigue effects are currently applied instantly
+    Constant Effect enchantments are hard-capped at +200% power
 
 
 ## House Redoran
 
-  ### Perk 1: Redoran Pledge
-  +5 Strength, +10 Spear, +10 Athletics
-  
-  Honour the Great House:
-  
+
+### Perk 1: Redoran Pledge 
++3 Str/End, +10 Health, +5 Medium Armour / Athletics
+
+Honour the Great House:
+
     Strength of Great House Redoran
 
-  ### Perk 2: Burden of Duty
-  +15 Endurance, +25 Heavy Armor, +25 Block
+### Perk 2: Burden of Duty 
++5 Str/End, +20 Health, +10 Medium Armour / Athletics
 
-  ### Perk 3: Unbroken Line
-  +25 Endurance, +50 Spear, +50 Block
+### Perk 3: Unbroken Line 
++10 Str/End, +35 Health, +18 Medium Armour / Athletics
 
-  ### Perk 4: Guardian of the House
-  +25 Strength, +75 Spear, +75 Heavy Armor
+### Perk 4: Guardian of the House 
++15 Str/End, +50 Health, +25 Medium Armour / Athletics
+
 
 
 ## House Hlaalu
 
-  ### Perk 1: Hlaalu Courtesies
-  +5 Personality, +10 Speechcraft
-  
-  Honour The Great House:
-  
+
+### Perk 1: Hlaalu Courtesies 
++3 Per/Agi, +5 Mercantile / Speechcraft
+
+Honour The Great House:
+
     Guile of Great House Hlaalu
 
-  ### Perk 2: Silver Tongue
-  +15 Personality, +25 Speechcraft, +25 Illusion
+### Perk 2: Silver Tongue 
++5 Per/Agi, +5 Mercantile / Speechcraft
 
-  ### Perk 3: Trade Acumen
-  +25 Personality, +50 Mercantile
+### Perk 3: Trade Acumen 
++10 Per/Agi, +5 Mercantile / Speechcraft
 
-  ### Perk 4: Councillor's Ear
-  +25 Luck, +75 Speechcraft
+### Perk 4: Councillor’s Ear 
++15 Per/Agi, +5 Mercantile / Speechcraft
+
 
 
 ## House Telvanni
 
-  ### Perk 1: Uninvited Student
-  +5 Intelligence, +10 Enchant, +10 Alchemy, +10 Spell Absorption
-  
-  Grants Spell:
-  
-    Strong Levitate
-    
-  Honour the Great House:
-  
+### Perk 1: Uninvited Student 
++3 Int/Wil, +5 Enchant / Conjuration
+
+Grants Spell:
+
+    Bound Helm
+    Bound Cuirass
+
+
+Honour the Great House:
+
     Wit of Great House Telvanni
 
-  ### Perk 2: Tower Sorcery
-  +15 Intelligence, +25 Enchant, +25 Alchemy, +25 Spell Absorption
-  
-  Grants Spells:
-  
-    Mark
-    Recall
+### Perk 2: Tower Sorcery 
++5 Int/Wil, +10 Enchant / Conjuration
 
-  ### Perk 3: Self-Made Power
-  +25 Intelligence, +50 Enchant, +50 Alchemy, +50 Spell Absorption
-  
-  Fortify Maximum Magicka 0.5x INT
-  
-  Restore Magicka 1pt/s
+Grants Spells:
 
-  ### Perk 4: Telvanni Lord
-  +25 Willpower, +75 Enchant, +75 Alchemy, +75 Spell Absorption
-  
-  Fortify Maximum Magicka 1.0x INT
-  
-  Restore Magicka 2pts/s
+    Tranasa's Spelltrap 
+
+### Perk 3: Self-Made Power 
++10 Int/Wil, +18 Enchant / Conjuration
+
+Restore Magicka 1pt/s
+
+### Perk 4: Telvanni Lord 
++15 Int/Wil, +25 Enchant / Conjuration
+
+Restore Magicka 2pts/s
 
 
-# Imperial Factions #
+
+# Imperial Factions
 
 ## Imperial Legion
 
-  ### Perk 1: Legion Recruit
-  +5 Endurance, +10 Fortify Fatigue, +10 Medium Armour, +10 Heavy Armour
 
-  ### Perk 2: Shield Wall
-  +15 Endurance, +25 Fortify Fatigue, +25 Block
+### Perk 1: Legion Recruit 
++3 End/Str, +5 Heavy Armour / Block, +10 Fatigue
 
-  ### Perk 3: Forced March
-  +25 Endurance, +50 Fortify Fatigue, +50 Athletics
-  
-  Grants Power:
-  
+### Perk 2: Shield Wall 
++5 End/Str, +10 Heavy Armour / Block, +20 Fatigue
+
+### Perk 3: Forced March
++10 End/Str, +18 Heavy Armour / Block, +35 Fatigue
+
+Grants Power:
+
     Legion's Prowess
-    
+
       Fortify Athletics, Strength, Speed, Endurance, Health 50pts for 30s
 
-  ### Perk 4: Legate
-  +25 Strength, +75 Fortify Fatigue, +75 Heavy Armour
-  
-  Restore Health 1pt/s
-  
-  Restore Fatigue 1pt/s
+### Perk 4: Legate 
++15 End/Str, +25 Heavy Armour / Blockk, +50 Fatigue
+
+Restore Health 1pt/s
+Restore Fatigue 1pt/s
 
 
 ## Imperial Cult
 
-  ### Perk 1: Lay Worshipper
-  +5 Willpower, +10 Resist Disease, +10 Resist Poison, +10 Resist Normal Weapons
-  
-  Grants Spell:
-  
+### Perk 1: Lay Worshipper 
++3 Wil/Per, +5 Speechcraft / Restoration
+
+Grants Spell:
+
     Divine Intervention
 
-  ### Perk 2: Charitable Hand
-  +15 Willpower, +25 Resist Disease, +25 Resist Poison, +25 Resist Normal Weapons
+### Perk 2: Charitable Hand 
++5 Wil/Per, +10 Speechcraft / Restoration
 
-  ### Perk 3: Divine Favour
-  +25 Willpower, +50 Resist Disease, +50 Resist Poison, +50 Resist Normal Weapons
+### Perk 3: Divine Favour 
++10 Wil/Per, +18 Speechcraft / Restoration
 
-  ### Perk 4: Blessed of the Nine
-  +25 Personality, +75 Resist Disease, +75 Resist Poison, +75 Resist Normal Weapons
-  
-  Grants Power:
-  
+### Perk 4: Blessed of the Nine 
++15 Wil/Per, +25 Speechcraft / Restoration
+
+Grants Power:
+
     Blessing of the Nine
-    
+
       Fortify all Attributes 50pts for 30s
 
 
 ## Thieves Guild
 
-  ### Perk 1: Light Fingers
-  +5 Agility, +10 Sneak, +10 Security
+### Perk 1: Light Fingers 
++3 Agi/Spd, +5 Sneak / Security
 
-  ### Perk 2: Shadow Step
-  +15 Agility, +25 Sneak, +25 Acrobatics
+### Perk 2: Shadow Step 
++5 Agi/Spd, +10 Sneak / Security
 
-  ### Perk 3: Fence Network
-  +20 Agility, +50 Sneak, +50 Mercantile
-  
-  25% Chameleon while sneaking
+### Perk 3: Fence Network 
++10 Agi/Spd, +18 Sneak / Security
 
-  ### Perk 4: Master Thief
-  +25 Luck, +75 Security
-  
-  50% Chameleon while sneaking
+25% Chameleon while sneaking
+
+### Perk 4: Master Thief 
++15 Agi/Spd, +25 Sneak / Security
+
+50% Chameleon while sneaking
+
 
 
 ## Fighters Guild
 
-  ### Perk 1: Dues Paid
-  +5 Strength, +10 Fortify Health
+### Perk 1: Dues Paid 
++3 Str/End, +10 Health, +5 Long Blade / Blunt / Axe
 
-  ### Perk 2: Iron Discipline
-  +15 Strength, +25 Fortify Health
+### Perk 2: Iron Discipline 
++5 Str/End, +20 Health, +10 Long Blade / Blunt / Axe
 
-  ### Perk 3: Battle-Tested
-  +25 Strength, +50 Fortify Health
-  
-  Grants Power:
-  
+### Perk 3: Battle-Tested 
++10 Str/End, +35 Health, +18 Long Blade / Blunt / Axe
+
+Grants Power:
+
     Martial Rage
-    
+
       Fortify Health 50pts for 30s
       Fortify Fatigue 200pts for 30s
       Fortify Attack 100pts for 30s
 
-  ### Perk 4: Champion of the Guild
-  +25 Endurance, +75 Fortify Health
-  
-  Restore Health 1pt/s
-  
-  Restore Fatigue 1pt/s
+### Perk 4: Champion of the Guild 
++15 Str/End, +50 Health, +25 Long Blade / Blunt / Axe
+
 
 
 ## Mages Guild
 
-  ### Perk 1: Guild Initiate
-  +5 Intelligence, +10 Fortify Magicka
+### Perk 1: Guild Initiate 
++3 Int/End, +10 Magicka, +5 Destruction / Alteration
 
-  ### Perk 2: Scholastic Rigour
-  +15 Intelligence, +25 Fortify Magicka
+### Perk 2: Scholastic Rigour 
++5 Int/End, +20 Magicka, +10 Destruction / Alteration
 
-  ### Perk 3: Arcane Reservoir
-  +25 Intelligence, +50 Fortify Magicka
-  
-  Fortify Maximum Magicka 0.5x INT
+### Perk 3: Arcane Reservoir 
++10 Int/End, +35 Magicka, +18 Destruction / Alteration
 
-  ### Perk 4: Archmagister's Peer
-  +25 Willpower, +75 Fortify Magicka
-  
-  Fortify Maximum Magicka 1.0x INT
+Fortify Maximum Magicka 0.5x INT
+
+### Perk 4: Archmagister’s Peer 
++15 Int/End, +50 Magicka, +25 Destruction / Alteration
+
+Fortify Maximum Magicka 1.0x INT
 
 
-# Morrowind Factions #
+
+# Morrowind Factions
+
+
 
 ## Tribunal Temple
 
-  ### Perk 1: Ordinate Aspirant
-  +5 Intelligence, +10 Reflect, +10 Resist Paralysis, +10 Resist Blight Disease
-  
-  Grants Spell:
-  
+
+### Perk 1: Ordinate Aspirant 
++3 Int/Wil, +5 Restoration / Mysticism
+
+Grants Spell:
+
     Almsivi Intervention
 
-  ### Perk 2: Pilgrim Soul
-  +15 Intelligence, +25 Reflect, +25 Resist Paralysis, +25 Resist Blight Disease
-  
-  Grants Power:
-  
+### Perk 2: Pilgrim Soul 
++5 Int/Wil, +10 Restoration / Mysticism
+
+Grants Power:
+
     Touch of ALMSIVI
-    
+
       Cure Common Disease, Cure Blight Disease, Cure Poison on Touch
 
-  ### Perk 3: Voice of Reclaimation
-  +25 Intelligence, +50 Reflect, +50 Resist Paralysis, +50 Resist Blight Disease
+### Perk 3: Voice of Reclaimation 
++10 Int/Wil, +18 Restoration / Mysticism
 
-  ### Perk 4: Hand of ALMSIVI
-  +25 Personality, +75 Reflect, +75 Resist Paralysis, +75 Resist Blight Disease
-  
-  Grants Power:
-  
+### Perk 4: Hand of ALMSIVI 
++15 Int/Wil, +25 Restoration / Mysticism
+
+Grants Power:
+
     Call Honoured Ancestors
-    
+
       Summon 2x Greater Bonewalker 60s
       Summon 2x Bonelord 60s
 
 
+
 ## Morag Tong
 
-  ### Perk 1: Writ Bearer
-  +5 Speed, +10 Short Blade, +10 Speechcraft
 
-  ### Perk 2: Blade Discipline
-  +15 Speed, +25 Short Blade, +25 Light Armour
-  
-  Grants Spell:
-  
+### Perk 1: Writ Bearer 
++3 Spd/Agi, +5 Sneak / Acrobatics
+
+### Perk 2: Blade Discipline 
++5 Spd/Agi, +10 Sneak / Acrobatics
+
+Grants Spell:
+
     Mephala's Touch
-    
+
       Frenzy Humanoid 50pts for 30s
 
-  ### Perk 3: Calm Before
-  +25 Speed, +50 Sneak, +50 Short Blade
+### Perk 3: Calm Before 
++10 Spd/Agi, +18 Sneak / Acrobatics
 
-  ### Perk 4: Honoured Executioner
-  +25 Strength, +75 Short Blade
-  
-  Weapon attacks whilst sneaking apply a 25pt for 5s Absorb Health effect
+### Perk 4: Honoured Executioner 
++15 Spd/Agi, +25 Sneak / Acrobatics
+
+Weapon attacks whilst sneaking apply a 25pt for 5s Absorb Health effect
+
   
   Grants Power:
   

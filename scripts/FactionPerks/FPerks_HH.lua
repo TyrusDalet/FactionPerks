@@ -1,9 +1,9 @@
 --[[
     HH:
-        FPerks_HH1_Passive          - +5 Personality, +10 Speechcraft
-        FPerks_HH2_Passive          - +15 Personality, +25 Speechcraft, +25 Illusion
-        FPerks_HH3_Passive          - +25 Personality, +50 Mercantile
-        FPerks_HH4_Passive          - +25 Personality, +75 Speechcraft
+        FPerks_HH1_Passive          - +3 Personality, +3 Agility, +5 Mercantile, +5 Speechcraft
+        FPerks_HH2_Passive          - +5 Personality, +5 Agility, +10 Mercantile, +10 Speechcraft
+        FPerks_HH3_Passive          - +10 Personality, +10 Agility, +18 Mercantile, +18 Speechcraft
+        FPerks_HH4_Passive          - +15 Personality, +15 Agility, +25 Mercantile, +25 Speechcraft
 
     Honour The Great House (P1+): Guile of the Hlaalu
         Merchant Disposition bonus and Mercantile debuff scale
@@ -39,6 +39,12 @@ local perkTable = {
     [3] = { passive = {"FPerks_HH3_Passive"} },
     [4] = { passive = {"FPerks_HH4_Passive"} },
 }
+
+-- Perk id prep
+local hh1_id = ns .. "_hh_courtesies"
+local hh2_id = ns .. "_hh_silver_tongue"
+local hh3_id = ns .. "_hh_trade_acumen"
+local hh4_id = ns .. "_hh_councillors_ear"
 
 local setRank = utils.makeSetRank(perkTable, nil)
 
@@ -160,22 +166,22 @@ end
 
 -- ============================================================
 --  HOUSE HLAALU
---  Primary attribute: Personality
---  Scaling: Speechcraft, Illusion, Mercantile
+--  Primary attributes: Personality, Agility
+--  Scaling: Mercantile, Speechcraft
 --  Honour The Great House (P1+): Guile of the Hlaalu -
 --           merchant Disposition/Mercantile scales with faction
 --           reputation via honourScale.
 -- ============================================================
 
-local hh1_id = ns .. "_hh_courtesies"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh1_id,
     localizedName = "Hlaalu Courtesies",
     --hidden = true,
     localizedDescription = "The formal pleasantries of Great House Hlaalu open many doors. "
         .. "Merchants warm to you and find their resolve to haggle weakened.\n "
-        .. "(+5 Personality, +10 Speechcraft)\n\n "
-        .. "Honour the Guile of the Great House Hlaalu: Scaling disposition with Merchants, and improving bartering with Hlaalu Reputation",
+        .. "(+3 Personality, +3 Agility, +5 Mercantile, +5 Speechcraft)\n\n "
+        .. "Honour the Guile of the Great House Hlaalu: Scaling disposition with Merchants, "
+        .. "and improving bartering with Hlaalu Reputation",
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
         R().minimumFactionRank('hlaalu', 0),
@@ -191,7 +197,6 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
 })
 
-local hh2_id = ns .. "_hh_silver_tongue"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh2_id,
     localizedName = "Silver Tongue",
@@ -199,7 +204,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "Your words carry weight. Merchants sense your confidence "
         .. "and their prices soften further.\n "
         .. "Requires Hlaalu Courtesies. "
-        .. "(+15 Personality, +25 Speechcraft, +25 Illusion",
+        .. "(+5 Personality, +5 Agility, +10 Mercantile, +10 Speechcraft)",
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
         R().hasPerk(hh1_id),
@@ -211,14 +216,13 @@ interfaces.ErnPerkFramework.registerPerk({
     onRemove = function() setRank(nil) end,
 })
 
-local hh3_id = ns .. "_hh_trade_acumen"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh3_id,
     localizedName = "Trade Acumen",
     --hidden = true,
     localizedDescription = "Merchants treat you as one of their own, dropping their guard further.\n "
         .. "Requires Silver Tongue. "
-        .. "(+25 Personality, +50 Mercantile",
+        .. "(+10 Personality, +10 Agility, +18 Mercantile, +18 Speechcraft)",
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(hh2_id),
@@ -230,7 +234,6 @@ interfaces.ErnPerkFramework.registerPerk({
     onRemove = function() setRank(nil) end,
 })
 
-local hh4_id = ns .. "_hh_councillors_ear"
 interfaces.ErnPerkFramework.registerPerk({
     id = hh4_id,
     localizedName = "Councillor's Ear",
@@ -238,7 +241,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "A Councillor of House Hlaalu considers you a trusted confidant. "
         .. "Merchants can barely bring themselves to refuse you anything.\n "
         .. "Requires Trade Acumen. "
-        .. "(+25 Luck, +75 Speechcraft)",
+        .. "(+15 Personality, +15 Agility, +25 Mercantile, +25 Speechcraft)",
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
         R().hasPerk(hh3_id),
