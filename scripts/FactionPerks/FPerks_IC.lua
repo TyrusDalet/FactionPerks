@@ -71,6 +71,21 @@ end
 --           Fortify All Attributes power (P4)
 -- ============================================================
 
+local function checkTRData(rank)
+    if core.contentFiles.has("Tamriel_Data.esp") then
+            R().minimumFactionRank('T_Cyr_ItinerantPriests', rank)
+            R().minimumFactionRank('T_Sky_ImperialCult', rank)
+    end
+end
+
+local function guildRank(rank)
+    return R().orGroup(
+        R().minimumFactionRank('imperial cult', rank),
+        checkTRData(rank)
+    )
+end
+
+
 local ic1_id = ns .. "_ic_lay_worshipper"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic1_id,
@@ -81,7 +96,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "grants Divine Intervention)",
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
-        R().minimumFactionRank('imperial cult', 0),
+        guildRank(0),
         R().minimumLevel(1)
     },
     onAdd = function()
@@ -105,7 +120,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
         R().hasPerk(ic1_id),
-        R().minimumFactionRank('imperial cult', 3),
+        guildRank(3),
         R().minimumAttributeLevel('willpower', 40),
         R().minimumLevel(5),
     },
@@ -126,7 +141,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(ic2_id),
-        R().minimumFactionRank('imperial cult', 6),
+        guildRank(6),
         R().minimumAttributeLevel('willpower', 50),
         R().minimumLevel(10),
     },
@@ -148,7 +163,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
         R().hasPerk(ic3_id),
-        R().minimumFactionRank('imperial cult', 9),
+        guildRank(9),
         R().minimumAttributeLevel('willpower', 75),
         R().minimumLevel(15),
     },

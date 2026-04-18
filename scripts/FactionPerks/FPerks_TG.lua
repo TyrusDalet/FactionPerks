@@ -119,6 +119,21 @@ end
 --           (Master Thief) while sneaking
 -- ============================================================
 
+local function checkTRData(rank)
+    if core.contentFiles.has("Tamriel_Data.esp") then
+            R().minimumFactionRank('T_Cyr_ThievesGuild', rank)
+            R().minimumFactionRank('T_Sky_ThievesGuild', rank)
+    end
+end
+
+local function guildRank(rank)
+    return R().orGroup(
+        R().minimumFactionRank('thieves guild', rank),
+        checkTRData(rank)
+    )
+end
+
+
 interfaces.ErnPerkFramework.registerPerk({
     id = tg1_id,
     localizedName = "Light Fingers",
@@ -128,7 +143,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "(+3 Agility, +3 Speed, +5 Sneak, +5 Security)",
     art = "textures\\levelup\\acrobat", cost = 1,
     requirements = {
-        R().minimumFactionRank('thieves guild', 0),
+        guildRank(0),
         R().minimumLevel(1)
     },
     onAdd = function()
@@ -150,7 +165,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 2,
     requirements = {
         R().hasPerk(tg1_id),
-        R().minimumFactionRank('thieves guild', 3),
+        guildRank(3),
         R().minimumAttributeLevel('agility', 40),
         R().minimumLevel(5),
     },
@@ -173,7 +188,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 3,
     requirements = {
         R().hasPerk(tg2_id),
-        R().minimumFactionRank('thieves guild', 6),
+        guildRank(6),
         R().minimumAttributeLevel('agility', 50),
         R().minimumLevel(10),
     },
@@ -196,7 +211,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 4,
     requirements = {
         R().hasPerk(tg3_id),
-        R().minimumFactionRank('thieves guild', 9),
+        guildRank(9),
         R().minimumAttributeLevel('agility', 75),
         R().minimumLevel(15),
     },

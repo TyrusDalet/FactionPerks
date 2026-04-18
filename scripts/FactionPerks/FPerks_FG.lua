@@ -156,6 +156,20 @@ end)
 --           Counter attack on miss (Iron Discipline P2+)
 -- ============================================================
 
+local function checkTRData(rank)
+    if core.contentFiles.has("Tamriel_Data.esp") then
+            R().minimumFactionRank('T_Cyr_FightersGuild', rank)
+            R().minimumFactionRank('T_Sky_FightersGuild', rank)
+    end
+end
+
+local function guildRank(rank)
+    return R().orGroup(
+        R().minimumFactionRank('fighters guild', rank),
+        checkTRData(rank)
+    )
+end
+
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
@@ -165,7 +179,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "+5 Long Blade, +5 Blunt Weapon, +5 Axe)",
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
-        R().minimumFactionRank('fighters guild', 0),
+        guildRank(0),
         R().minimumLevel(1)
     },
     onAdd = function()
@@ -191,7 +205,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(fg1_id),
-        R().minimumFactionRank('fighters guild', 3),
+        guildRank(3),
         R().minimumAttributeLevel('strength', 40),
         R().minimumLevel(5),
     },
@@ -217,7 +231,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(fg2_id),
-        R().minimumFactionRank('fighters guild', 6),
+        guildRank(6),
         R().minimumAttributeLevel('strength', 50),
         R().minimumLevel(10),
     },
@@ -244,7 +258,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(fg3_id),
-        R().minimumFactionRank('fighters guild', 9),
+        guildRank(9),
         R().minimumAttributeLevel('strength', 75),
         R().minimumLevel(15),
     },

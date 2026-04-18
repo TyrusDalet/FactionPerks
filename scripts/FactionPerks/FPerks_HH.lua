@@ -101,10 +101,22 @@ local hhCurrentNpc  = nil
 local hhCurrentDisp = 0
 local hhCurrentMerc = 0
 
+local TRADE_SERVICES = {
+    Barter      = true, Weapon      = true, Armor       = true,
+    Clothing    = true, Books       = true, Ingredients = true,
+    Picks       = true, Probes      = true, Lights      = true,
+    Apparatus   = true, RepairItems = true, Misc        = true,
+    Potions     = true, MagicItems  = true,
+}
+ 
 local function isMerchant(actor)
     if not types.NPC.objectIsInstance(actor) then return false end
-    local rec = types.NPC.record(actor)
-    return rec and rec.baseGold > 0
+    local services = types.NPC.record(actor).servicesOffered
+    if not services then return false end
+    for service, _ in pairs(TRADE_SERVICES) do
+        if services[service] then return true end
+    end
+    return false
 end
 
 local hhMerchantMsgShown = false   -- show "You Honour House Hlaalu." once per conversation

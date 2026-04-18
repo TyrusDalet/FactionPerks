@@ -94,19 +94,18 @@ local UNIQUE_LOCATIONS = {
     ["mournhold temple: high chapel"]         = true,
     ["sotha sil, dome of sotha sil"]   = true,
     ["magas volar"]   = true,
-    ["solsthteim, mortrag glacier: huntsman's hall"]   = true,
+    ["solstheim, mortrag glacier: huntsman's hall"]   = true,
 
     --TR
     ["vorthas uldun, chambers of methats uldun"]   = true,
     ["mala tor, lattagarlas"]   = true,
     ["old ebonheart, guild of mages: entrance hall"]   = true,
     ["the space gone missing, outer caverns"]   = true,
-    
+
     --PT
     ["garlas agea, aransel"] = true,
     
     --SHotN
-    
 }
 
 local function isPlaceOfPower(cellName)
@@ -258,6 +257,22 @@ end)
 --  Special: Magical Cartography (P2+)
 -- ============================================================
 
+local function checkTRData(rank)
+    if core.contentFiles.has("Tamriel_Data.esp") then
+            R().minimumFactionRank('T_Cyr_MagesGuild', rank)
+            R().minimumFactionRank('T_Sky_MagesGuild', rank)
+            R().minimumFactionRank('T_Ham_MagesGuild', rank)
+    end
+end
+
+local function guildRank(rank)
+    return R().orGroup(
+        R().minimumFactionRank('mages guild', rank),
+        checkTRData(rank)
+    )
+end
+
+
 local mg1_id = ns .. "_mg_guild_initiate"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg1_id,
@@ -269,7 +284,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "+5 Destruction, +5 Alteration)",
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
-        R().minimumFactionRank('mages guild', 0),
+        guildRank(0),
         R().minimumLevel(1)
     },
     onAdd    = function() setRank(1) end,
@@ -293,7 +308,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
         R().hasPerk(mg1_id),
-        R().minimumFactionRank('mages guild', 3),
+        guildRank(3),
         R().minimumAttributeLevel('intelligence', 40),
         R().minimumLevel(5),
     },
@@ -325,7 +340,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\mage", cost = 3,
     requirements = {
         R().hasPerk(mg2_id),
-        R().minimumFactionRank('mages guild', 6),
+        guildRank(6),
         R().minimumAttributeLevel('intelligence', 50),
         R().minimumLevel(10),
     },
@@ -348,7 +363,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {
         R().hasPerk(mg3_id),
-        R().minimumFactionRank('mages guild', 9),
+        guildRank(9),
         R().minimumAttributeLevel('intelligence', 75),
         R().minimumLevel(15),
     },

@@ -179,6 +179,21 @@ end)
 --           Legionary's Resolve block reflect (P2+)
 -- ============================================================
 
+local function checkTRData(rank)
+    if core.contentFiles.has("Tamriel_Data.esp") then
+            R().minimumFactionRank('T_Cyr_ImperialLegion', rank)
+            R().minimumFactionRank('T_Sky_ImperialLegion', rank)
+    end
+end
+
+local function guildRank(rank)
+    return R().orGroup(
+        R().minimumFactionRank('imperial legion', rank),
+        checkTRData(rank)
+    )
+end
+
+
 interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
     localizedName = "Legion Recruit",
@@ -188,7 +203,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "(+3 Endurance, +3 Strength, +5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
-        R().minimumFactionRank('imperial legion', 0),
+        guildRank(0),
         R().minimumLevel(1)
     },
     onAdd    = function() setRank(1) end,
@@ -209,7 +224,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(il1_id),
-        R().minimumFactionRank('imperial legion', 3),
+        guildRank(3),
         R().minimumAttributeLevel('endurance', 40),
         R().minimumLevel(5),
     },
@@ -230,7 +245,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(il2_id),
-        R().minimumFactionRank('imperial legion', 6),
+        guildRank(6),
         R().minimumAttributeLevel('endurance', 50),
         R().minimumLevel(10),
     },
@@ -256,7 +271,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(il3_id),
-        R().minimumFactionRank('imperial legion', 9),
+        guildRank(9),
         R().minimumAttributeLevel('endurance', 75),
         R().minimumLevel(15),
     },
