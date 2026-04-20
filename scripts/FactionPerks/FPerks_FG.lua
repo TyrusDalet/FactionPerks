@@ -156,18 +156,17 @@ end)
 --           Counter attack on miss (Iron Discipline P2+)
 -- ============================================================
 
-local function checkTRData(rank)
-    if core.contentFiles.has("Tamriel_Data.esp") then
-            R().minimumFactionRank('T_Cyr_FightersGuild', rank)
-            R().minimumFactionRank('T_Sky_FightersGuild', rank)
-    end
-end
-
 local function guildRank(rank)
-    return R().orGroup(
+    local reqs = {
         R().minimumFactionRank('fighters guild', rank),
-        checkTRData(rank)
-    )
+    }
+    if core.contentFiles.has("Tamriel_Data.esp") then
+        table.insert(reqs, R().minimumFactionRank('T_Cyr_FightersGuild', rank))
+        table.insert(reqs, R().minimumFactionRank('T_Sky_FightersGuild', rank))
+    end
+    -- No need for orGroup if only one requirement
+    if #reqs == 1 then return reqs[1] end
+    return R().orGroup(table.unpack(reqs))
 end
 
 interfaces.ErnPerkFramework.registerPerk({

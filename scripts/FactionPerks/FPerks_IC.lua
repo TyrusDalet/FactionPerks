@@ -71,18 +71,17 @@ end
 --           Fortify All Attributes power (P4)
 -- ============================================================
 
-local function checkTRData(rank)
-    if core.contentFiles.has("Tamriel_Data.esp") then
-            R().minimumFactionRank('T_Cyr_ItinerantPriests', rank)
-            R().minimumFactionRank('T_Sky_ImperialCult', rank)
-    end
-end
-
 local function guildRank(rank)
-    return R().orGroup(
+    local reqs = {
         R().minimumFactionRank('imperial cult', rank),
-        checkTRData(rank)
-    )
+    }
+    if core.contentFiles.has("Tamriel_Data.esp") then
+        table.insert(reqs, R().minimumFactionRank('T_Cyr_ItinerantPriests', rank))
+        table.insert(reqs, R().minimumFactionRank('T_Sky_ImperialCult', rank))
+    end
+    -- No need for orGroup if only one requirement
+    if #reqs == 1 then return reqs[1] end
+    return R().orGroup(table.unpack(reqs))
 end
 
 

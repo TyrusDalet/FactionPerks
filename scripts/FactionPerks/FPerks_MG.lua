@@ -257,21 +257,20 @@ end)
 --  Special: Magical Cartography (P2+)
 -- ============================================================
 
-local function checkTRData(rank)
-    if core.contentFiles.has("Tamriel_Data.esp") then
-            R().minimumFactionRank('T_Cyr_MagesGuild', rank)
-            R().minimumFactionRank('T_Sky_MagesGuild', rank)
-            R().minimumFactionRank('T_Ham_MagesGuild', rank)
-    end
-end
-
 local function guildRank(rank)
-    return R().orGroup(
+    local reqs = {
         R().minimumFactionRank('mages guild', rank),
-        checkTRData(rank)
-    )
-end
+    }
+    if core.contentFiles.has("Tamriel_Data.esp") then
+        table.insert(reqs, R().minimumFactionRank('T_Cyr_MagesGuild', rank))
+        table.insert(reqs, R().minimumFactionRank('T_Sky_MagesGuild', rank))
+        table.insert(reqs, R().minimumFactionRank('T_Ham_MagesGuild', rank))
 
+    end
+    -- No need for orGroup if only one requirement
+    if #reqs == 1 then return reqs[1] end
+    return R().orGroup(table.unpack(reqs))
+end
 
 local mg1_id = ns .. "_mg_guild_initiate"
 interfaces.ErnPerkFramework.registerPerk({
