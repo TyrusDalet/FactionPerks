@@ -9,11 +9,6 @@
         FPerks_HT4_Passive          - +15 Intelligence, +15 Willpower,
                                       +25 Enchant, +25 Conjuration
 
-    Non-table spells (granted once, not removed on rank-up):
-        "strong levitate"             Vanilla spell (P1)
-        "mark"                        Vanilla spell (P2)
-        "recall"                      Vanilla spell (P2)
-
     Honour The Great House (P1+): Wit of the Telvanni
 
         CAST ON USE:
@@ -415,7 +410,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "House Telvanni does not recruit - it tolerates those strong "
         .. "enough to push their way in. You have done so. For now, that is enough.\n "
         .. "(+3 Intelligence, +3 Willpower, +5 Enchant, +5 Conjuration, "
-        .. "grants Strong Levitate)\n\n"
+        .. "grants Bound Helm and Cuirass)\n\n"
         .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
         .. "that target yourself are augmented based on your Telvanni reputation. "
         .. "At reputation cap: effects are 250%% of their base magnitude.\n"
@@ -428,14 +423,17 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(1)
-        types.Actor.spells(self):add("strong levitate")
+        types.Actor.spells(self):add("bound helm")
+        types.Actor.spells(self):add("bound cuirass")
+
         hasWitOfTelvanni = true
         -- Apply constant effect boosts immediately for currently equipped items
         updateConstantEffects()
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("strong levitate")
+        types.Actor.spells(self):remove("bound helm")
+        types.Actor.spells(self):remove("bound cuirass")
         hasWitOfTelvanni     = false
         currentEnchantedItem = nil
         lastHTCellId         = nil
@@ -453,7 +451,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "and servants.\n "
         .. "Requires Uninvited Student. "
         .. "(+5 Intelligence, +5 Willpower, +10 Enchant, +10 Conjuration, "
-        .. "grants Mark and Recall)",
+        .. "grants Tranasa's Spelltrap)",
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
         R().hasPerk(ht1_id),
@@ -463,13 +461,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(2)
-        types.Actor.spells(self):add("mark")
-        types.Actor.spells(self):add("recall")
+        types.Actor.spells(self):add("tranasa's spelltrap")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("mark")
-        types.Actor.spells(self):remove("recall")
+        types.Actor.spells(self):remove("tranasa's spelltrap")
     end,
 })
 
