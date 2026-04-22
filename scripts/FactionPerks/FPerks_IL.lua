@@ -183,9 +183,9 @@ local function guildRank(rank)
     local reqs = {
         R().minimumFactionRank('imperial legion', rank),
     }
-    if core.contentFiles.has("Tamriel_Data.esp") then
-        table.insert(reqs, R().minimumFactionRank('T_Cyr_ImperialLegion', rank))
-        table.insert(reqs, R().minimumFactionRank('T_Sky_ImperialLegion', rank))
+    if core.contentFiles.has("tamriel_data.esm") then
+        table.insert(reqs, R().minimumFactionRank('t_cyr_imperiallegion', rank))
+        table.insert(reqs, R().minimumFactionRank('t_sky_imperiallegion', rank))
     end
     -- No need for orGroup if only one requirement
     if #reqs == 1 then return reqs[1] end
