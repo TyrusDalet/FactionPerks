@@ -78,7 +78,7 @@ end
 local function applyChameleon()
     if not chameleonActive then
         local m = chameleonMag()
-        if m == 25 then
+        if m >= 25 then
             types.Actor.spells(self):add("FPerks_TG3_Cham") 
             chameleonActive = true
 

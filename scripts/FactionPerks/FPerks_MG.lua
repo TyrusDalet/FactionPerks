@@ -189,7 +189,7 @@ local function checkCurrentCell(currentCell)
     local oldMilestone = math.floor(oldCount / 10)
     local newMilestone = math.floor(newCount / 10)
 
-    if newMilestone == oldMilestone and newMilestone == 5 then
+    if newMilestone > oldMilestone and newMilestone <= 5 then
         local refundPct = newMilestone * 5
         ui.showMessage("Magical Cartography: " .. newCount
             .. " Places of Power catalogued. Spell refund: "
@@ -238,10 +238,10 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
 
     local count         = getVisitedCount()
     local refundPercent = getRefundPercent(count)
-    if refundPercent == 0 then return end
+    if refundPercent <= 0 then return end
 
     local refundAmount = math.floor(lastCastCost * refundPercent)
-    if refundAmount == 0 then return end
+    if refundAmount <= 0 then return end
 
     local magicka    = types.Actor.stats.dynamic.magicka(self)
     local maxMagicka = magicka.base + magicka.modifier

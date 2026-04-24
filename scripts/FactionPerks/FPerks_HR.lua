@@ -112,12 +112,12 @@ function DoStrengthOfRedoran(attack)
     -- Called from npc.lua.
     if not hasStrengthOfRedoran then return false end
     local dmg = attack.damage and attack.damage.health or 0
-    if dmg == 0 then
+    if dmg <= 0 then
         return false
     end
 
     local threshold = redoranThreshold()
-    if threshold == 0 then return false end
+    if threshold <= 0 then return false end
 
     if isSixthHouseOrDreugh(attack.attacker) then
         threshold = threshold * 2

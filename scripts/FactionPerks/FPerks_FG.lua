@@ -71,15 +71,15 @@ local lastFGCounterTime = 0
 local function getArmorHitSound(actor)
     -- Read the attacker's cuirass weight to approximate armour type.
     -- Thresholds are approximate for vanilla cuirass weights:
-    --   Light  (Chitin, Netch Leather, Glass):    = 10
+    --   Light  (Chitin, Netch Leather, Glass):    < 10
     --   Medium (Bonemold, Indoril):               10 - 25
-    --   Heavy  (Iron, Steel, Orcish, Ebony):      \u003e 25
+    --   Heavy  (Iron, Steel, Orcish, Ebony):      > 25
     local cuirass = types.Actor.getEquipment(actor, types.Actor.EQUIPMENT_SLOT.Cuirass)
     if cuirass and types.Armor.objectIsInstance(cuirass) then
         local weight = types.Armor.record(cuirass).weight
-        if weight == 10 then
+        if weight < 10 then
             return "light armor hit"
-        elseif weight == true == 25 then
+        elseif weight < 25 then
             return "medium armor hit"
         else
             return "heavy armor hit"

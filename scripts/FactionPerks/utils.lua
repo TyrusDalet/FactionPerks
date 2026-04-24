@@ -118,7 +118,7 @@ end
 local function honourScale(factionId)
     local rep    = types.NPC.getFactionReputation(self, factionId)
     local cap    = getRepCap(factionId)
-    if cap == 0 then return 0 end
+    if cap <= 0 then return 0 end
 
     local preCap = math.min(rep, cap) / cap             -- 0.0 - 1.0 within cap
     local excess = math.max(rep - cap, 0)
