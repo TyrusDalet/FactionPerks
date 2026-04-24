@@ -26,6 +26,8 @@ require('scripts.FactionPerks.shared')
 local perkStore = storage.playerSection("FactionPerks")
 local utils  = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.moragTong
 local HasMT4 = false
 
 -- ============================================================
@@ -82,10 +84,11 @@ end))
 interfaces.ErnPerkFramework.registerPerk({
     id = mt1_id,
     localizedName = "Writ Bearer",
-    --hidden = true,
     localizedDescription = "You carry the legal sanction of the Morag Tong. "
-        .. "Your kills are honoured executions, not murders.\n "
+        .. "Your kills are honoured executions, not murders.\
+ "
         .. "(+3 Speed, +3 Agility, +5 Sneak, +5 Acrobatics)",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('morag tong', 0),
@@ -102,11 +105,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt2_id,
     localizedName = "Blade Discipline",
-    --hidden = true,
     localizedDescription = "The Tong teaches economy of motion. Your strikes are precise "
-        .. "and swift. You have learned to channel pure battle-fury at will.\n "
+        .. "and swift. You have learned to channel pure battle-fury at will.\
+ "
         .. "Requires Writ Bearer. "
         .. "(+5 Speed, +5 Agility, +10 Sneak, +10 Acrobatics, grants Frenzy power)",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(mt1_id),
@@ -127,11 +131,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt3_id,
     localizedName = "Calm Before",
-    --hidden = true,
     localizedDescription = "You have learned the art of stillness. "
-        .. "A Tong assassin who cannot wait cannot succeed.\n "
+        .. "A Tong assassin who cannot wait cannot succeed.\
+ "
         .. "Requires Blade Discipline. "
         .. "(+10 Speed, +10 Agility, +18 Sneak, +18 Acrobatics)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(mt2_id),
@@ -150,12 +155,15 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt4_id,
     localizedName = "Honoured Executioner",
-    --hidden = true,
     localizedDescription = "The Grand Master himself has commended your work. "
-        .. "The shadows open for you whenever you call upon them.\n "
+        .. "The shadows open for you whenever you call upon them.\
+ "
         .. "Requires Calm Before. "
-        .. "(+15 Speed, +15 Agility, +25 Sneak, +25 Acrobatics, grants Invisibility power)\n\n "
+        .. "(+15 Speed, +15 Agility, +25 Sneak, +25 Acrobatics, grants Invisibility power)\
+\
+ "
         .. "Weapon attacks whilst Sneaking inflict a lifesteal effect.",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(mt3_id),

@@ -58,7 +58,48 @@ local function getRepCap(factionId)
 end
 
 -- ============================================================
---  honourScale(factionId)
+--  FACTION GROUPS
+--  Maps each joinable faction to the list of faction IDs that
+--  count as membership. For vanilla factions this is a single
+--  entry. Mods that add regional branches (e.g. Tamriel
+--  Rebuilt) are detected here and their branch IDs appended,
+--  so every perkHidden and notExpelled call stays up to date
+--  automatically.
+--
+--  To add support for a new mod that adds branches, append a
+--  detection block below - no changes needed in faction files.
+-- ============================================================
+
+local FACTION_GROUPS = {
+    thievesGuild   = { 'thieves guild' },
+    moragTong      = { 'morag tong' },
+    fightersGuild  = { 'fighters guild' },
+    magesGuild     = { 'mages guild' },
+    imperialLegion = { 'imperial legion' },
+    imperialCult   = { 'imperial cult' },
+    temple         = { 'temple' },
+    hlaalu         = { 'hlaalu' },
+    redoran        = { 'redoran' },
+    telvanni       = { 'telvanni' },
+}
+
+-- Tamriel Rebuilt adds Cyrodiil and Skyrim branches for the
+-- imperial guilds. Detected by Tamriel_Data.esm presence.
+if core.contentFiles.has("Tamriel_Data.esm") then
+    table.insert(FACTION_GROUPS.fightersGuild,  't_cyr_fightersguild')
+    table.insert(FACTION_GROUPS.fightersGuild,  't_sky_fightersguild')
+    table.insert(FACTION_GROUPS.magesGuild,     't_cyr_magesguild')
+    table.insert(FACTION_GROUPS.magesGuild,     't_sky_magesguild')
+    table.insert(FACTION_GROUPS.magesGuild,     't_ham_magesguild')
+    table.insert(FACTION_GROUPS.imperialLegion, 't_cyr_imperiallegion')
+    table.insert(FACTION_GROUPS.imperialLegion, 't_sky_imperiallegion')
+    table.insert(FACTION_GROUPS.imperialCult,   't_sky_imperialcult')
+    table.insert(FACTION_GROUPS.imperialCult,   't_cyr_itinerantpriests')
+    
+    -- Add further TR branch IDs here as they are introduced
+end
+
+
 --
 --  Returns a scale factor for Honour The Great House effects.
 --
@@ -77,7 +118,7 @@ end
 local function honourScale(factionId)
     local rep    = types.NPC.getFactionReputation(self, factionId)
     local cap    = getRepCap(factionId)
-    if cap <= 0 then return 0 end
+    if cap == 0 then return 0 end
 
     local preCap = math.min(rep, cap) / cap             -- 0.0 - 1.0 within cap
     local excess = math.max(rep - cap, 0)
@@ -154,10 +195,93 @@ local function makeSetRank(perkTable, flagHandlers)
     end
 end
 -- ============================================================
+--  notExpelled(factionId)
+--
+--  Returns a custom ErnPerkFramework requirement that fails if
+--  the player is currently expelled from the given faction.
+--  Add to the P1 requirements of each faction so that expulsion
+--  causes the perk (and all perks that chain from it) to be
+--  stripped until the player rejoins.
+-- ============================================================
+
+local interfaces = require('openmw.interfaces')
+local ns         = require("scripts.FactionPerks.namespace")
+local localization = core.l10n(ns)
+
+local function notExpelled(factionId)
+    return {
+        id = 'isNotExpelled',
+        localizedName = localization('notExpelled', { factionName = factionId }),
+        check = function()
+            return not types.NPC.isExpelled(self, factionId)
+        end
+    }
+end
+
+-- ============================================================
+--  perkHidden(factionIds, minimumRank, minimumLevel)
+--
+--  Returns a function suitable for the ErnPerkFramework
+--  'hidden' field. The perk is hidden unless the player
+--  meets ALL of the following simultaneously:
+--    - Is a member of at least one faction in factionIds
+--    - Holds at least minimumRank in that faction
+--    - Is at or above minimumLevel
+--
+--  factionIds may be a single string or a table of strings.
+--  For guilds with multiple branches (e.g. Fighters Guild +
+--  TR Cyrodiil/Skyrim branches), pass all branch IDs as a
+--  table - membership in any one branch satisfies the check.
+--
+--  Example (single faction):
+--    perkHidden('redoran', 0, 1)
+--
+--  Example (multi-branch):
+--    perkHidden({'fighters guild', 't_cyr_fightersguild', 't_sky_fightersguild'}, 0, 1)
+-- ============================================================
+
+local function perkHidden(factionIds, minimumRank, minimumLevel)
+    -- Normalise to a table so the loop below is always the same
+    if type(factionIds) == "string" then
+        factionIds = { factionIds }
+    end
+
+    return function()
+        -- Build a set for fast lookup
+        local idSet = {}
+        for _, id in ipairs(factionIds) do
+            idSet[id] = true
+        end
+
+        -- Check membership and rank in any of the listed factions
+        local qualifies = false
+        for _, foundId in pairs(types.NPC.getFactions(self)) do
+            if idSet[foundId] then
+                local rank = types.NPC.getFactionRank(self, foundId)
+                if rank >= (minimumRank - 1) then
+                    qualifies = true
+                    break
+                end
+            end
+        end
+        if not qualifies then return true end  -- hide
+
+        -- Must meet the level threshold
+        local level = types.Actor.stats.level(self).current
+        if level < minimumLevel then return true end  -- hide
+
+        return false  -- show
+    end
+end
+
+-- ============================================================
 --  EXPORTS
 -- ============================================================
 return {
-    getRepCap    = getRepCap,
-    honourScale  = honourScale,
-    makeSetRank  = makeSetRank
+    getRepCap      = getRepCap,
+    honourScale    = honourScale,
+    makeSetRank    = makeSetRank,
+    notExpelled    = notExpelled,
+    perkHidden     = perkHidden,
+    FACTION_GROUPS = FACTION_GROUPS,
 }

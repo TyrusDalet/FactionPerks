@@ -20,6 +20,8 @@
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.hlaalu
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
@@ -188,12 +190,15 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hh1_id,
     localizedName = "Hlaalu Courtesies",
-    --hidden = true,
     localizedDescription = "The formal pleasantries of Great House Hlaalu open many doors. "
-        .. "Merchants warm to you and find their resolve to haggle weakened.\n "
-        .. "(+3 Personality, +3 Agility, +5 Mercantile, +5 Speechcraft)\n\n "
+        .. "Merchants warm to you and find their resolve to haggle weakened.\
+ "
+        .. "(+3 Personality, +3 Agility, +5 Mercantile, +5 Speechcraft)\
+\
+ "
         .. "Honour the Guile of the Great House Hlaalu: Scaling disposition with Merchants, "
         .. "and improving bartering with Hlaalu Reputation",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
         R().minimumFactionRank('hlaalu', 0),
@@ -212,11 +217,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh2_id,
     localizedName = "Silver Tongue",
-    --hidden = true,
     localizedDescription = "Your words carry weight. Merchants sense your confidence "
-        .. "and their prices soften further.\n "
+        .. "and their prices soften further.\
+ "
         .. "Requires Hlaalu Courtesies. "
         .. "(+5 Personality, +5 Agility, +10 Mercantile, +10 Speechcraft)",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
         R().hasPerk(hh1_id),
@@ -231,10 +237,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh3_id,
     localizedName = "Trade Acumen",
-    --hidden = true,
-    localizedDescription = "Merchants treat you as one of their own, dropping their guard further.\n "
+    localizedDescription = "Merchants treat you as one of their own, dropping their guard further.\
+ "
         .. "Requires Silver Tongue. "
         .. "(+10 Personality, +10 Agility, +18 Mercantile, +18 Speechcraft)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(hh2_id),
@@ -249,11 +256,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh4_id,
     localizedName = "Councillor's Ear",
-    --hidden = true,
     localizedDescription = "A Councillor of House Hlaalu considers you a trusted confidant. "
-        .. "Merchants can barely bring themselves to refuse you anything.\n "
+        .. "Merchants can barely bring themselves to refuse you anything.\
+ "
         .. "Requires Trade Acumen. "
         .. "(+15 Personality, +15 Agility, +25 Mercantile, +25 Speechcraft)",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
         R().hasPerk(hh3_id),

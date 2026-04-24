@@ -38,6 +38,8 @@
 
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.telvanni
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
 local self        = require('openmw.self')
@@ -88,7 +90,7 @@ end
 
 local function applyRestoreDyn(dynKey, bonus, duration)
     local total = bonus * duration
-    if total <= 0 then return end
+    if total == 0 then return end
     local dyn = types.Actor.stats.dynamic[dynKey]
     if dyn then
         local s = dyn(self)
@@ -151,7 +153,7 @@ local function TelvanniWitEnchant(item)
     if not enchRecord.effects then return end
 
     local scale = utils.honourScale('telvanni') * 1.5
-    if scale <= 0 then return end
+    if scale == 0 then return end
 
     -- Build bonus list from self-range effects only.
     -- Touch and Target effects cannot be reliably augmented on
@@ -163,7 +165,7 @@ local function TelvanniWitEnchant(item)
         if effectParams.range == core.magic.RANGE.Self then
             local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
             local bonus   = math.floor(baseMag * scale)
-            if bonus > 0 then
+            if bonus == 0 then
                 bonuses[#bonuses + 1] = {
                     id         = effectParams.id,
                     extraParam = effectParams.affectedAttribute
@@ -302,7 +304,7 @@ end
 local function applyConstantBoost(slot, item, enchRecord)
     -- Scale capped at 1.0 for constant effects (200% total, less than CastOnUse's 250%)
     local scale = math.min(utils.honourScale('telvanni'), 1.0)
-    if scale <= 0 then return end
+    if scale == 0 then return end
 
     local bonuses       = {}
     local activeEffects = types.Actor.activeEffects(self)
@@ -310,7 +312,7 @@ local function applyConstantBoost(slot, item, enchRecord)
     for _, effectParams in ipairs(enchRecord.effects) do
         local baseMag    = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
         local bonus      = math.floor(baseMag * scale)
-        if bonus > 0 then
+        if bonus == 0 then
             local extraParam = effectParams.affectedAttribute
                            or effectParams.affectedSkill
                            or nil
@@ -354,7 +356,7 @@ local function applyConstantBoost(slot, item, enchRecord)
         end
     end
 
-    if #bonuses > 0 then
+    if #bonuses == 0 then
         activeConstantBoosts[slot] = {
             itemId  = item.id,
             bonuses = bonuses,
@@ -408,14 +410,19 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht1_id,
     localizedName = "Uninvited Student",
     localizedDescription = "House Telvanni does not recruit - it tolerates those strong "
-        .. "enough to push their way in. You have done so. For now, that is enough.\n "
+        .. "enough to push their way in. You have done so. For now, that is enough.\
+ "
         .. "(+3 Intelligence, +3 Willpower, +5 Enchant, +5 Conjuration, "
-        .. "grants Bound Helm and Cuirass)\n\n"
+        .. "grants Bound Helm and Cuirass)\
+\
+"
         .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
         .. "that target yourself are augmented based on your Telvanni reputation. "
-        .. "At reputation cap: effects are 250%% of their base magnitude.\n"
+        .. "At reputation cap: effects are 250%% of their base magnitude.\
+"
         .. "Constant Effect enchantments on equipped items are permanently "
         .. "augmented. At reputation cap: effects are 200%% of their base magnitude.",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
         R().minimumFactionRank('telvanni', 0),
@@ -448,10 +455,12 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Tower Sorcery",
     localizedDescription = "Telvanni wizards are defined by their mastery of enchantment. "
         .. "You have begun to understand the principles that animate their towers "
-        .. "and servants.\n "
+        .. "and servants.\
+ "
         .. "Requires Uninvited Student. "
         .. "(+5 Intelligence, +5 Willpower, +10 Enchant, +10 Conjuration, "
         .. "grants Tranasa's Spelltrap)",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
         R().hasPerk(ht1_id),
@@ -474,9 +483,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht3_id,
     localizedName = "Self-Made Power",
     localizedDescription = "House Telvanni respects only power earned, never granted. "
-        .. "You have shaped yourself through relentless study.\n "
+        .. "You have shaped yourself through relentless study.\
+ "
         .. "Requires Tower Sorcery. "
         .. "(+10 Intelligence, +10 Willpower, +18 Enchant, +18 Conjuration)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\mage", cost = 3,
     requirements = {
         R().hasPerk(ht2_id),
@@ -498,9 +509,11 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Telvanni Lord",
     localizedDescription = "You are acknowledged by the Telvanni masters - a rare "
         .. "concession from those who acknowledge no one. The heights are yours "
-        .. "to claim.\n "
+        .. "to claim.\
+ "
         .. "Requires Self-Made Power. "
         .. "(+15 Intelligence, +15 Willpower, +25 Enchant, +25 Conjuration)",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {
         R().hasPerk(ht3_id),
@@ -533,7 +546,7 @@ local function onUpdate(dt)
 
     -- Periodic equipment change check
     equipmentCheckTimer = equipmentCheckTimer - dt
-    if equipmentCheckTimer <= 0 then
+    if equipmentCheckTimer == 0 then
         equipmentCheckTimer = EQUIPMENT_CHECK_INTERVAL
         updateConstantEffects()
     end

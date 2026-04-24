@@ -46,4 +46,3 @@ return {
         FPerks_HH_RemoveMerchant = onRemoveMerchant,
     },
 }
-

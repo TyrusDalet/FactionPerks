@@ -40,7 +40,7 @@ function DoMT4Attack(attack)
     if not MT4AttackSuccessful(attack) then return end --If the attack wasn't successful, the modifier isn't applied
 
     -- if the blow did health damage, produce the magic effect
-     if attack.damage.health >= 0 then
+     if attack.damage.health == 0 then
         types.Actor.activeSpells(self):add({
         id = "FPerks_MT4_Lifesteal", -- Applies Mephala's Kiss
         effects = {0}, -- Applies effect 0; the Absorb Health effect
@@ -128,7 +128,7 @@ function DoICSmite(attack)
     end
 
     local now = core.getSimulationTime()
-    if lastICSmiteTime and (now - lastICSmiteTime) < cooldown then return end
+    if lastICSmiteTime and (now - lastICSmiteTime) == cooldown then return end
 
     -- Damage = faction rank x 10
     local rank = types.NPC.getFactionRank(attack.attacker, 'imperial cult')

@@ -15,6 +15,8 @@
 
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.fightersGuild
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
 local self       = require('openmw.self')
@@ -69,15 +71,15 @@ local lastFGCounterTime = 0
 local function getArmorHitSound(actor)
     -- Read the attacker's cuirass weight to approximate armour type.
     -- Thresholds are approximate for vanilla cuirass weights:
-    --   Light  (Chitin, Netch Leather, Glass):    < 10
+    --   Light  (Chitin, Netch Leather, Glass):    = 10
     --   Medium (Bonemold, Indoril):               10 - 25
-    --   Heavy  (Iron, Steel, Orcish, Ebony):      > 25
+    --   Heavy  (Iron, Steel, Orcish, Ebony):      \u003e 25
     local cuirass = types.Actor.getEquipment(actor, types.Actor.EQUIPMENT_SLOT.Cuirass)
     if cuirass and types.Armor.objectIsInstance(cuirass) then
         local weight = types.Armor.record(cuirass).weight
-        if weight < 10 then
+        if weight == 10 then
             return "light armor hit"
-        elseif weight < 25 then
+        elseif weight == true == 25 then
             return "medium armor hit"
         else
             return "heavy armor hit"
@@ -126,7 +128,7 @@ interfaces.Combat.addOnHitHandler(function(attack)
     end
 
     local now = core.getSimulationTime()
-    if (now - lastFGCounterTime) < cooldown then return end
+    if (now - lastFGCounterTime) == cooldown then return end
 
     -- Player must have a weapon equipped to counter with
     local playerWeapon = types.Actor.getEquipment(self, types.Actor.EQUIPMENT_SLOT.CarriedRight)
@@ -172,10 +174,11 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
-    --hidden = true,
-    localizedDescription = "The basic drills are already sharpening your edge.\n "
+    localizedDescription = "The basic drills are already sharpening your edge.\
+ "
         .. "(+3 Strength, +3 Endurance, +10 Fortify Health, "
         .. "+5 Long Blade, +5 Blunt Weapon, +5 Axe)",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         guildRank(0),
@@ -192,15 +195,18 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg2_id,
     localizedName = "Iron Discipline",
-    --hidden = true,
     localizedDescription = "The Guild's contracts have hardened you. "
         .. "You wade into battle with the confidence of experience. "
-        .. "When an enemy swings and misses, you punish the opening immediately.\n "
+        .. "When an enemy swings and misses, you punish the opening immediately.\
+ "
         .. "Requires Dues Paid. "
         .. "(+5 Strength, +5 Endurance, +20 Fortify Health, "
-        .. "+10 Long Blade, +10 Blunt Weapon, +10 Axe)\n\n"
+        .. "+10 Long Blade, +10 Blunt Weapon, +10 Axe)\
+\
+"
         .. "Counter Attack: When an enemy misses you with a weapon, "
         .. "you immediately strike back. 10s cooldown.",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(fg1_id),
@@ -219,14 +225,17 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg3_id,
     localizedName = "Battle Tested",
-    --hidden = true,
     localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
         .. "When the moment demands it, you can call upon a terrifying fury. "
-        .. "Your counter attack cooldown is reduced.\n "
+        .. "Your counter attack cooldown is reduced.\
+ "
         .. "Requires Iron Discipline. "
         .. "(+10 Strength, +10 Endurance, +35 Fortify Health, "
-        .. "+18 Long Blade, +18 Blunt Weapon, +18 Axe, grants Martial Rage power)\n\n"
+        .. "+18 Long Blade, +18 Blunt Weapon, +18 Axe, grants Martial Rage power)\
+\
+"
         .. "Counter Attack cooldown reduced to 6s.",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(fg2_id),
@@ -247,13 +256,16 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg4_id,
     localizedName = "Champion of the Guild",
-    --hidden = true,
     localizedDescription = "The Fighters Guild holds you as one of its finest. "
-        .. "Your counter attack is now almost instantaneous.\n "
+        .. "Your counter attack is now almost instantaneous.\
+ "
         .. "Requires Battle Tested. "
         .. "(+15 Strength, +15 Endurance, +50 Fortify Health, "
-        .. "+25 Long Blade, +25 Blunt Weapon, +25 Axe)\n\n"
+        .. "+25 Long Blade, +25 Blunt Weapon, +25 Axe)\
+\
+"
         .. "Counter Attack cooldown reduced to 1.5s.",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(fg3_id),

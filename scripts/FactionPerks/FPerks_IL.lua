@@ -39,6 +39,8 @@
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.imperialLegion
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
 local self        = require('openmw.self')
@@ -145,7 +147,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
     local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
 
-    if fatigueCost <= 0 then
+    if fatigueCost == 0 then
         fatigueCost = reflectDmg * IL_FATIGUE_PROXY_SCALAR
         print("IL Resolve: fatigue delta was 0, using proxy: " .. fatigueCost)
     else
@@ -155,7 +157,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     local restorePercent = IL_FATIGUE_RESTORE[rank]
     local fatigueRestore = math.floor(fatigueCost * restorePercent)
 
-    if fatigueRestore > 0 then
+    if fatigueRestore == 0 then
         local fatigue    = types.Actor.stats.dynamic.fatigue(self)
         local maxFatigue = fatigue.base + fatigue.modifier
         fatigue.current  = math.min(fatigue.current + fatigueRestore, maxFatigue)
@@ -195,10 +197,11 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
     localizedName = "Legion Recruit",
-    --hidden = true,
     localizedDescription = "You have sworn the oath and donned the cuirass. "
-        .. "The Legion's drillmasters have improved your guard.\n "
+        .. "The Legion's drillmasters have improved your guard.\
+ "
         .. "(+3 Endurance, +3 Strength, +5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         guildRank(0),
@@ -211,14 +214,17 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
-    --hidden = true,
     localizedDescription = "You have mastered the disciplined defensive formations "
         .. "of the Imperial army. When you block an attack, the force is turned "
-        .. "back against your attacker, and the effort of blocking costs you less.\n "
+        .. "back against your attacker, and the effort of blocking costs you less.\
+ "
         .. "Requires Legion Recruit. "
-        .. "(+5 Endurance, +5 Strength, +10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\n\n"
+        .. "(+5 Endurance, +5 Strength, +10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\
+\
+"
         .. "Legionary's Resolve: Blocking reflects damage to your attacker "
         .. "based on your Block skill. Restores 30%% of fatigue spent blocking.",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(il1_id),
@@ -233,13 +239,14 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il3_id,
     localizedName = "Forced March",
-    --hidden = true,
     localizedDescription = "The Legion demands its soldiers keep pace regardless "
         .. "of terrain. When the situation demands it, you can push far beyond "
-        .. "normal limits. Blocking now restores 50%% of fatigue spent.\n "
+        .. "normal limits. Blocking now restores 50%% of fatigue spent.\
+ "
         .. "Requires Shield Wall. "
         .. "(+10 Endurance, +10 Strength, +18 Heavy Armour, +18 Block, +35 Fortify Fatigue, "
         .. "grants Legion's Prowess power)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(il2_id),
@@ -260,12 +267,13 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il4_id,
     localizedName = "Legate",
-    --hidden = true,
     localizedDescription = "You command the respect of every soldier who serves "
         .. "alongside you. The Emperor's discipline has forged your body into "
-        .. "something that endures. Blocking now restores 75%% of fatigue spent.\n "
+        .. "something that endures. Blocking now restores 75%% of fatigue spent.\
+ "
         .. "Requires Forced March. "
         .. "(+15 Endurance, +15 Strength, +25 Heavy Armour, +25 Block, +50 Fortify Fatigue)",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(il3_id),

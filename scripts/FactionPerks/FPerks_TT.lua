@@ -25,6 +25,8 @@
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.temple
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
 local self        = require('openmw.self')
@@ -89,11 +91,12 @@ local tt1_id = ns .. "_tt_ordinate_aspirant"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt1_id,
     localizedName = "Ordinate Aspirant",
-    --hidden = true,
     localizedDescription = "You have taken up the Temple's creed and begun study of its mysteries. "
-        .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.\n "
+        .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.\
+ "
         .. "(+3 Intelligence, +3 Willpower, +5 Restoration, +5 Mysticism, "
         .. "grants Almsivi Intervention)",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
         R().minimumFactionRank('temple', 0),
@@ -113,12 +116,13 @@ local tt2_id = ns .. "_tt_pilgrim_soul"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt2_id,
     localizedName = "Pilgrim Soul",
-    --hidden = true,
     localizedDescription = "You have walked the Pilgrimages of the Seven Graces. "
-        .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.\n "
+        .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.\
+ "
         .. "Requires Ordinate Aspirant. "
         .. "(+5 Intelligence, +5 Willpower, +10 Restoration, +10 Mysticism, "
         .. "1/day Cure Disease + Cure Poison + Cure Blight on Touch)",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
         R().hasPerk(tt1_id),
@@ -140,12 +144,13 @@ local tt3_id = ns .. "_tt_voice_of_reclamation"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt3_id,
     localizedName = "Voice of Reclamation",
-    --hidden = true,
     localizedDescription = "The Temple's holy authority now speaks through you. "
         .. "Ancestor Ghosts, Bonelords, and Bonewalkers recognise you as a servant "
-        .. "of ALMSIVI and will not raise their hand against you.\n "
+        .. "of ALMSIVI and will not raise their hand against you.\
+ "
         .. "Requires Pilgrim Soul. "
         .. "(+10 Intelligence, +10 Willpower, +18 Restoration, +18 Mysticism)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
         R().hasPerk(tt2_id),
@@ -168,12 +173,13 @@ local tt4_id = ns .. "_tt_hand_of_almsivi"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt4_id,
     localizedName = "Hand of ALMSIVI",
-    --hidden = true,
     localizedDescription = "You are an instrument of Vivec, Almalexia, and Sotha Sil. "
-        .. "Once each day you may call upon honoured ancestors to fight at your side.\n "
+        .. "Once each day you may call upon honoured ancestors to fight at your side.\
+ "
         .. "Requires Voice of Reclamation. "
         .. "(+15 Intelligence, +15 Willpower, +25 Restoration, +25 Mysticism, "
         .. "1/day Summon 2 Greater Bonewalkers + 2 Bonelords for 60s)",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
         R().hasPerk(tt3_id),

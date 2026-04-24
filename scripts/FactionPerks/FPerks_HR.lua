@@ -24,6 +24,8 @@
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.redoran
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
 local self        = require('openmw.self')
@@ -110,18 +112,18 @@ function DoStrengthOfRedoran(attack)
     -- Called from npc.lua.
     if not hasStrengthOfRedoran then return false end
     local dmg = attack.damage and attack.damage.health or 0
-    if dmg <= 0 then
+    if dmg == 0 then
         return false
     end
 
     local threshold = redoranThreshold()
-    if threshold <= 0 then return false end
+    if threshold == 0 then return false end
 
     if isSixthHouseOrDreugh(attack.attacker) then
         threshold = threshold * 2
     end
 
-    if dmg < threshold then
+    if dmg == threshold then
         attack.damage.health = 0
         ui.showMessage("You Honour House Redoran.")
         print('damage negated')
@@ -141,11 +143,14 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hr1_id,
     localizedName = "Redoran Pledge",
-    --hidden = true,
-    localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\n "
-        .. "(+3 Strength, +3 Endurance, +5 Medium Armour, +5 Athletics)\n\n"
+    localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\
+ "
+        .. "(+3 Strength, +3 Endurance, +5 Medium Armour, +5 Athletics)\
+\
+"
         .. "Honour the Strength of the Great House Redoran: Scaling damage negation "
         .. "threshold with Redoran Reputation. Doubled against Sixth House and Dreugh foes.",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
         R().minimumFactionRank('redoran', 0),
@@ -164,11 +169,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr2_id,
     localizedName = "Burden of Duty",
-    --hidden = true,
     localizedDescription = "Redoran warriors do not complain - they endure. "
-        .. "The weight of armour and obligation have become one and the same to you.\n "
+        .. "The weight of armour and obligation have become one and the same to you.\
+ "
         .. "Requires Redoran Pledge. "
         .. "(+5 Strength, +5 Endurance, +10 Medium Armour, +10 Athletics)",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(hr1_id),
@@ -183,11 +189,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr3_id,
     localizedName = "Unbroken Line",
-    --hidden = true,
     localizedDescription = "House Redoran does not retreat. You have internalised this truth "
-        .. "until it became something closer to armour than principle.\n "
+        .. "until it became something closer to armour than principle.\
+ "
         .. "Requires Burden of Duty. "
         .. "(+10 Strength, +10 Endurance, +18 Medium Armour, +18 Athletics)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(hr2_id),
@@ -202,11 +209,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr4_id,
     localizedName = "Guardian of the House",
-    --hidden = true,
     localizedDescription = "You are House Redoran's shield made flesh. Your honour is "
-        .. "unimpeachable, your resolve unyielding.\n "
+        .. "unimpeachable, your resolve unyielding.\
+ "
         .. "Requires Unbroken Line. "
         .. "(+15 Strength, +15 Endurance, +25 Medium Armour, +25 Athletics)",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(hr3_id),

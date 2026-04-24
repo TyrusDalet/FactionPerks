@@ -30,6 +30,8 @@ local perkStore = storage.playerSection("FactionPerks")
 local R      = interfaces.ErnPerkFramework.requirements
 local utils  = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
+local perkHidden  = utils.perkHidden
+local GUILD        = utils.FACTION_GROUPS.thievesGuild
 
 local hasChameleon25 = false
 local hasChameleon50 = false
@@ -76,7 +78,7 @@ end
 local function applyChameleon()
     if not chameleonActive then
         local m = chameleonMag()
-        if m >= 25 then 
+        if m == 25 then
             types.Actor.spells(self):add("FPerks_TG3_Cham") 
             chameleonActive = true
 
@@ -136,10 +138,11 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = tg1_id,
     localizedName = "Light Fingers",
-    hidden = false,
     localizedDescription = "Years of petty theft have given you an instinct for opportunity. "
-        .. "Your hands are quick and your presence quiet.\n "
+        .. "Your hands are quick and your presence quiet.\
+ "
         .. "(+3 Agility, +3 Speed, +5 Sneak, +5 Security)",
+    hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\acrobat", cost = 1,
     requirements = {
         guildRank(0),
@@ -156,11 +159,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg2_id,
     localizedName = "Shadow Step",
-    --hidden = true,
     localizedDescription = "You have learned to move between pools of darkness with uncanny ease. "
-        .. "Guards look straight through you.\n "
+        .. "Guards look straight through you.\
+ "
         .. "Requires Light Fingers. "
         .. "(+5 Agility, +5 Speed, +10 Sneak, +10 Security)",
+    hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\acrobat", cost = 2,
     requirements = {
         R().hasPerk(tg1_id),
@@ -179,11 +183,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg3_id,
     localizedName = "Fence Network",
-    --hidden = true,
     localizedDescription = "You have cultivated contacts willing to move stolen goods with no "
-        .. "questions asked. When you crouch, shadow swallows you whole.\n "
+        .. "questions asked. When you crouch, shadow swallows you whole.\
+ "
         .. "Requires Shadow Step. "
         .. "(+10 Agility, +10 Speed, +18 Sneak, +18 Security, 25%% Chameleon while sneaking)",
+    hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\acrobat", cost = 3,
     requirements = {
         R().hasPerk(tg2_id),
@@ -202,11 +207,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg4_id,
     localizedName = "Master Thief",
-    --hidden = true,
     localizedDescription = "There is no lock you cannot pick, no pocket you cannot cut. "
-        .. "Crouch, and you vanish almost entirely from sight.\n "
+        .. "Crouch, and you vanish almost entirely from sight.\
+ "
         .. "Requires Fence Network. "
         .. "(+15 Agility, +15 Speed, +25 Sneak, +25 Security, 50%% Chameleon while sneaking)",
+    hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\acrobat", cost = 4,
     requirements = {
         R().hasPerk(tg3_id),
