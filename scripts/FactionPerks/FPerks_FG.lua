@@ -16,6 +16,8 @@
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.fightersGuild
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
@@ -71,15 +73,15 @@ local lastFGCounterTime = 0
 local function getArmorHitSound(actor)
     -- Read the attacker's cuirass weight to approximate armour type.
     -- Thresholds are approximate for vanilla cuirass weights:
-    --   Light  (Chitin, Netch Leather, Glass):    < 10
+    --   Light  (Chitin, Netch Leather, Glass):    \u003c 10
     --   Medium (Bonemold, Indoril):               10 - 25
-    --   Heavy  (Iron, Steel, Orcish, Ebony):      > 25
+    --   Heavy  (Iron, Steel, Orcish, Ebony):      \u003e 25
     local cuirass = types.Actor.getEquipment(actor, types.Actor.EQUIPMENT_SLOT.Cuirass)
     if cuirass and types.Armor.objectIsInstance(cuirass) then
         local weight = types.Armor.record(cuirass).weight
-        if weight < 10 then
+        if weight \u003c 10 then
             return "light armor hit"
-        elseif weight < 25 then
+        elseif weight \u003c 25 then
             return "medium armor hit"
         else
             return "heavy armor hit"
@@ -128,7 +130,7 @@ interfaces.Combat.addOnHitHandler(function(attack)
     end
 
     local now = core.getSimulationTime()
-    if (now - lastFGCounterTime) == cooldown then return end
+    if (now - lastFGCounterTime) \u003c cooldown then return end
 
     -- Player must have a weapon equipped to counter with
     local playerWeapon = types.Actor.getEquipment(self, types.Actor.EQUIPMENT_SLOT.CarriedRight)
@@ -245,11 +247,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(3)
-        types.Actor.spells(self):add("FPerks_FG3_Enrage");
+        safeAddSpell("FPerks_FG3_Enrage");
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_FG3_Enrage");
+        safeRemoveSpell("FPerks_FG3_Enrage");
     end
 })
 

@@ -27,6 +27,8 @@ local perkStore = storage.playerSection("FactionPerks")
 local utils  = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.moragTong
 local HasMT4 = false
 
@@ -120,11 +122,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(2)
-        types.Actor.spells(self):add("FPerks_MT2_Frenzy");
+        safeAddSpell("FPerks_MT2_Frenzy");
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_MT2_Frenzy");
+        safeRemoveSpell("FPerks_MT2_Frenzy");
     end,
 })
 
@@ -173,10 +175,10 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(4)
-        types.Actor.spells(self):add("FPerks_MT4_Invisibility");
+        safeAddSpell("FPerks_MT4_Invisibility");
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_MT4_Invisibility");
+        safeRemoveSpell("FPerks_MT4_Invisibility");
     end,
 })

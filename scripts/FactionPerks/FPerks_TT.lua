@@ -26,6 +26,8 @@ local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.temple
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
@@ -104,11 +106,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(1)
-        types.Actor.spells(self):add("almsivi intervention")
+        safeAddSpell("almsivi intervention")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("almsivi intervention")
+        safeRemoveSpell("almsivi intervention")
     end,
 })
 
@@ -132,11 +134,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(2)
-        types.Actor.spells(self):add("FPerks_TT2_Cure_All")
+        safeAddSpell("FPerks_TT2_Cure_All")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_TT2_Cure_All")
+        safeRemoveSpell("FPerks_TT2_Cure_All")
     end,
 })
 
@@ -189,11 +191,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(4)
-        types.Actor.spells(self):add("FPerks_TT4_Summon_Army")
+        safeAddSpell("FPerks_TT4_Summon_Army")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_TT4_Summon_Army")
+        safeRemoveSpell("FPerks_TT4_Summon_Army")
     end,
 })
 

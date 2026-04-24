@@ -48,6 +48,8 @@ local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.magesGuild
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
@@ -189,7 +191,7 @@ local function checkCurrentCell(currentCell)
     local oldMilestone = math.floor(oldCount / 10)
     local newMilestone = math.floor(newCount / 10)
 
-    if newMilestone > oldMilestone and newMilestone <= 5 then
+    if newMilestone \u003e oldMilestone and newMilestone \u003c= 5 then
         local refundPct = newMilestone * 5
         ui.showMessage("Magical Cartography: " .. newCount
             .. " Places of Power catalogued. Spell refund: "
@@ -234,14 +236,14 @@ local MAGIC_SKILLS = {
 interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if not hasMGCartography                  then return end
     if not MAGIC_SKILLS[skillId]             then return end
-    if not castedSpell or lastCastCost == 0  then return end
+    if not castedSpell or lastCastCost \u003c= 0  then return end
 
     local count         = getVisitedCount()
     local refundPercent = getRefundPercent(count)
-    if refundPercent <= 0 then return end
+    if refundPercent \u003c= 0 then return end
 
     local refundAmount = math.floor(lastCastCost * refundPercent)
-    if refundAmount <= 0 then return end
+    if refundAmount \u003c= 0 then return end
 
     local magicka    = types.Actor.stats.dynamic.magicka(self)
     local maxMagicka = magicka.base + magicka.modifier
@@ -386,7 +388,7 @@ local function onUpdate(dt)
     if not hasMGCartography then return end
 
     cellCheckTimer = cellCheckTimer - dt
-    if cellCheckTimer == 0 then return end
+    if cellCheckTimer \u003e 0 then return end
     cellCheckTimer = CELL_CHECK_INTERVAL
 
     local cell = self.cell

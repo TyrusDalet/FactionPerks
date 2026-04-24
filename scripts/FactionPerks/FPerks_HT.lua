@@ -39,6 +39,8 @@
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.telvanni
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
@@ -90,7 +92,7 @@ end
 
 local function applyRestoreDyn(dynKey, bonus, duration)
     local total = bonus * duration
-    if total == 0 then return end
+    if total \u003c= 0 then return end
     local dyn = types.Actor.stats.dynamic[dynKey]
     if dyn then
         local s = dyn(self)
@@ -153,7 +155,7 @@ local function TelvanniWitEnchant(item)
     if not enchRecord.effects then return end
 
     local scale = utils.honourScale('telvanni') * 1.5
-    if scale <= 0 then return end
+    if scale \u003c= 0 then return end
 
     -- Build bonus list from self-range effects only.
     -- Touch and Target effects cannot be reliably augmented on
@@ -165,7 +167,7 @@ local function TelvanniWitEnchant(item)
         if effectParams.range == core.magic.RANGE.Self then
             local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
             local bonus   = math.floor(baseMag * scale)
-            if bonus > 0 then
+            if bonus \u003e 0 then
                 bonuses[#bonuses + 1] = {
                     id         = effectParams.id,
                     extraParam = effectParams.affectedAttribute
@@ -304,7 +306,7 @@ end
 local function applyConstantBoost(slot, item, enchRecord)
     -- Scale capped at 1.0 for constant effects (200% total, less than CastOnUse's 250%)
     local scale = math.min(utils.honourScale('telvanni'), 1.0)
-    if scale <= 0 then return end
+    if scale \u003c= 0 then return end
 
     local bonuses       = {}
     local activeEffects = types.Actor.activeEffects(self)
@@ -312,7 +314,7 @@ local function applyConstantBoost(slot, item, enchRecord)
     for _, effectParams in ipairs(enchRecord.effects) do
         local baseMag    = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
         local bonus      = math.floor(baseMag * scale)
-        if bonus > 0 then
+        if bonus \u003e 0 then
             local extraParam = effectParams.affectedAttribute
                            or effectParams.affectedSkill
                            or nil
@@ -356,7 +358,7 @@ local function applyConstantBoost(slot, item, enchRecord)
         end
     end
 
-    if #bonuses > 0 then
+    if #bonuses \u003e 0 then
         activeConstantBoosts[slot] = {
             itemId  = item.id,
             bonuses = bonuses,
@@ -430,8 +432,8 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(1)
-        types.Actor.spells(self):add("bound helm")
-        types.Actor.spells(self):add("bound cuirass")
+        safeAddSpell("bound helm")
+        safeAddSpell("bound cuirass")
 
         hasWitOfTelvanni = true
         -- Apply constant effect boosts immediately for currently equipped items
@@ -439,8 +441,8 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("bound helm")
-        types.Actor.spells(self):remove("bound cuirass")
+        safeRemoveSpell("bound helm")
+        safeRemoveSpell("bound cuirass")
         hasWitOfTelvanni     = false
         currentEnchantedItem = nil
         lastHTCellId         = nil
@@ -470,11 +472,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(2)
-        types.Actor.spells(self):add("tranasa's spelltrap")
+        safeAddSpell("tranasa's spelltrap")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("tranasa's spelltrap")
+        safeRemoveSpell("tranasa's spelltrap")
     end,
 })
 
@@ -546,7 +548,7 @@ local function onUpdate(dt)
 
     -- Periodic equipment change check
     equipmentCheckTimer = equipmentCheckTimer - dt
-    if equipmentCheckTimer == 0 then
+    if equipmentCheckTimer \u003c= 0 then
         equipmentCheckTimer = EQUIPMENT_CHECK_INTERVAL
         updateConstantEffects()
     end

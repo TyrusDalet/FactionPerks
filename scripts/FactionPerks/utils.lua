@@ -67,7 +67,7 @@ end
 --  automatically.
 --
 --  To add support for a new mod that adds branches, append a
---  detection block below - no changes needed in faction files.
+--  detection block below — no changes needed in faction files.
 -- ============================================================
 
 local FACTION_GROUPS = {
@@ -90,12 +90,8 @@ if core.contentFiles.has("Tamriel_Data.esm") then
     table.insert(FACTION_GROUPS.fightersGuild,  't_sky_fightersguild')
     table.insert(FACTION_GROUPS.magesGuild,     't_cyr_magesguild')
     table.insert(FACTION_GROUPS.magesGuild,     't_sky_magesguild')
-    table.insert(FACTION_GROUPS.magesGuild,     't_ham_magesguild')
     table.insert(FACTION_GROUPS.imperialLegion, 't_cyr_imperiallegion')
-    table.insert(FACTION_GROUPS.imperialLegion, 't_sky_imperiallegion')
-    table.insert(FACTION_GROUPS.imperialCult,   't_sky_imperialcult')
-    table.insert(FACTION_GROUPS.imperialCult,   't_cyr_itinerantpriests')
-    
+    table.insert(FACTION_GROUPS.imperialCult,   't_cyr_imperialcult')
     -- Add further TR branch IDs here as they are introduced
 end
 
@@ -118,7 +114,7 @@ end
 local function honourScale(factionId)
     local rep    = types.NPC.getFactionReputation(self, factionId)
     local cap    = getRepCap(factionId)
-    if cap <= 0 then return 0 end
+    if cap \u003c= 0 then return 0 end
 
     local preCap = math.min(rep, cap) / cap             -- 0.0 - 1.0 within cap
     local excess = math.max(rep - cap, 0)
@@ -231,7 +227,7 @@ end
 --  factionIds may be a single string or a table of strings.
 --  For guilds with multiple branches (e.g. Fighters Guild +
 --  TR Cyrodiil/Skyrim branches), pass all branch IDs as a
---  table - membership in any one branch satisfies the check.
+--  table — membership in any one branch satisfies the check.
 --
 --  Example (single faction):
 --    perkHidden('redoran', 0, 1)
@@ -258,7 +254,7 @@ local function perkHidden(factionIds, minimumRank, minimumLevel)
         for _, foundId in pairs(types.NPC.getFactions(self)) do
             if idSet[foundId] then
                 local rank = types.NPC.getFactionRank(self, foundId)
-                if rank >= (minimumRank - 1) then
+                if rank >= minimumRank then
                     qualifies = true
                     break
                 end
@@ -275,13 +271,44 @@ local function perkHidden(factionIds, minimumRank, minimumLevel)
 end
 
 -- ============================================================
+--  safeAddSpell(spellId) / safeRemoveSpell(spellId)
+--
+--  Idempotent wrappers around Actor.spells:add/remove.
+--  safeAddSpell checks whether the spell is already present
+--  before adding, preventing duplicate entries on load when
+--  ErnPerkFramework re-fires onAdd for every held perk.
+--  safeRemoveSpell is a no-op if the spell isn't present,
+--  matching the same safe pattern.
+--
+--  Use these for all spells granted outside of setRank
+--  (i.e. non-table spells granted once in onAdd/onRemove).
+--  setRank itself removes before re-adding so is already safe.
+-- ============================================================
+
+local function safeAddSpell(spellId)
+    local spells = types.Actor.spells(self)
+    if not spells[spellId] then
+        spells:add(spellId)
+    end
+end
+
+local function safeRemoveSpell(spellId)
+    local spells = types.Actor.spells(self)
+    if spells[spellId] then
+        spells:remove(spellId)
+    end
+end
+
+-- ============================================================
 --  EXPORTS
 -- ============================================================
 return {
-    getRepCap      = getRepCap,
-    honourScale    = honourScale,
-    makeSetRank    = makeSetRank,
-    notExpelled    = notExpelled,
-    perkHidden     = perkHidden,
-    FACTION_GROUPS = FACTION_GROUPS,
+    getRepCap       = getRepCap,
+    honourScale     = honourScale,
+    makeSetRank     = makeSetRank,
+    notExpelled     = notExpelled,
+    perkHidden      = perkHidden,
+    safeAddSpell    = safeAddSpell,
+    safeRemoveSpell = safeRemoveSpell,
+    FACTION_GROUPS  = FACTION_GROUPS,
 }

@@ -21,6 +21,8 @@
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.imperialCult
 local interfaces = require("openmw.interfaces")
 local types      = require('openmw.types')
@@ -104,11 +106,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(1)
-        types.Actor.spells(self):add("divine intervention")
+        safeAddSpell("divine intervention")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("divine intervention")
+        safeRemoveSpell("divine intervention")
     end,
 })
 
@@ -182,11 +184,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(4)
-        types.Actor.spells(self):add("FPerks_IC4_AllAttributes")
+        safeAddSpell("FPerks_IC4_AllAttributes")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_IC4_AllAttributes")
+        safeRemoveSpell("FPerks_IC4_AllAttributes")
     end,
 })
 

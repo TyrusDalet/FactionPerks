@@ -40,6 +40,8 @@ local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.imperialLegion
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
@@ -147,7 +149,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
     local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
 
-    if fatigueCost <= 0 then
+    if fatigueCost \u003c= 0 then
         fatigueCost = reflectDmg * IL_FATIGUE_PROXY_SCALAR
         print("IL Resolve: fatigue delta was 0, using proxy: " .. fatigueCost)
     else
@@ -157,7 +159,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     local restorePercent = IL_FATIGUE_RESTORE[rank]
     local fatigueRestore = math.floor(fatigueCost * restorePercent)
 
-    if fatigueRestore > 0 then
+    if fatigueRestore \u003e 0 then
         local fatigue    = types.Actor.stats.dynamic.fatigue(self)
         local maxFatigue = fatigue.base + fatigue.modifier
         fatigue.current  = math.min(fatigue.current + fatigueRestore, maxFatigue)
@@ -256,11 +258,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(3)
-        types.Actor.spells(self):add("FPerks_IL3_Prowess")
+        safeAddSpell("FPerks_IL3_Prowess")
     end,
     onRemove = function()
         setRank(nil)
-        types.Actor.spells(self):remove("FPerks_IL3_Prowess")
+        safeRemoveSpell("FPerks_IL3_Prowess")
     end,
 })
 

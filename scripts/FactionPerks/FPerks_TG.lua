@@ -31,6 +31,8 @@ local R      = interfaces.ErnPerkFramework.requirements
 local utils  = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.thievesGuild
 
 local hasChameleon25 = false
@@ -78,20 +80,20 @@ end
 local function applyChameleon()
     if not chameleonActive then
         local m = chameleonMag()
-        if m >= 25 then
-            types.Actor.spells(self):add("FPerks_TG3_Cham") 
+        if m \u003e= 25 then 
+            safeAddSpell("FPerks_TG3_Cham") 
             chameleonActive = true
 
             if m == 50 then 
-                types.Actor.spells(self):add("FPerks_TG4_Cham") 
+                safeAddSpell("FPerks_TG4_Cham") 
             end
         end
     end
 end
 local function removeChameleon()
     if chameleonActive then
-        types.Actor.spells(self):remove("FPerks_TG3_Cham")
-        types.Actor.spells(self):remove("FPerks_TG4_Cham")
+        safeRemoveSpell("FPerks_TG3_Cham")
+        safeRemoveSpell("FPerks_TG4_Cham")
         chameleonActive = false
     end
 end

@@ -25,6 +25,8 @@ local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
 local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
 local GUILD        = utils.FACTION_GROUPS.redoran
 local interfaces  = require("openmw.interfaces")
 local types       = require('openmw.types')
@@ -112,18 +114,18 @@ function DoStrengthOfRedoran(attack)
     -- Called from npc.lua.
     if not hasStrengthOfRedoran then return false end
     local dmg = attack.damage and attack.damage.health or 0
-    if dmg <= 0 then
+    if dmg \u003c= 0 then
         return false
     end
 
     local threshold = redoranThreshold()
-    if threshold <= 0 then return false end
+    if threshold \u003c= 0 then return false end
 
     if isSixthHouseOrDreugh(attack.attacker) then
         threshold = threshold * 2
     end
 
-    if dmg == threshold then
+    if dmg \u003c threshold then
         attack.damage.health = 0
         ui.showMessage("You Honour House Redoran.")
         print('damage negated')
