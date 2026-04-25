@@ -114,18 +114,18 @@ function DoStrengthOfRedoran(attack)
     -- Called from npc.lua.
     if not hasStrengthOfRedoran then return false end
     local dmg = attack.damage and attack.damage.health or 0
-    if dmg \u003c= 0 then
+    if dmg <= 0 then
         return false
     end
 
     local threshold = redoranThreshold()
-    if threshold \u003c= 0 then return false end
+    if threshold <= 0 then return false end
 
     if isSixthHouseOrDreugh(attack.attacker) then
         threshold = threshold * 2
     end
 
-    if dmg \u003c threshold then
+    if dmg < threshold then
         attack.damage.health = 0
         ui.showMessage("You Honour House Redoran.")
         print('damage negated')

@@ -80,7 +80,7 @@ end
 local function applyChameleon()
     if not chameleonActive then
         local m = chameleonMag()
-        if m \u003e= 25 then 
+        if m >= 25 then 
             safeAddSpell("FPerks_TG3_Cham") 
             chameleonActive = true
 

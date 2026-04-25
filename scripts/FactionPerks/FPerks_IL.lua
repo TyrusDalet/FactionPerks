@@ -149,7 +149,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
     local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
 
-    if fatigueCost \u003c= 0 then
+    if fatigueCost <= 0 then
         fatigueCost = reflectDmg * IL_FATIGUE_PROXY_SCALAR
         print("IL Resolve: fatigue delta was 0, using proxy: " .. fatigueCost)
     else
@@ -159,7 +159,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     local restorePercent = IL_FATIGUE_RESTORE[rank]
     local fatigueRestore = math.floor(fatigueCost * restorePercent)
 
-    if fatigueRestore \u003e 0 then
+    if fatigueRestore > 0 then
         local fatigue    = types.Actor.stats.dynamic.fatigue(self)
         local maxFatigue = fatigue.base + fatigue.modifier
         fatigue.current  = math.min(fatigue.current + fatigueRestore, maxFatigue)
