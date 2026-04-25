@@ -95,13 +95,13 @@ Honour The Great House:
     Guile of Great House Hlaalu
 
 ### Perk 2: Silver Tongue 
-+5 Per/Agi, +5 Mercantile / Speechcraft
++5 Per/Agi, +10 Mercantile / Speechcraft
 
 ### Perk 3: Trade Acumen 
-+10 Per/Agi, +5 Mercantile / Speechcraft
++10 Per/Agi, +18 Mercantile / Speechcraft
 
 ### Perk 4: Councillor’s Ear 
-+15 Per/Agi, +5 Mercantile / Speechcraft
++15 Per/Agi, +25 Mercantile / Speechcraft
 
 
 
