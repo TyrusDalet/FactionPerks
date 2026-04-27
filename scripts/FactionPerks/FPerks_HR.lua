@@ -1,24 +1,24 @@
 --[[
     HR:
         FPerks_HR1_Passive          - +3 Strength, +3 Endurance,
-                                      +5 Medium Armour, +5 Athletics
+                                      +10 Fortify Health, +5 Medium Armour, +5 Athletics
         FPerks_HR2_Passive          - +5 Strength, +5 Endurance,
-                                      +10 Medium Armour, +10 Athletics
+                                      +20 Fortify Health, +10 Medium Armour, +10 Athletics
         FPerks_HR3_Passive          - +10 Strength, +10 Endurance,
-                                      +18 Medium Armour, +18 Athletics
+                                      +35 Fortify Health, +18 Medium Armour, +18 Athletics
         FPerks_HR4_Passive          - +15 Strength, +15 Endurance,
-                                      +25 Medium Armour, +25 Athletics
+                                      +50 Fortify Health, +25 Medium Armour, +25 Athletics
 
     Honour The Great House (P1+): Strength of the Redoran
         Incoming weapon hits below the damage threshold are negated.
         Threshold scales with faction reputation via honourScale:
-            At rep cap: 30 damage threshold
+            At rep cap: 20 damage threshold
             Post-cap:   continues growing at 30% of pre-cap rate
         Doubled threshold vs Sixth House enemies, Corprus creatures,
         Ash creatures, and Dreugh.
         Shows "You Honour House Redoran." when a hit is negated.
-        Implemented via DoStrengthOfRedoran in shared context -
-        called from npc.lua's hit handler.
+        Implemented via FPerks_DoStrengthOfRedoran - called from this
+        file's own Combat hit handler (player-side).
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -65,12 +65,16 @@ local setRank = utils.makeSetRank(perkTable, nil)
 --  Sixth House enemies (by faction), Corprus creatures, Ash
 --  creatures, and Dreugh trigger double the threshold.
 --
---  DoStrengthOfRedoran is a global function called from npc.lua.
+--  FPerks_DoStrengthOfRedoran is a global function called from
+--  this file's own Combat hit handler (player-side).
 -- ============================================================
 
 local hasStrengthOfRedoran = false
 
 -- Enemies that receive doubled negation threshold.
+-- Named Dagoths and Sixth House NPCs are caught by faction check.
+-- Corprus and Ash creatures are not in the sixth house faction
+-- record, so are listed explicitly by record ID substring.
 local SIXTH_HOUSE_CREATURES = {
     ["ash ghoul"]       = true,
     ["ash slave"]       = true,
@@ -81,11 +85,13 @@ local SIXTH_HOUSE_CREATURES = {
 }
 
 local function isSixthHouseOrDreugh(actor)
+    -- Check sixth house faction membership (named Dagoths etc.)
     if types.NPC.objectIsInstance(actor) then
         for _, factionId in pairs(types.NPC.getFactions(actor)) do
             if factionId == "sixth house" then return true end
         end
     end
+    -- Check record ID for explicit creature list and Dreugh
     local rec = nil
     if types.NPC.objectIsInstance(actor) then
         rec = types.NPC.record(actor)
@@ -107,11 +113,12 @@ local function redoranThreshold()
 end
 
 interfaces.Combat.addOnHitHandler(function(attack)
-    DoStrengthOfRedoran(attack)
+    FPerks_DoStrengthOfRedoran(attack)
 end)
 
-function DoStrengthOfRedoran(attack)
-    -- Called from npc.lua.
+function FPerks_DoStrengthOfRedoran(attack)
+    -- Called from this file's Combat hit handler (player-side).
+    -- Returns true if the hit was negated.
     if not hasStrengthOfRedoran then return false end
     local dmg = attack.damage and attack.damage.health or 0
     if dmg <= 0 then
@@ -137,7 +144,7 @@ end
 -- ============================================================
 --  HOUSE REDORAN
 --  Primary attributes: Strength, Endurance
---  Scaling: Medium Armour, Athletics
+--  Scaling: Fortify Health, Medium Armour, Athletics
 --  Honour The Great House (P1+): Strength of the Redoran -
 --           scaling damage negation threshold with Redoran reputation
 -- ============================================================
@@ -147,7 +154,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Redoran Pledge",
     localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\
  "
-        .. "(+3 Strength, +3 Endurance, +5 Medium Armour, +5 Athletics)\
+        .. "(+3 Strength, +3 Endurance, +10 Fortify Health, +5 Medium Armour, +5 Athletics)\
 \
 "
         .. "Honour the Strength of the Great House Redoran: Scaling damage negation "
@@ -175,7 +182,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "The weight of armour and obligation have become one and the same to you.\
  "
         .. "Requires Redoran Pledge. "
-        .. "(+5 Strength, +5 Endurance, +10 Medium Armour, +10 Athletics)",
+        .. "(+5 Strength, +5 Endurance, +20 Fortify Health, +10 Medium Armour, +10 Athletics)",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
@@ -195,7 +202,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "until it became something closer to armour than principle.\
  "
         .. "Requires Burden of Duty. "
-        .. "(+10 Strength, +10 Endurance, +18 Medium Armour, +18 Athletics)",
+        .. "(+10 Strength, +10 Endurance, +35 Fortify Health, +18 Medium Armour, +18 Athletics)",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
@@ -215,7 +222,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "unimpeachable, your resolve unyielding.\
  "
         .. "Requires Unbroken Line. "
-        .. "(+15 Strength, +15 Endurance, +25 Medium Armour, +25 Athletics)",
+        .. "(+15 Strength, +15 Endurance, +50 Fortify Health, +25 Medium Armour, +25 Athletics)",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {

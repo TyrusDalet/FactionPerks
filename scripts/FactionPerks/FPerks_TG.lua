@@ -107,9 +107,12 @@ local function onUpdate()
     if hasChameleon25 or hasChameleon50 then
         if self.controls.sneak == true and not chameleonActive then
             applyChameleon()
-        elseif not self.controls.sneak == true and chameleonActive then
+        elseif self.controls.sneak ~= true and chameleonActive then
+            -- Fixed: was `not self.controls.sneak == true` which parses as
+            -- `(not self.controls.sneak) == true` - accidentally correct but
+            -- misleading. Rewritten as `self.controls.sneak ~= true` for clarity.
             removeChameleon()
-            end
+        end
     elseif chameleonActive then
         removeChameleon()
     end
@@ -123,20 +126,6 @@ end
 --           (Master Thief) while sneaking
 -- ============================================================
 
-local function guildRank(rank)
-    local reqs = {
-        R().minimumFactionRank('thieves guild', rank),
-    }
-    if core.contentFiles.has("tamriel_data.esm") then
-        table.insert(reqs, R().minimumFactionRank('t_cyr_thievesguild', rank))
-        table.insert(reqs, R().minimumFactionRank('t_sky_thievesguild', rank))
-    end
-    -- No need for orGroup if only one requirement
-    if #reqs == 1 then return reqs[1] end
-    return R().orGroup(table.unpack(reqs))
-end
-
-
 interfaces.ErnPerkFramework.registerPerk({
     id = tg1_id,
     localizedName = "Light Fingers",
@@ -147,7 +136,7 @@ interfaces.ErnPerkFramework.registerPerk({
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\acrobat", cost = 1,
     requirements = {
-        guildRank(0),
+        R().minimumFactionRank('thieves guild', 0),
         R().minimumLevel(1)
     },
     onAdd = function()
@@ -170,7 +159,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 2,
     requirements = {
         R().hasPerk(tg1_id),
-        guildRank(3),
+        R().minimumFactionRank('thieves guild', 3),
         R().minimumAttributeLevel('agility', 40),
         R().minimumLevel(5),
     },
@@ -194,7 +183,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 3,
     requirements = {
         R().hasPerk(tg2_id),
-        guildRank(6),
+        R().minimumFactionRank('thieves guild', 6),
         R().minimumAttributeLevel('agility', 50),
         R().minimumLevel(10),
     },
@@ -218,7 +207,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\acrobat", cost = 4,
     requirements = {
         R().hasPerk(tg3_id),
-        guildRank(9),
+        R().minimumFactionRank('thieves guild', 9),
         R().minimumAttributeLevel('agility', 75),
         R().minimumLevel(15),
     },

@@ -1,11 +1,11 @@
 --[[
-    Tribunal Temple - Honoured Ancestors
-    Attached to all CREATURE instances.
-    On becoming active, Ancestor Ghosts, Bonelords, and Bonewalkers
-    (excluding summoned instances) ping nearby players.
-    Player script decides whether to calm them based on perk state.
-    Uses fight modifier rather than base so calming is fully reversible
-    when the perk is lost via respec or expulsion.
+Tribunal Temple - Honoured Ancestors
+Attached to all CREATURE instances.
+On becoming active, Ancestor Ghosts, Bonelords, and Bonewalkers
+(excluding summoned instances) ping nearby players.
+Player script decides whether to calm them based on perk state.
+Uses fight modifier rather than base so calming is fully reversible
+when the perk is lost via respec or expulsion.
 ]]
 
 local I          = require('openmw.interfaces')
@@ -16,7 +16,6 @@ local interfaces = require("openmw.interfaces")
 local nearby     = require("openmw.nearby")
 
 require("scripts.FactionPerks.shared")
-
 
 -- ============================================================
 --  TRIBUNAL TEMPLE TARGET CLASSIFICATION
@@ -80,23 +79,21 @@ local function calmAncestor(data)
 end
 
 local function restoreAncestor(data)
-    
     -- Zero the modifier to reverse calming. The base fight value
     -- was never changed, so the creature returns to its original
     -- aggression level.
     types.Actor.stats.ai.fight(pself).modifier = 0
 end
 
-
 -- ============================================================
 --  COMBAT HIT HANDLER
---  DoICSmite handles its own eligibility checks internally.
+--  FPerks_DoICSmite handles its own eligibility checks internally.
 --  Fires for all creatures - undead, daedra, and vampires
 --  are filtered inside isSmiteTarget in shared.lua.
 -- ============================================================
 
 I.Combat.addOnHitHandler(function(attack)
-    DoICSmite(attack)
+    FPerks_DoICSmite(attack)
 end)
 
 return {
