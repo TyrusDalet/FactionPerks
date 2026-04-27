@@ -5,18 +5,28 @@
         FPerks_HT2_Passive          - +5 Intelligence, +5 Willpower,
                                       +10 Enchant, +10 Conjuration
         FPerks_HT3_Passive          - +10 Intelligence, +10 Willpower,
-                                      +18 Enchant, +18 Conjuration
+                                      +18 Enchant, +18 Conjuration,
+                                      Fortify Maximum Magicka 0.5x Intelligence (magnitude 5),
+                                      Restore Magicka 1pt/s
         FPerks_HT4_Passive          - +15 Intelligence, +15 Willpower,
-                                      +25 Enchant, +25 Conjuration
+                                      +25 Enchant, +25 Conjuration,
+                                      Fortify Maximum Magicka 1.0x Intelligence (magnitude 10),
+                                      Restore Magicka 2pt/s
+
+    Non-table spells (granted once, not removed on rank-up):
+        "bound helm"                Vanilla spell (P1)
+        "bound cuirass"             Vanilla spell (P1)
+        "tranasa's spelltrap"       Vanilla spell (P2)
 
     Honour The Great House (P1+): Wit of the Telvanni
 
         CAST ON USE:
         When the player activates a Cast on Use enchanted item, self-range
         effects are augmented via activeEffects:modify + cleanup timer.
-        Touch and Target range effects are excluded - activeEffects:modify
-        only affects the player, and reliable post-hoc modification of
-        target actors is not feasible from a player script.
+        Touch and Target range effects are excluded.
+        Harmful effects (core.magic.effects.records[id].harmful == true)
+        are skipped entirely, so downsides are never boosted and resistances
+        that nullify them continue to work normally.
         Scale: honourScale * 1.5, capped behaviour per honourScale post-cap.
         At rep cap: +150% bonus magnitude (250% total).
         Detection: SkillProgression enchant handler confirms success,
@@ -25,15 +35,25 @@
 
         CONSTANT EFFECT:
         All equipped items with Constant Effect enchantments have their
-        effects augmented via activeEffects:modify. Tracked per equipment
-        slot - when items are equipped or unequipped, bonuses are reversed
-        and reapplied accordingly.
+        non-harmful effects augmented via activeEffects:modify. Harmful
+        effects are skipped so that, for example, Boots of Blinding Speed's
+        Blind effect is never boosted and Resist Magicka continues to
+        function normally against it.
+        Tracked per equipment slot - when items are equipped or unequipped,
+        bonuses are reversed and reapplied accordingly.
         Scale: math.min(honourScale, 1.0), giving at most +100% bonus
-        magnitude (200% total), slightly less powerful than CastOnUse
-        since the effect is permanent.
+        magnitude (200% total).
         Bonus updates when equipment changes, and is also recalculated
         on cell change so faction reputation gains are reflected without
         needing to re-equip.
+
+        LOAD STACKING FIX:
+        activeConstantBoosts is persisted to player storage so that when
+        the game is loaded the bonus table is restored before
+        updateConstantEffects runs. Without this, the table resets to {}
+        on every load, causing updateConstantEffects to see all slots as
+        "changed" and re-apply all CE bonuses on top of the already-saved
+        activeEffects:modify values.
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -48,6 +68,7 @@ local self        = require('openmw.self')
 local ui          = require('openmw.ui')
 local core        = require('openmw.core')
 local async       = require('openmw.async')
+local storage     = require('openmw.storage')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -66,6 +87,9 @@ local setRank = utils.makeSetRank(perkTable, nil)
 
 local hasWitOfTelvanni   = false
 local currentEnchantedItem = nil  -- cached by skill handler for CastOnUse path
+
+-- Persistent storage for CE boost table so it survives saves/loads
+local telvStorage = storage.playerSection("FactionPerks_HT_CEBoosts")
 
 -- ============================================================
 --  EFFECT CLASSIFICATION TABLES
@@ -130,12 +154,25 @@ local function getEnchantmentRecord(item)
 end
 
 -- ============================================================
+--  HARMFUL EFFECT CHECK
+--  Returns true if the given effect ID is flagged as harmful
+--  by the engine. Harmful effects are skipped in both the
+--  CastOnUse and Constant Effect boost paths so that:
+--    - Downsides are never amplified
+--    - Resistances such as Resist Magicka continue to function
+--      normally against them (e.g. Boots of Blinding Speed)
+-- ============================================================
+
+local function isHarmful(effectId)
+    local rec = core.magic.effects.records[effectId]
+    return rec and rec.harmful == true
+end
+
+-- ============================================================
 --  CAST ON USE - Wit of the Telvanni
 --
 --  When the player activates a Cast on Use enchanted item,
---  ALL effects regardless of range are augmented. This means
---  both self-targeting and enemy-targeting effects benefit,
---  making offensive enchanted items worth using.
+--  self-range non-harmful effects are augmented.
 --
 --  Detection: SkillProgression enchant handler fires on success.
 --  getSelectedEnchantedItem is read directly here since Cast
@@ -157,25 +194,23 @@ local function TelvanniWitEnchant(item)
     local scale = utils.honourScale('telvanni') * 1.5
     if scale <= 0 then return end
 
-    -- Build bonus list from self-range effects only.
-    -- Touch and Target effects cannot be reliably augmented on
-    -- the target actor from a player script, so are excluded.
-    -- The Telvanni wit reflects inward - self-mastery and
-    -- self-enhancement are the hallmark of their craft.
     local bonuses = {}
     for _, effectParams in ipairs(enchRecord.effects) do
-        if effectParams.range == core.magic.RANGE.Self then
-            local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
-            local bonus   = math.floor(baseMag * scale)
-            if bonus > 0 then
-                bonuses[#bonuses + 1] = {
-                    id         = effectParams.id,
-                    extraParam = effectParams.affectedAttribute
-                              or effectParams.affectedSkill
-                              or nil,
-                    bonus      = bonus,
-                    duration   = effectParams.duration,
-                }
+        -- Skip harmful effects - downsides are never amplified
+        if not isHarmful(effectParams.id) then
+            if effectParams.range == core.magic.RANGE.Self then
+                local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
+                local bonus   = math.floor(baseMag * scale)
+                if bonus > 0 then
+                    bonuses[#bonuses + 1] = {
+                        id         = effectParams.id,
+                        extraParam = effectParams.affectedAttribute
+                                  or effectParams.affectedSkill
+                                  or nil,
+                        bonus      = bonus,
+                        duration   = effectParams.duration,
+                    }
+                end
             end
         end
     end
@@ -245,8 +280,10 @@ end)
 --
 --  Scans all equipment slots on a timer and on cell change.
 --  When a Constant Effect enchanted item is found, augments
---  its effects via activeEffects:modify. Tracked per slot so
---  bonuses are reversed cleanly when items change.
+--  its non-harmful effects via activeEffects:modify. Harmful
+--  effects are skipped so resistances work normally.
+--  Tracked per slot so bonuses are reversed cleanly when
+--  items change.
 --
 --  Cell change triggers a full recalculation so faction
 --  reputation gains are reflected without re-equipping.
@@ -275,11 +312,34 @@ local EQUIPMENT_SLOTS = {
     types.Actor.EQUIPMENT_SLOT.CarriedLeft,
 }
 
--- Keyed by slot number. Each entry: { itemId, bonuses = {{id, extraParam, bonus}...} }
+-- Keyed by slot number. Persisted to storage to survive saves/loads.
+-- On load, restored before updateConstantEffects runs so the slot-change
+-- detection doesn't see all slots as "changed" and re-stack all bonuses.
 local activeConstantBoosts    = {}
 local equipmentCheckTimer     = 0
 local EQUIPMENT_CHECK_INTERVAL = 2.0
-local lastHTCellId            = nil  -- tracks cell changes for scale recalculation
+local lastHTCellId            = nil
+
+-- ============================================================
+--  CE BOOST PERSISTENCE
+--  Saves and restores activeConstantBoosts so that on load the
+--  delta logic sees the correct previous state and doesn't
+--  re-apply all CE bonuses on top of already-saved values.
+-- ============================================================
+
+local function saveConstantBoosts()
+    telvStorage:set("activeConstantBoosts", activeConstantBoosts)
+end
+
+local function loadConstantBoosts()
+    local saved = telvStorage:getCopy("activeConstantBoosts")
+    if saved then
+        activeConstantBoosts = saved
+        print("HT Wit: Restored CE boost table from storage")
+    else
+        activeConstantBoosts = {}
+    end
+end
 
 local function reverseConstantBoost(boost)
     -- Each bonus stores its path so reversal uses the same route as application.
@@ -312,48 +372,51 @@ local function applyConstantBoost(slot, item, enchRecord)
     local activeEffects = types.Actor.activeEffects(self)
 
     for _, effectParams in ipairs(enchRecord.effects) do
-        local baseMag    = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
-        local bonus      = math.floor(baseMag * scale)
-        if bonus > 0 then
-            local extraParam = effectParams.affectedAttribute
-                           or effectParams.affectedSkill
-                           or nil
+        -- Skip harmful effects - downsides are never amplified,
+        -- preserving resistance interactions (e.g. Boots of Blinding Speed)
+        if not isHarmful(effectParams.id) then
+            local baseMag    = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
+            local bonus      = math.floor(baseMag * scale)
+            if bonus > 0 then
+                local extraParam = effectParams.affectedAttribute
+                               or effectParams.affectedSkill
+                               or nil
 
-            -- Fortify Attribute and Fortify Skill effects are managed by
-            -- the engine at application time - activeEffects:modify has no
-            -- effect on them for constant effects. Write directly to the
-            -- stat modifier instead, same as the CastOnUse path.
-            if FORTIFY_ATTR[effectParams.id] and extraParam then
-                applyFortifyAttr(extraParam, bonus)
-                bonuses[#bonuses + 1] = {
-                    id         = effectParams.id,
-                    extraParam = extraParam,
-                    bonus      = bonus,
-                    path       = "fortifyAttr",
-                }
-            elseif FORTIFY_SKILL[effectParams.id] and extraParam then
-                applyFortifySkill(extraParam, bonus)
-                bonuses[#bonuses + 1] = {
-                    id         = effectParams.id,
-                    extraParam = extraParam,
-                    bonus      = bonus,
-                    path       = "fortifySkill",
-                }
-            else
-                -- Everything else: activeEffects:modify works correctly
-                -- for constant effects that the engine reads each frame
-                -- (Chameleon, Night Eye, resistances, etc.)
-                if extraParam then
-                    activeEffects:modify(bonus, effectParams.id, extraParam)
+                -- Fortify Attribute and Fortify Skill effects are managed by
+                -- the engine at application time - activeEffects:modify has no
+                -- effect on them for constant effects. Write directly to the
+                -- stat modifier instead.
+                if FORTIFY_ATTR[effectParams.id] and extraParam then
+                    applyFortifyAttr(extraParam, bonus)
+                    bonuses[#bonuses + 1] = {
+                        id         = effectParams.id,
+                        extraParam = extraParam,
+                        bonus      = bonus,
+                        path       = "fortifyAttr",
+                    }
+                elseif FORTIFY_SKILL[effectParams.id] and extraParam then
+                    applyFortifySkill(extraParam, bonus)
+                    bonuses[#bonuses + 1] = {
+                        id         = effectParams.id,
+                        extraParam = extraParam,
+                        bonus      = bonus,
+                        path       = "fortifySkill",
+                    }
                 else
-                    activeEffects:modify(bonus, effectParams.id)
+                    -- Everything else: activeEffects:modify works correctly
+                    -- for constant effects that the engine reads each frame
+                    if extraParam then
+                        activeEffects:modify(bonus, effectParams.id, extraParam)
+                    else
+                        activeEffects:modify(bonus, effectParams.id)
+                    end
+                    bonuses[#bonuses + 1] = {
+                        id         = effectParams.id,
+                        extraParam = extraParam,
+                        bonus      = bonus,
+                        path       = "modify",
+                    }
                 end
-                bonuses[#bonuses + 1] = {
-                    id         = effectParams.id,
-                    extraParam = extraParam,
-                    bonus      = bonus,
-                    path       = "modify",
-                }
             end
         end
     end
@@ -363,6 +426,7 @@ local function applyConstantBoost(slot, item, enchRecord)
             itemId  = item.id,
             bonuses = bonuses,
         }
+        saveConstantBoosts()
         print("HT Wit: Applied constant boost for slot " .. tostring(slot))
     end
 end
@@ -372,11 +436,13 @@ local function removeAllConstantBoosts()
         reverseConstantBoost(boost)
     end
     activeConstantBoosts = {}
+    saveConstantBoosts()
 end
 
 local function updateConstantEffects()
     if not hasWitOfTelvanni then return end
 
+    local changed = false
     for _, slot in ipairs(EQUIPMENT_SLOTS) do
         local item    = types.Actor.getEquipment(self, slot)
         local current = activeConstantBoosts[slot]
@@ -389,6 +455,7 @@ local function updateConstantEffects()
             if current then
                 reverseConstantBoost(current)
                 activeConstantBoosts[slot] = nil
+                changed = true
             end
 
             -- Apply new boost if item has a constant effect enchantment
@@ -397,10 +464,12 @@ local function updateConstantEffects()
                 if enchRecord and
                    enchRecord.type == core.magic.ENCHANTMENT_TYPE.ConstantEffect then
                     applyConstantBoost(slot, item, enchRecord)
+                    changed = true
                 end
             end
         end
     end
+    if changed then saveConstantBoosts() end
 end
 
 -- ============================================================
@@ -415,7 +484,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "enough to push their way in. You have done so. For now, that is enough.\
  "
         .. "(+3 Intelligence, +3 Willpower, +5 Enchant, +5 Conjuration, "
-        .. "grants Bound Helm and Cuirass)\
+        .. "grants Bound Helm and Bound Cuirass)\
 \
 "
         .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
@@ -423,7 +492,8 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "At reputation cap: effects are 250%% of their base magnitude.\
 "
         .. "Constant Effect enchantments on equipped items are permanently "
-        .. "augmented. At reputation cap: effects are 200%% of their base magnitude.",
+        .. "augmented. Harmful effects are never boosted, preserving normal "
+        .. "resistance interactions. At reputation cap: effects are 200%% of their base magnitude.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
@@ -436,7 +506,9 @@ interfaces.ErnPerkFramework.registerPerk({
         safeAddSpell("bound cuirass")
 
         hasWitOfTelvanni = true
-        -- Apply constant effect boosts immediately for currently equipped items
+        -- Restore persisted CE boosts before recalculating so the slot-change
+        -- detection doesn't re-stack all bonuses on top of saved values
+        loadConstantBoosts()
         updateConstantEffects()
     end,
     onRemove = function()
@@ -446,7 +518,6 @@ interfaces.ErnPerkFramework.registerPerk({
         hasWitOfTelvanni     = false
         currentEnchantedItem = nil
         lastHTCellId         = nil
-        -- Reverse all constant effect boosts cleanly
         removeAllConstantBoosts()
     end,
 })
@@ -488,7 +559,8 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "You have shaped yourself through relentless study.\
  "
         .. "Requires Tower Sorcery. "
-        .. "(+10 Intelligence, +10 Willpower, +18 Enchant, +18 Conjuration)",
+        .. "(+10 Intelligence, +10 Willpower, +18 Enchant, +18 Conjuration, "
+        .. "Fortify Maximum Magicka 0.5x Intelligence, Restore Magicka 1pt/s)",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\mage", cost = 3,
     requirements = {
@@ -499,9 +571,11 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(3)
+        safeAddSpell("FPerks_HT3_Restore_Magicka_1")
     end,
     onRemove = function()
         setRank(nil)
+        safeRemoveSpell("FPerks_HT3_Restore_Magicka_1")
     end,
 })
 
@@ -514,7 +588,9 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "to claim.\
  "
         .. "Requires Self-Made Power. "
-        .. "(+15 Intelligence, +15 Willpower, +25 Enchant, +25 Conjuration)",
+        .. "(+15 Intelligence, +15 Willpower, +25 Enchant, +25 Conjuration, "
+        .. "Fortify Maximum Magicka 1.0x Intelligence, "
+        .. "additional Restore Magicka 2pt/s)",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {
@@ -538,6 +614,9 @@ local function onUpdate(dt)
     -- player moves to a new cell. This reflects faction reputation
     -- gains without requiring re-equipping. Clears the boost cache
     -- first so updateConstantEffects sees all slots as changed.
+    -- Note: loadConstantBoosts() is NOT called here because
+    -- removeAllConstantBoosts() already saves an empty table, so
+    -- there is nothing meaningful to load back.
     local cell   = self.cell
     local cellId = cell and cell.id or nil
     if cellId ~= lastHTCellId then
@@ -557,5 +636,9 @@ end
 return {
     engineHandlers = {
         onUpdate = onUpdate,
+        -- Restore CE boost table on load before any updateConstantEffects
+        -- call so slot-change detection sees the correct previous state
+        onLoad = loadConstantBoosts,
+        onInit = loadConstantBoosts,
     },
 }

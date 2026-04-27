@@ -1,13 +1,13 @@
 --[[
     MG:
-        FPerks_MG1_Passive          - +3 Intelligence, +3 Endurance,
+        FPerks_MG1_Passive          - +3 Intelligence, +3 Willpower,
                                       +10 Fortify Magicka, +5 Destruction, +5 Alteration
-        FPerks_MG2_Passive          - +5 Intelligence, +5 Endurance,
+        FPerks_MG2_Passive          - +5 Intelligence, +5 Willpower,
                                       +20 Fortify Magicka, +10 Destruction, +10 Alteration
-        FPerks_MG3_Passive          - +10 Intelligence, +10 Endurance,
+        FPerks_MG3_Passive          - +10 Intelligence, +10 Willpower,
                                       +35 Fortify Magicka, +18 Destruction, +18 Alteration,
                                       Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
-        FPerks_MG4_Passive          - +15 Intelligence, +15 Endurance,
+        FPerks_MG4_Passive          - +15 Intelligence, +15 Willpower,
                                       +50 Fortify Magicka, +25 Destruction, +25 Alteration,
                                       Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
 
@@ -20,28 +20,33 @@
             Daedric Inner Shrines   (cell name contains "inner shrine")
             Propylon Chambers       (cell name contains "propylon chamber")
             Unique locations:
-                Mount Kand
                 Akulakhan's Chamber
                 Palace of Vivec
-                Ministry of Truth
-                High Palace
-                High Chapel
-                Dome of Sotha Sil
+                Mournhold Temple: High Chapel
+                Sotha Sil, Dome of Sotha Sil
+                Solstheim, Mortrag Glacier: Huntsman's Hall
+                Magas Volar
+                (plus TR and PT equivalents)
 
         Visited locations are stored permanently in player storage -
         exploration is never lost. Bonuses only apply while the perk
         is held. If the perk is lost and regained, the full count
         is restored immediately.
 
-        Spell refund detection uses the AnimationController text key
-        pattern from the Incantation mod to track cast start, and
-        SkillProgression to confirm the cast succeeded before applying
-        the refund.
+        Applied Resist Magicka and Detect Enchantment values are also
+        persisted to storage so that the delta calculation survives saves
+        and loads. Without persistence, reloading resets these to 0 while
+        the character file still contains the previously applied
+        activeEffects:modify values, causing unbounded stacking each load.
 
-    NOTE: If Detect Enchantment does not apply without a base active
-    effect present, add a base ESP ability "FPerks_MG2_Cartography"
-    with Detect Enchantment magnitude 1 and Resist Magicka magnitude 1,
-    granted in mg2 onAdd alongside setRank(2).
+        Spell refund detection uses the AnimationController text key
+        pattern to track cast start, and SkillProgression to confirm the
+        cast succeeded before applying the refund.
+
+        NOTE: If Detect Enchantment does not apply without a base active
+        effect present, add a base ESP ability "FPerks_MG2_Cartography"
+        with Detect Enchantment magnitude 1 and Resist Magicka magnitude 1,
+        granted in mg2 onAdd alongside setRank(2).
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -73,10 +78,13 @@ local setRank = utils.makeSetRank(perkTable, nil)
 --  MAGICAL CARTOGRAPHY - Scholastic Rigour (P2+)
 -- ============================================================
 
--- Permanent storage for discovered cell IDs
+-- Permanent storage for discovered cell IDs and applied effect values.
+-- appliedResist and appliedDetect are persisted alongside the visited
+-- table so the delta calculation in applyCartographyEffects survives
+-- saves and loads correctly.
 local cartographyStore = storage.playerSection("FactionPerks_MG_Cartography")
 
--- Session state - not persisted, recalculated from storage on load
+-- Session state - restored from storage by loadAppliedValues()
 local hasMGCartography = false
 local appliedResist    = 0
 local appliedDetect    = 0
@@ -85,6 +93,21 @@ local lastCastCost     = 0
 local lastCellId       = nil
 local cellCheckTimer   = 0
 local CELL_CHECK_INTERVAL = 2.0
+
+-- ============================================================
+--  APPLIED VALUE PERSISTENCE
+--  Restores appliedResist and appliedDetect from storage on load.
+--  Without this, both reset to 0 each session while the character
+--  file still holds the previously applied activeEffects:modify
+--  values, causing the full bonus to stack again on every load.
+-- ============================================================
+
+local function loadAppliedValues()
+    appliedResist = cartographyStore:get("appliedResist") or 0
+    appliedDetect = cartographyStore:get("appliedDetect") or 0
+    print("MG Cartography: Restored applied values - Resist: "
+        .. appliedResist .. ", Detect: " .. appliedDetect)
+end
 
 -- ============================================================
 --  LOCATION DETECTION
@@ -108,7 +131,7 @@ local UNIQUE_LOCATIONS = {
 
     --PT
     ["garlas agea, aransel"] = true,
-    
+
     --SHotN
 }
 
@@ -139,6 +162,9 @@ end
 
 -- ============================================================
 --  EFFECT APPLICATION
+--  Uses delta-based modification so repeated calls (including
+--  on load after restoring appliedResist/appliedDetect from
+--  storage) never double-apply the bonus.
 -- ============================================================
 
 local function applyCartographyEffects(count)
@@ -153,10 +179,14 @@ local function applyCartographyEffects(count)
     if deltaResist ~= 0 then
         activeEffects:modify(deltaResist, "resistmagicka")
         appliedResist = targetResist
+        -- Persist so the baseline survives saves and loads
+        cartographyStore:set("appliedResist", appliedResist)
     end
     if deltaDetect ~= 0 then
         activeEffects:modify(deltaDetect, "detectenchantment")
         appliedDetect = targetDetect
+        -- Persist so the baseline survives saves and loads
+        cartographyStore:set("appliedDetect", appliedDetect)
     end
 end
 
@@ -255,7 +285,7 @@ end)
 
 -- ============================================================
 --  MAGES GUILD PERKS
---  Primary attributes: Intelligence, Endurance
+--  Primary attributes: Intelligence, Willpower
 --  Scaling: Fortify Magicka, Destruction, Alteration,
 --           Fortify Maximum Magicka (P3+)
 --  Special: Magical Cartography (P2+)
@@ -269,9 +299,7 @@ local function guildRank(rank)
         table.insert(reqs, R().minimumFactionRank('t_cyr_magesguild', rank))
         table.insert(reqs, R().minimumFactionRank('t_sky_magesguild', rank))
         table.insert(reqs, R().minimumFactionRank('t_ham_magesguild', rank))
-
     end
-    -- No need for orGroup if only one requirement
     if #reqs == 1 then return reqs[1] end
     return R().orGroup(table.unpack(reqs))
 end
@@ -283,7 +311,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You have passed the Guild's entrance rites. "
         .. "The library shelves are open to you.\
  "
-        .. "(+3 Intelligence, +3 Endurance, +10 Fortify Magicka, "
+        .. "(+3 Intelligence, +3 Willpower, +10 Fortify Magicka, "
         .. "+5 Destruction, +5 Alteration)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
@@ -304,7 +332,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "that saturate Vvardenfell, drawing knowledge and resistance from each.\
  "
         .. "Requires Guild Initiate. "
-        .. "(+5 Intelligence, +5 Endurance, +20 Fortify Magicka, "
+        .. "(+5 Intelligence, +5 Willpower, +20 Fortify Magicka, "
         .. "+10 Destruction, +10 Alteration)\
 \
 "
@@ -322,8 +350,9 @@ interfaces.ErnPerkFramework.registerPerk({
     onAdd = function()
         setRank(2)
         hasMGCartography = true
-        appliedResist    = 0
-        appliedDetect    = 0
+        -- Restore persisted baseline before recalculating so the delta is
+        -- accurate and the full bonus is never re-applied on top of saved values
+        loadAppliedValues()
         applyCartographyEffects(getVisitedCount())
     end,
     onRemove = function()
@@ -341,7 +370,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Your magicka pool expands with your intellect.\
  "
         .. "Requires Scholastic Rigour. "
-        .. "(+10 Intelligence, +10 Endurance, +35 Fortify Magicka, "
+        .. "(+10 Intelligence, +10 Willpower, +35 Fortify Magicka, "
         .. "+18 Destruction, +18 Alteration, "
         .. "Fortify Maximum Magicka 0.5x Intelligence)",
     hidden = perkHidden(GUILD, 6, 10),
@@ -364,7 +393,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Your intellect feeds your power directly.\
  "
         .. "Requires Arcane Reservoir. "
-        .. "(+15 Intelligence, +15 Endurance, +50 Fortify Magicka, "
+        .. "(+15 Intelligence, +15 Willpower, +50 Fortify Magicka, "
         .. "+25 Destruction, +25 Alteration, "
         .. "Fortify Maximum Magicka 1.0x Intelligence "
         .. "[replaces Arcane Reservoir's 0.5x bonus])",
@@ -407,5 +436,9 @@ end
 return {
     engineHandlers = {
         onUpdate = onUpdate,
+        -- Restore persisted applied values on load so the delta calculation
+        -- is always working from the correct baseline, preventing stacking.
+        onLoad = loadAppliedValues,
+        onInit = loadAppliedValues,
     },
 }

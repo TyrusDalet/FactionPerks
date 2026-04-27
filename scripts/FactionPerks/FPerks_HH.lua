@@ -65,12 +65,8 @@ local setRank = utils.makeSetRank(perkTable, nil)
 --     Shows "You Honour House Hlaalu." on first application
 --     each conversation.
 --
---     At rep cap:  +100 Disposition / -20 Mercantile
+--     At rep cap:  +100 Disposition / -30 Mercantile
 --     Formula scales linearly from 0 to cap, then trickles.
---
---  2. GLOBAL DISP DOWNSIDE (P4 only) - -25 Disposition
---     applied to every NPC the player speaks to while holding
---     P4. Removed when dialogue closes.
 --
 --  Both effects route through global script since
 --  modifyBaseDisposition is global-only.
@@ -105,6 +101,9 @@ local hhCurrentNpc  = nil
 local hhCurrentDisp = 0
 local hhCurrentMerc = 0
 
+-- Original TRADE_SERVICES table - checks servicesOffered fields so that
+-- trainers, enchanters, etc. who have baseGold but don't barter goods
+-- are correctly excluded from the Hlaalu merchant buff.
 local TRADE_SERVICES = {
     Barter      = true, Weapon      = true, Armor       = true,
     Clothing    = true, Books       = true, Ingredients = true,
@@ -112,7 +111,7 @@ local TRADE_SERVICES = {
     Apparatus   = true, RepairItems = true, Misc        = true,
     Potions     = true, MagicItems  = true,
 }
- 
+
 local function isMerchant(actor)
     if not types.NPC.objectIsInstance(actor) then return false end
     local services = types.NPC.record(actor).servicesOffered
