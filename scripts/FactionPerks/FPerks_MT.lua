@@ -25,7 +25,6 @@ require('scripts.FactionPerks.shared')
 
 local perkStore = storage.playerSection("FactionPerks")
 local utils  = require("scripts.FactionPerks.utils")
-local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
 local safeAddSpell  = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell

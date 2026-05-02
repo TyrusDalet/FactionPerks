@@ -29,7 +29,6 @@ local perkStore = storage.playerSection("FactionPerks")
 -- Shorthand requirement builders
 local R      = interfaces.ErnPerkFramework.requirements
 local utils  = require("scripts.FactionPerks.utils")
-local notExpelled = utils.notExpelled
 local perkHidden  = utils.perkHidden
 local safeAddSpell  = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell
