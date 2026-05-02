@@ -9,6 +9,10 @@
         FPerks_IL4_Passive          - +15 Endurance, +15 Strength, +25 Heavy Armour,
                                       +25 Block, +50 Fortify Fatigue
 
+    NOTE: Fortify Fatigue is applied via stat.modifier so the maximum is raised correctly.
+    appliedFatigueMod is persisted via onSave/onLoad so the delta calculation is correct
+    on reload and bonuses never stack. 
+
     Non-table spells (granted once, not removed on rank-up):
         FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
 
@@ -20,20 +24,6 @@
                 P2: 30% of fatigue cost restored
                 P3: 50% of fatigue cost restored
                 P4: 75% of fatigue cost restored
-
-        Block detection uses two handlers in sequence:
-            1. Combat.addOnHitHandler  - stores attacker and pre-hit fatigue snapshot
-            2. SkillProgression.addSkillUsedHandler - fires on successful block,
-               calculates fatigue delta and applies both effects
-
-        TIMING NOTE: If fatigueBeforeHit and post-block fatigue are identical
-        (delta = 0), the engine deducted block fatigue before our hit handler
-        ran. In that case we fall back to a proxy: fatigue restored is calculated
-        as a percentage of the reflect damage, which correlates naturally
-        with block cost.
-
-        No cooldown - Block's hard cap of 50% damage reduction is the
-        natural limiter on how often and how much this can proc.
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -55,10 +45,9 @@ local perkTable = {
     [1] = { passive = {"FPerks_IL1_Passive"} },
     [2] = { passive = {"FPerks_IL2_Passive"} },
     [3] = { passive = {"FPerks_IL3_Passive"} },
-    [4] = { passive = {"FPerks_IL4_Passive"} },  -- Restore_Phys removed from new design
+    [4] = { passive = {"FPerks_IL4_Passive"} },
 }
 
--- Perk id prep
 local il1_id = ns .. "_il_legion_recruit"
 local il2_id = ns .. "_il_shield_wall"
 local il3_id = ns .. "_il_forced_march"
@@ -67,31 +56,34 @@ local il4_id = ns .. "_il_legate"
 local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
---  LEGIONARY'S RESOLVE - Shield Wall (P2+)
---
---  On successful block:
---    Reflects damage based on Block skill to the attacker.
---    Restores a portion of the fatigue spent blocking,
---    scaling with perk rank.
---
---  Two-handler pattern:
---    Hit handler  - snapshot attacker and pre-hit fatigue
---    Skill handler - calculate delta, apply reflect and restore
+--  FORTIFY FATIGUE - stat.modifier with onSave/onLoad
 -- ============================================================
 
-local ilLastAttacker     = nil   -- attacker stored by hit handler for skill handler to read
-local ilFatigueBeforeHit = 0     -- fatigue snapshot taken at hit handler, before block deduction
+local appliedFatigueMod = 0
 
--- Fatigue restore percentage per rank
+local function applyFatigueMod(value)
+    local s = types.Actor.stats.dynamic.fatigue(self)
+    local delta = value - appliedFatigueMod
+    s.modifier = s.modifier + delta
+    if delta > 0 then
+        s.maximum = s.maximum + delta
+    end
+    appliedFatigueMod = value
+end
+
+-- ============================================================
+--  LEGIONARY'S RESOLVE - Shield Wall (P2+)
+-- ============================================================
+
+local ilLastAttacker     = nil
+local ilFatigueBeforeHit = 0
+
 local IL_FATIGUE_RESTORE = {
     [2] = 0.30,
     [3] = 0.50,
     [4] = 0.75,
 }
 
--- Proxy scalar for fallback fatigue calculation.
--- If delta is zero (engine deducted before our handler ran),
--- estimate fatigue cost as reflect damage * this scalar.
 local IL_FATIGUE_PROXY_SCALAR = 0.5
 
 local function getILRank()
@@ -101,51 +93,30 @@ local function getILRank()
     return nil
 end
 
--- ============================================================
---  HIT HANDLER
---  Fires when the player is struck. Stores the attacker and
---  a fatigue snapshot for the skill handler to read.
--- ============================================================
-
 interfaces.Combat.addOnHitHandler(function(attack)
     ilLastAttacker     = nil
     ilFatigueBeforeHit = 0
 
     local rank = getILRank()
     if not rank then return end
-
     if not attack.attacker or not attack.attacker:isValid() then return end
 
     ilLastAttacker     = attack.attacker
     ilFatigueBeforeHit = types.Actor.stats.dynamic.fatigue(self).current
 end)
 
--- ============================================================
---  SKILL HANDLER
---  Fires when the Block skill advances - this only happens on
---  a successful block, giving us a clean success gate consistent
---  with the MG spell refund pattern.
--- ============================================================
-
 interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if skillId ~= "block" then return end
 
     local rank = getILRank()
     if not rank then return end
-
     if not ilLastAttacker or not ilLastAttacker:isValid() then return end
 
-    -- Reflect damage scales purely with Block skill.
-    -- At Block 40:  10 damage
-    -- At Block 100: 25 damage
     local blockSkill = types.NPC.stats.skills.block(self).modified
     local reflectDmg = math.floor(blockSkill * 0.25)
 
-    -- Route damage through npc.lua/creature.lua - can't modify
-    -- another actor's stats directly from a player script
     ilLastAttacker:sendEvent("FPerks_TakeDamage", { amount = reflectDmg })
 
-    -- Fatigue restore - delta method with proxy fallback
     local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
     local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
 
@@ -177,10 +148,6 @@ end)
 
 -- ============================================================
 --  IMPERIAL LEGION PERKS
---  Primary attributes: Endurance, Strength
---  Scaling: Heavy Armour, Block, Fortify Fatigue
---  Special: Legion's Prowess power (P3),
---           Legionary's Resolve block reflect (P2+)
 -- ============================================================
 
 local function guildRank(rank)
@@ -191,7 +158,6 @@ local function guildRank(rank)
         table.insert(reqs, R().minimumFactionRank('t_cyr_imperiallegion', rank))
         table.insert(reqs, R().minimumFactionRank('t_sky_imperiallegion', rank))
     end
-    -- No need for orGroup if only one requirement
     if #reqs == 1 then return reqs[1] end
     return R().orGroup(table.unpack(reqs))
 end
@@ -209,8 +175,8 @@ interfaces.ErnPerkFramework.registerPerk({
         guildRank(0),
         R().minimumLevel(1)
     },
-    onAdd    = function() setRank(1) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function() setRank(1); applyFatigueMod(10) end,
+    onRemove = function() setRank(nil); applyFatigueMod(0) end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -234,8 +200,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function() setRank(2); applyFatigueMod(20) end,
+    onRemove = function() setRank(nil); applyFatigueMod(0) end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -257,11 +223,11 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(10),
     },
     onAdd = function()
-        setRank(3)
+        setRank(3); applyFatigueMod(35)
         safeAddSpell("FPerks_IL3_Prowess")
     end,
     onRemove = function()
-        setRank(nil)
+        setRank(nil); applyFatigueMod(0)
         safeRemoveSpell("FPerks_IL3_Prowess")
     end,
 })
@@ -283,6 +249,28 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function() setRank(4); applyFatigueMod(50) end,
+    onRemove = function() setRank(nil); applyFatigueMod(0) end,
 })
+
+-- ============================================================
+--  SAVE / LOAD
+-- ============================================================
+
+local function onSave()
+    return {
+        appliedFatigueMod = appliedFatigueMod,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    appliedFatigueMod = data.appliedFatigueMod or 0
+end
+
+return {
+    engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
+    }
+}

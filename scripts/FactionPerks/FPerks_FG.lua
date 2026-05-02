@@ -1,16 +1,20 @@
 --[[
 
-    FG:
-        FPerks_FG1_Passive              - +3 Strength, +3 Endurance, +10 Fortify Health,
-                                          +5 Long Blade, +5 Blunt Weapon, +5 Axe
-        FPerks_FG2_Passive              - +5 Strength, +5 Endurance, +20 Fortify Health,
-                                          +10 Long Blade, +10 Blunt Weapon, +10 Axe
-        FPerks_FG3_Passive              - +10 Strength, +10 Endurance, +35 Fortify Health,
-                                          +18 Long Blade, +18 Blunt Weapon, +18 Axe
-        FPerks_FG4_Passive              - +15 Strength, +15 Endurance, +50 Fortify Health,
-                                          +25 Long Blade, +25 Blunt Weapon, +25 Axe
-        FPerks_FG3_Enrage               - Power, Fortify Health 50pts, Fortify Fatigue 200pts,
-                                          Fortify Attack 100pts, 30s duration.
+FG:
+        FPerks_FG1_Passive          - +3 Strength, +3 Endurance, +10 Fortify Health,
+                                      +5 Long Blade, +5 Blunt Weapon, +5 Axe
+        FPerks_FG2_Passive          - +5 Strength, +5 Endurance, +20 Fortify Health,
+                                      +10 Long Blade, +10 Blunt Weapon, +10 Axe
+        FPerks_FG3_Passive          - +10 Strength, +10 Endurance, +35 Fortify Health,
+                                      +18 Long Blade, +18 Blunt Weapon, +18 Axe
+        FPerks_FG4_Passive          - +15 Strength, +15 Endurance, +50 Fortify Health,
+                                      +25 Long Blade, +25 Blunt Weapon, +25 Axe
+        FPerks_FG3_Enrage           - Power, Fortify Health 50pts, Fortify Fatigue 200pts,
+                                      Fortify Attack 100pts, 30s duration.
+
+    NOTE: Fortify Health is applied via stat.modifier so the maximum is raised correctly.
+    appliedHealthMod is persisted via onSave/onLoad so the delta calculation is correct
+    on reload and bonuses never stack. 
 ]]
 
 local ns         = require("scripts.FactionPerks.namespace")
@@ -25,14 +29,8 @@ local self       = require('openmw.self')
 local core       = require('openmw.core')
 local ambient    = require('openmw.ambient')
 
--- ============================================================
---  CORE HELPERS
--- ============================================================
-
--- Shorthand requirement builders
 local R = interfaces.ErnPerkFramework.requirements
 
--- Create a table with all the Faction spell effects in it, each object is the perk of that rank
 local perkTable = {
     [1] = { passive = {"FPerks_FG1_Passive"} },
     [2] = { passive = {"FPerks_FG2_Passive"} },
@@ -40,7 +38,6 @@ local perkTable = {
     [4] = { passive = {"FPerks_FG4_Passive"} }
 }
 
--- Perk id prep
 local fg1_id = ns .. "_fg_dues_paid"
 local fg2_id = ns .. "_fg_iron_discipline"
 local fg3_id = ns .. "_fg_battle_tested"
@@ -49,33 +46,28 @@ local fg4_id = ns .. "_fg_champion_of_the_guild"
 local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
+--  FORTIFY HEALTH - stat.modifier with onSave/onLoad
+-- ============================================================
+
+local appliedHealthMod = 0
+
+local function applyHealthMod(value)
+    local s = types.Actor.stats.dynamic.health(self)
+    local delta = value - appliedHealthMod
+    s.modifier = s.modifier + delta
+    if delta > 0 then
+        s.maximum = s.maximum + delta
+    end
+    appliedHealthMod = value
+end
+
+-- ============================================================
 --  FIGHTERS GUILD COUNTER ATTACK - Iron Discipline (P2+)
---
---  When an enemy misses the player with a weapon swing, if the
---  player has a weapon equipped they immediately make a free
---  damage roll with it against the attacker.
---
---  Damage approximates the vanilla formula:
---    base  = random value around highest average damage type
---    x Strength factor (0.5 + 0.5 x str/100)
---    x Fatigue factor  (0.75 + 0.25 x currentFatigue/maxFatigue)
---
---  Cooldown: 10s at P2, 6s at P3, 1.5s at P4.
---  Each counter drains a small amount of player fatigue.
---
---  Sound reflects the attacker's armour weight so the feedback
---  feels grounded. Played as a 2D ambient sound since
---  playSound3d is restricted to self in local scripts.
 -- ============================================================
 
 local lastFGCounterTime = 0
 
 local function getArmorHitSound(actor)
-    -- Read the attacker's cuirass weight to approximate armour type.
-    -- Thresholds are approximate for vanilla cuirass weights:
-    --   Light  (Chitin, Netch Leather, Glass):    < 10
-    --   Medium (Bonemold, Indoril):               10 - 25
-    --   Heavy  (Iron, Steel, Orcish, Ebony):      \u003e 25
     local cuirass = types.Actor.getEquipment(actor, types.Actor.EQUIPMENT_SLOT.Cuirass)
     if cuirass and types.Armor.objectIsInstance(cuirass) then
         local weight = types.Armor.record(cuirass).weight
@@ -87,41 +79,28 @@ local function getArmorHitSound(actor)
             return "heavy armor hit"
         end
     end
-    -- Unarmored or no cuirass - default to light
     return "light armor hit"
 end
 
 local function getCounterDamage(weapon, attacker)
     local rec = types.Weapon.record(weapon)
-
-    -- Find the highest average damage type as the base for the strike
     local chop   = (rec.chopMinDamage   + rec.chopMaxDamage)   / 2
     local slash  = (rec.slashMinDamage  + rec.slashMaxDamage)  / 2
     local thrust = (rec.thrustMinDamage + rec.thrustMaxDamage) / 2
     local best   = math.max(chop, slash, thrust)
-
-    -- Randomise around the best average (75% - 125% of it)
-    local base = best * (0.75 + math.random() * 0.5)
-
-    -- Strength factor: mirrors vanilla's roughly linear strength scaling
+    local base   = best * (0.75 + math.random() * 0.5)
     local str       = types.Actor.stats.attributes.strength(attacker).modified
     local strFactor = 0.5 + 0.5 * (str / 100)
-
-    -- Fatigue factor: penalises exhausted attackers
     local fatigue   = types.Actor.stats.dynamic.fatigue(attacker)
     local maxFat    = math.max(fatigue.base + fatigue.modifier, 1)
     local fatFactor = 0.75 + 0.25 * (fatigue.current / maxFat)
-
     return math.floor(base * strFactor * fatFactor)
 end
 
 interfaces.Combat.addOnHitHandler(function(attack)
-    -- Weapon swings only - excludes hand-to-hand and spell damage
     if attack.successful             then return end
     if not attack.weapon             then return end
     if not (attack.attacker and attack.attacker:isValid()) then return end
-
-    -- Player must hold at least FG P2
     if not R().hasPerk(fg2_id).check() then return end
 
     local cooldown = 10
@@ -132,20 +111,15 @@ interfaces.Combat.addOnHitHandler(function(attack)
     local now = core.getSimulationTime()
     if (now - lastFGCounterTime) < cooldown then return end
 
-    -- Player must have a weapon equipped to counter with
     local playerWeapon = types.Actor.getEquipment(self, types.Actor.EQUIPMENT_SLOT.CarriedRight)
     if not playerWeapon                               then return end
     if not types.Weapon.objectIsInstance(playerWeapon) then return end
 
-    -- Calculate and route counter damage through npc.lua/creature.lua
     local dmg = getCounterDamage(playerWeapon, self)
     attack.attacker:sendEvent("FPerks_TakeDamage", { amount = dmg })
 
-    -- Small fatigue cost to represent the reactive strike
     local fatigue = types.Actor.stats.dynamic.fatigue(self)
     fatigue.current = math.max(0, fatigue.current - 8)
-
-    -- Play armour-appropriate hit sound at the player's position (2D)
     ambient.playSound(getArmorHitSound(attack.attacker))
 
     lastFGCounterTime = now
@@ -153,25 +127,8 @@ interfaces.Combat.addOnHitHandler(function(attack)
 end)
 
 -- ============================================================
---  FIGHTERS GUILD
---  Primary attributes: Strength, Endurance
---  Scaling: Fortify Health, Long Blade, Blunt Weapon, Axe
---  Special: Enrage power (Battle Tested),
---           Counter attack on miss (Iron Discipline P2+)
+--  FIGHTERS GUILD PERKS
 -- ============================================================
-
-local function guildRank(rank)
-    local reqs = {
-        R().minimumFactionRank('fighters guild', rank),
-    }
-    if core.contentFiles.has("tamriel_data.esm") then
-        table.insert(reqs, R().minimumFactionRank('t_cyr_fightersguild', rank))
-        table.insert(reqs, R().minimumFactionRank('t_sky_fightersguild', rank))
-    end
-    -- No need for orGroup if only one requirement
-    if #reqs == 1 then return reqs[1] end
-    return R().orGroup(table.unpack(reqs))
-end
 
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
@@ -183,15 +140,11 @@ interfaces.ErnPerkFramework.registerPerk({
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
-        guildRank(0),
+        R().minimumFactionRank('fighters guild', 0),
         R().minimumLevel(1)
     },
-    onAdd = function()
-        setRank(1)
-    end,
-    onRemove = function()
-        setRank(nil)
-    end
+    onAdd    = function() setRank(1); applyHealthMod(10) end,
+    onRemove = function() setRank(nil); applyHealthMod(0) end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -212,16 +165,12 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
         R().hasPerk(fg1_id),
-        guildRank(3),
+        R().minimumFactionRank('fighters guild', 3),
         R().minimumAttributeLevel('strength', 40),
         R().minimumLevel(5),
     },
-    onAdd = function()
-        setRank(2)
-    end,
-    onRemove = function()
-        setRank(nil)
-    end
+    onAdd    = function() setRank(2); applyHealthMod(20) end,
+    onRemove = function() setRank(nil); applyHealthMod(0) end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -241,18 +190,18 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
         R().hasPerk(fg2_id),
-        guildRank(6),
+        R().minimumFactionRank('fighters guild', 6),
         R().minimumAttributeLevel('strength', 50),
         R().minimumLevel(10),
     },
     onAdd = function()
-        setRank(3)
-        safeAddSpell("FPerks_FG3_Enrage");
+        setRank(3); applyHealthMod(35)
+        safeAddSpell("FPerks_FG3_Enrage")
     end,
     onRemove = function()
-        setRank(nil)
-        safeRemoveSpell("FPerks_FG3_Enrage");
-    end
+        setRank(nil); applyHealthMod(0)
+        safeRemoveSpell("FPerks_FG3_Enrage")
+    end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -271,14 +220,32 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
         R().hasPerk(fg3_id),
-        guildRank(9),
+        R().minimumFactionRank('fighters guild', 9),
         R().minimumAttributeLevel('strength', 75),
         R().minimumLevel(15),
     },
-    onAdd = function()
-        setRank(4)
-    end,
-    onRemove = function()
-        setRank(nil)
-    end
+    onAdd    = function() setRank(4); applyHealthMod(50) end,
+    onRemove = function() setRank(nil); applyHealthMod(0) end,
 })
+
+-- ============================================================
+--  SAVE / LOAD
+-- ============================================================
+
+local function onSave()
+    return {
+        appliedHealthMod = appliedHealthMod,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    appliedHealthMod = data.appliedHealthMod or 0
+end
+
+return {
+    engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
+    }
+}

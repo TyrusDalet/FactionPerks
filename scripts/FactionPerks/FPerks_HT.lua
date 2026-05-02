@@ -21,39 +21,23 @@
     Honour The Great House (P1+): Wit of the Telvanni
 
         CAST ON USE:
-        When the player activates a Cast on Use enchanted item, self-range
-        effects are augmented via activeEffects:modify + cleanup timer.
-        Touch and Target range effects are excluded.
-        Harmful effects (core.magic.effects.records[id].harmful == true)
-        are skipped entirely, so downsides are never boosted and resistances
-        that nullify them continue to work normally.
-        Scale: honourScale * 1.5, capped behaviour per honourScale post-cap.
-        At rep cap: +150% bonus magnitude (250% total).
-        Detection: SkillProgression enchant handler confirms success,
-        reads getSelectedEnchantedItem directly since Cast on Use uses
-        the unequip animation group rather than spellcast.
+        Self-range non-harmful effects are augmented immediately.
+        Cleanup uses activeSpells polling (durationLeft) rather than
+        async timers so bonuses survive saves and loads correctly.
+        The tracking table is persisted via onSave/onLoad.
+        On load, the table is restored but bonuses are NOT re-applied
+        (they are already in stat.modifier from the save file).
 
         CONSTANT EFFECT:
-        All equipped items with Constant Effect enchantments have their
-        non-harmful effects augmented via activeEffects:modify. Harmful
-        effects are skipped so that, for example, Boots of Blinding Speed's
-        Blind effect is never boosted and Resist Magicka continues to
-        function normally against it.
-        Tracked per equipment slot - when items are equipped or unequipped,
-        bonuses are reversed and reapplied accordingly.
-        Scale: math.min(honourScale, 1.0), giving at most +100% bonus
-        magnitude (200% total).
-        Bonus updates when equipment changes, and is also recalculated
-        on cell change so faction reputation gains are reflected without
-        needing to re-equip.
+        Non-harmful effects on equipped CE items are augmented via
+        stat.modifier (Fortify Health/Magicka/Fatigue and Fortify
+        Attribute/Skill) or activeEffects:modify (everything else).
+        Harmful effects are skipped entirely.
+        The CE boost table is persisted via onSave/onLoad to prevent
+        load stacking.
 
-        LOAD STACKING FIX:
-        activeConstantBoosts is persisted to player storage so that when
-        the game is loaded the bonus table is restored before
-        updateConstantEffects runs. Without this, the table resets to {}
-        on every load, causing updateConstantEffects to see all slots as
-        "changed" and re-apply all CE bonuses on top of the already-saved
-        activeEffects:modify values.
+        All character-specific data is in onSave/onLoad.
+        
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -67,8 +51,6 @@ local types       = require('openmw.types')
 local self        = require('openmw.self')
 local ui          = require('openmw.ui')
 local core        = require('openmw.core')
-local async       = require('openmw.async')
-local storage     = require('openmw.storage')
 
 local R = interfaces.ErnPerkFramework.requirements
 
@@ -86,23 +68,49 @@ local setRank = utils.makeSetRank(perkTable, nil)
 -- ============================================================
 
 local hasWitOfTelvanni   = false
-local currentEnchantedItem = nil  -- cached by skill handler for CastOnUse path
+local currentEnchantedItem = nil
 
--- Persistent storage for CE boost table so it survives saves/loads
-local telvStorage = storage.playerSection("FactionPerks_HT_CEBoosts")
+-- ============================================================
+--  CHARACTER-SPECIFIC STATE (persisted via onSave/onLoad)
+--
+--  activeCastOnUseBonuses: keyed by item.recordId
+--    Each entry: { bonuses = { {id, extraParam, bonus, path, dynKey} } }
+--    Restored on load for expiry tracking only - bonuses are NOT
+--    re-applied as they are already in stat.modifier from the save.
+--
+--  activeConstantBoosts: keyed by equipment slot number
+--    Each entry: { itemId, bonuses = { {id, extraParam, bonus, path, dynKey} } }
+--    Restored on load for slot-change detection only - same reasoning.
+-- ============================================================
+
+local activeCastOnUseBonuses = {}
+local activeConstantBoosts   = {}
+local castOnUsePollTimer     = 0
+local CAST_ON_USE_POLL_INTERVAL = 0.5
+local equipmentCheckTimer    = 0
+local EQUIPMENT_CHECK_INTERVAL = 2.0
+local lastHTCellId           = nil
 
 -- ============================================================
 --  EFFECT CLASSIFICATION TABLES
---  Used by both CastOnUse and Constant Effect paths.
 -- ============================================================
 
 local FORTIFY_ATTR  = { ["fortifyattribute"] = true }
 local FORTIFY_SKILL = { ["fortifyskill"]     = true }
+local FORTIFY_DYN   = {
+    ["fortifyhealth"]  = "health",
+    ["fortifymagicka"] = "magicka",
+    ["fortifyfatigue"] = "fatigue",
+}
 local RESTORE_DYN   = {
     ["restorehealth"]  = "health",
     ["restoremagicka"] = "magicka",
     ["restorefatigue"] = "fatigue",
 }
+
+-- ============================================================
+--  STAT HELPER FUNCTIONS
+-- ============================================================
 
 local function applyFortifyAttr(attrId, bonus)
     local stat = types.Actor.stats.attributes[attrId]
@@ -112,6 +120,17 @@ end
 local function applyFortifySkill(skillId, bonus)
     local stat = types.NPC.stats.skills[skillId]
     if stat then stat(self).modifier = stat(self).modifier + bonus end
+end
+
+local function applyFortifyDyn(dynKey, bonus)
+    local dyn = types.Actor.stats.dynamic[dynKey]
+    if dyn then
+        local s = dyn(self)
+        s.modifier = s.modifier + bonus
+        if bonus > 0 then
+            s.current = s.current + bonus
+        end
+    end
 end
 
 local function applyRestoreDyn(dynKey, bonus, duration)
@@ -126,17 +145,11 @@ end
 
 -- ============================================================
 --  SHARED ENCHANTMENT RECORD READER
---  Iterates item types to find an enchantment record on any
---  equippable item type. Used by both CastOnUse and Constant
---  Effect paths.
 -- ============================================================
 
 local ENCHANTABLE_TYPES = {
-    types.Weapon,
-    types.Armor,
-    types.Clothing,
-    types.Miscellaneous,
-    types.Book,
+    types.Weapon, types.Armor, types.Clothing,
+    types.Miscellaneous, types.Book,
 }
 
 local function getEnchantmentRecord(item)
@@ -153,33 +166,13 @@ local function getEnchantmentRecord(item)
     return nil
 end
 
--- ============================================================
---  HARMFUL EFFECT CHECK
---  Returns true if the given effect ID is flagged as harmful
---  by the engine. Harmful effects are skipped in both the
---  CastOnUse and Constant Effect boost paths so that:
---    - Downsides are never amplified
---    - Resistances such as Resist Magicka continue to function
---      normally against them (e.g. Boots of Blinding Speed)
--- ============================================================
-
 local function isHarmful(effectId)
     local rec = core.magic.effects.records[effectId]
     return rec and rec.harmful == true
 end
 
 -- ============================================================
---  CAST ON USE - Wit of the Telvanni
---
---  When the player activates a Cast on Use enchanted item,
---  self-range non-harmful effects are augmented.
---
---  Detection: SkillProgression enchant handler fires on success.
---  getSelectedEnchantedItem is read directly here since Cast
---  on Use uses the unequip animation, not the spellcast group.
---
---  Scale: honourScale * 1.5 (max +150%, total 250%).
---  Cleanup: async timers reverse each bonus after its duration.
+--  CAST ON USE - bonus application
 -- ============================================================
 
 local function TelvanniWitEnchant(item)
@@ -194,101 +187,125 @@ local function TelvanniWitEnchant(item)
     local scale = utils.honourScale('telvanni') * 1.5
     if scale <= 0 then return end
 
-    local bonuses = {}
+    local bonuses       = {}
+    local activeEffects = types.Actor.activeEffects(self)
+
     for _, effectParams in ipairs(enchRecord.effects) do
-        -- Skip harmful effects - downsides are never amplified
         if not isHarmful(effectParams.id) then
             if effectParams.range == core.magic.RANGE.Self then
                 local baseMag = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
                 local bonus   = math.floor(baseMag * scale)
                 if bonus > 0 then
-                    bonuses[#bonuses + 1] = {
-                        id         = effectParams.id,
-                        extraParam = effectParams.affectedAttribute
-                                  or effectParams.affectedSkill
-                                  or nil,
-                        bonus      = bonus,
-                        duration   = effectParams.duration,
-                    }
+                    local dynKey   = FORTIFY_DYN[effectParams.id]
+                    local restKey  = RESTORE_DYN[effectParams.id]
+                    local extraParam = effectParams.affectedAttribute
+                                    or effectParams.affectedSkill
+                                    or nil
+
+                    if FORTIFY_ATTR[effectParams.id] and extraParam then
+                        applyFortifyAttr(extraParam, bonus)
+                        bonuses[#bonuses + 1] = {
+                            id = effectParams.id, extraParam = extraParam,
+                            bonus = bonus, path = "fortifyAttr",
+                        }
+                    elseif FORTIFY_SKILL[effectParams.id] and extraParam then
+                        applyFortifySkill(extraParam, bonus)
+                        bonuses[#bonuses + 1] = {
+                            id = effectParams.id, extraParam = extraParam,
+                            bonus = bonus, path = "fortifySkill",
+                        }
+                    elseif dynKey then
+                        applyFortifyDyn(dynKey, bonus)
+                        bonuses[#bonuses + 1] = {
+                            id = effectParams.id, dynKey = dynKey,
+                            bonus = bonus, path = "fortifyDyn",
+                        }
+                    elseif restKey then
+                        applyRestoreDyn(restKey, bonus, effectParams.duration)
+                        -- Instant lump sum - not tracked, no cleanup needed
+                    else
+                        if extraParam then
+                            activeEffects:modify(bonus, effectParams.id, extraParam)
+                        else
+                            activeEffects:modify(bonus, effectParams.id)
+                        end
+                        bonuses[#bonuses + 1] = {
+                            id = effectParams.id, extraParam = extraParam,
+                            bonus = bonus, path = "modify",
+                        }
+                    end
                 end
             end
         end
     end
 
     if #bonuses == 0 then return end
-    local timer = 0.1
 
-    async:newUnsavableSimulationTimer(timer, function()
-        local activeEffects = types.Actor.activeEffects(self)
-        for _, b in ipairs(bonuses) do
-            local dynKey = RESTORE_DYN[b.id]
-            if FORTIFY_ATTR[b.id] and b.extraParam then
-                -- Attribute fortification: use stat modifier path for clean reversal
-                applyFortifyAttr(b.extraParam, b.bonus)
-                async:newUnsavableSimulationTimer(b.duration - timer, function()
-                    applyFortifyAttr(b.extraParam, -b.bonus)
-                end)
-            elseif FORTIFY_SKILL[b.id] and b.extraParam then
-                -- Skill fortification: use stat modifier path for clean reversal
-                applyFortifySkill(b.extraParam, b.bonus)
-                async:newUnsavableSimulationTimer(b.duration - timer, function()
-                    applyFortifySkill(b.extraParam, -b.bonus)
-                end)
-            elseif dynKey then
-                -- Restore effects: apply as instant lump sum, no reversal needed
-                applyRestoreDyn(dynKey, b.bonus, b.duration)
+    activeCastOnUseBonuses[item.recordId] = { bonuses = bonuses }
+    ui.showMessage("You Honour the Wit of House Telvanni.")
+    print("HT Wit: Applied CastOnUse bonus for " .. tostring(item.recordId))
+end
+
+-- ============================================================
+--  CAST ON USE - expiry polling via durationLeft
+-- ============================================================
+
+local function reverseCastOnUseEntry(itemRecordId, entry)
+    local activeEffects = types.Actor.activeEffects(self)
+    for _, b in ipairs(entry.bonuses) do
+        if b.path == "fortifyAttr" then
+            applyFortifyAttr(b.extraParam, -b.bonus)
+        elseif b.path == "fortifySkill" then
+            applyFortifySkill(b.extraParam, -b.bonus)
+        elseif b.path == "fortifyDyn" then
+            applyFortifyDyn(b.dynKey, -b.bonus)
+        else
+            if b.extraParam then
+                activeEffects:modify(-b.bonus, b.id, b.extraParam)
             else
-                -- Everything else: activeEffects:modify with cleanup timer
-                if b.extraParam then
-                    activeEffects:modify(b.bonus, b.id, b.extraParam)
-                else
-                    activeEffects:modify(b.bonus, b.id)
-                end
-                async:newUnsavableSimulationTimer(b.duration - timer, function()
-                    if b.extraParam then
-                        activeEffects:modify(-b.bonus, b.id, b.extraParam)
-                    else
-                        activeEffects:modify(-b.bonus, b.id)
-                    end
-                end)
+                activeEffects:modify(-b.bonus, b.id)
             end
         end
-        ui.showMessage("You Honour the Wit of House Telvanni.")
-    end)
+    end
+    activeCastOnUseBonuses[itemRecordId] = nil
+    print("HT Wit: Reversed CastOnUse bonus for " .. tostring(itemRecordId))
+end
+
+local function isCastOnUseStillActive(itemRecordId)
+    for _, spell in pairs(types.Actor.activeSpells(self)) do
+        if spell.id == itemRecordId then
+            for _, effect in pairs(spell.effects) do
+                if effect.durationLeft and effect.durationLeft > 0 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function pollCastOnUseBonuses()
+    for itemRecordId, entry in pairs(activeCastOnUseBonuses) do
+        if not isCastOnUseStillActive(itemRecordId) then
+            reverseCastOnUseEntry(itemRecordId, entry)
+        end
+    end
 end
 
 -- ============================================================
 --  ENCHANT SKILL HANDLER
---  Fires only on successful Cast on Use activation since the
---  Enchant skill only advances on success. Reads the selected
---  enchanted item directly rather than caching from animation,
---  since Cast on Use uses the unequip animation group.
 -- ============================================================
 
 interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if skillId ~= "enchant"  then return end
     if not hasWitOfTelvanni  then return end
-
     local item = types.Actor.getSelectedEnchantedItem(self)
     if not item then return end
-
     TelvanniWitEnchant(item)
 end)
 
 -- ============================================================
---  CONSTANT EFFECT - Wit of the Telvanni
---
---  Scans all equipment slots on a timer and on cell change.
---  When a Constant Effect enchanted item is found, augments
---  its non-harmful effects via activeEffects:modify. Harmful
---  effects are skipped so resistances work normally.
---  Tracked per slot so bonuses are reversed cleanly when
---  items change.
---
---  Cell change triggers a full recalculation so faction
---  reputation gains are reflected without re-equipping.
---
---  Scale: math.min(honourScale, 1.0) (max +100%, total 200%).
+--  CONSTANT EFFECT
 -- ============================================================
 
 local EQUIPMENT_SLOTS = {
@@ -312,46 +329,15 @@ local EQUIPMENT_SLOTS = {
     types.Actor.EQUIPMENT_SLOT.CarriedLeft,
 }
 
--- Keyed by slot number. Persisted to storage to survive saves/loads.
--- On load, restored before updateConstantEffects runs so the slot-change
--- detection doesn't see all slots as "changed" and re-stack all bonuses.
-local activeConstantBoosts    = {}
-local equipmentCheckTimer     = 0
-local EQUIPMENT_CHECK_INTERVAL = 2.0
-local lastHTCellId            = nil
-
--- ============================================================
---  CE BOOST PERSISTENCE
---  Saves and restores activeConstantBoosts so that on load the
---  delta logic sees the correct previous state and doesn't
---  re-apply all CE bonuses on top of already-saved values.
--- ============================================================
-
-local function saveConstantBoosts()
-    telvStorage:set("activeConstantBoosts", activeConstantBoosts)
-end
-
-local function loadConstantBoosts()
-    local saved = telvStorage:getCopy("activeConstantBoosts")
-    if saved then
-        activeConstantBoosts = saved
-        print("HT Wit: Restored CE boost table from storage")
-    else
-        activeConstantBoosts = {}
-    end
-end
-
 local function reverseConstantBoost(boost)
-    -- Each bonus stores its path so reversal uses the same route as application.
-    -- fortifyAttr and fortifySkill used the stat modifier path directly -
-    -- activeEffects:modify doesn't update those values for constant effects.
-    -- Everything else used activeEffects:modify and is reversed the same way.
     local activeEffects = types.Actor.activeEffects(self)
     for _, b in ipairs(boost.bonuses) do
         if b.path == "fortifyAttr" then
             applyFortifyAttr(b.extraParam, -b.bonus)
         elseif b.path == "fortifySkill" then
             applyFortifySkill(b.extraParam, -b.bonus)
+        elseif b.path == "fortifyDyn" then
+            applyFortifyDyn(b.dynKey, -b.bonus)
         else
             if b.extraParam then
                 activeEffects:modify(-b.bonus, b.id, b.extraParam)
@@ -360,11 +346,10 @@ local function reverseConstantBoost(boost)
             end
         end
     end
-    print("HT Wit: Reversed constant boost for item " .. tostring(boost.itemId))
+    print("HT Wit: Reversed CE boost for item " .. tostring(boost.itemId))
 end
 
 local function applyConstantBoost(slot, item, enchRecord)
-    -- Scale capped at 1.0 for constant effects (200% total, less than CastOnUse's 250%)
     local scale = math.min(utils.honourScale('telvanni'), 1.0)
     if scale <= 0 then return end
 
@@ -372,8 +357,6 @@ local function applyConstantBoost(slot, item, enchRecord)
     local activeEffects = types.Actor.activeEffects(self)
 
     for _, effectParams in ipairs(enchRecord.effects) do
-        -- Skip harmful effects - downsides are never amplified,
-        -- preserving resistance interactions (e.g. Boots of Blinding Speed)
         if not isHarmful(effectParams.id) then
             local baseMag    = (effectParams.magnitudeMin + effectParams.magnitudeMax) / 2
             local bonus      = math.floor(baseMag * scale)
@@ -381,40 +364,35 @@ local function applyConstantBoost(slot, item, enchRecord)
                 local extraParam = effectParams.affectedAttribute
                                or effectParams.affectedSkill
                                or nil
+                local dynKey = FORTIFY_DYN[effectParams.id]
 
-                -- Fortify Attribute and Fortify Skill effects are managed by
-                -- the engine at application time - activeEffects:modify has no
-                -- effect on them for constant effects. Write directly to the
-                -- stat modifier instead.
                 if FORTIFY_ATTR[effectParams.id] and extraParam then
                     applyFortifyAttr(extraParam, bonus)
                     bonuses[#bonuses + 1] = {
-                        id         = effectParams.id,
-                        extraParam = extraParam,
-                        bonus      = bonus,
-                        path       = "fortifyAttr",
+                        id = effectParams.id, extraParam = extraParam,
+                        bonus = bonus, path = "fortifyAttr",
                     }
                 elseif FORTIFY_SKILL[effectParams.id] and extraParam then
                     applyFortifySkill(extraParam, bonus)
                     bonuses[#bonuses + 1] = {
-                        id         = effectParams.id,
-                        extraParam = extraParam,
-                        bonus      = bonus,
-                        path       = "fortifySkill",
+                        id = effectParams.id, extraParam = extraParam,
+                        bonus = bonus, path = "fortifySkill",
+                    }
+                elseif dynKey then
+                    applyFortifyDyn(dynKey, bonus)
+                    bonuses[#bonuses + 1] = {
+                        id = effectParams.id, dynKey = dynKey,
+                        bonus = bonus, path = "fortifyDyn",
                     }
                 else
-                    -- Everything else: activeEffects:modify works correctly
-                    -- for constant effects that the engine reads each frame
                     if extraParam then
                         activeEffects:modify(bonus, effectParams.id, extraParam)
                     else
                         activeEffects:modify(bonus, effectParams.id)
                     end
                     bonuses[#bonuses + 1] = {
-                        id         = effectParams.id,
-                        extraParam = extraParam,
-                        bonus      = bonus,
-                        path       = "modify",
+                        id = effectParams.id, extraParam = extraParam,
+                        bonus = bonus, path = "modify",
                     }
                 end
             end
@@ -422,12 +400,8 @@ local function applyConstantBoost(slot, item, enchRecord)
     end
 
     if #bonuses > 0 then
-        activeConstantBoosts[slot] = {
-            itemId  = item.id,
-            bonuses = bonuses,
-        }
-        saveConstantBoosts()
-        print("HT Wit: Applied constant boost for slot " .. tostring(slot))
+        activeConstantBoosts[slot] = { itemId = item.id, bonuses = bonuses }
+        print("HT Wit: Applied CE boost for slot " .. tostring(slot))
     end
 end
 
@@ -436,13 +410,11 @@ local function removeAllConstantBoosts()
         reverseConstantBoost(boost)
     end
     activeConstantBoosts = {}
-    saveConstantBoosts()
 end
 
 local function updateConstantEffects()
     if not hasWitOfTelvanni then return end
 
-    local changed = false
     for _, slot in ipairs(EQUIPMENT_SLOTS) do
         local item    = types.Actor.getEquipment(self, slot)
         local current = activeConstantBoosts[slot]
@@ -451,25 +423,19 @@ local function updateConstantEffects()
         local boostedItemId = current and current.itemId or nil
 
         if currentItemId ~= boostedItemId then
-            -- Slot contents changed - reverse old boost if any
             if current then
                 reverseConstantBoost(current)
                 activeConstantBoosts[slot] = nil
-                changed = true
             end
-
-            -- Apply new boost if item has a constant effect enchantment
             if item and item:isValid() then
                 local enchRecord = getEnchantmentRecord(item)
                 if enchRecord and
                    enchRecord.type == core.magic.ENCHANTMENT_TYPE.ConstantEffect then
                     applyConstantBoost(slot, item, enchRecord)
-                    changed = true
                 end
             end
         end
     end
-    if changed then saveConstantBoosts() end
 end
 
 -- ============================================================
@@ -492,8 +458,8 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "At reputation cap: effects are 250%% of their base magnitude.\
 "
         .. "Constant Effect enchantments on equipped items are permanently "
-        .. "augmented. Harmful effects are never boosted, preserving normal "
-        .. "resistance interactions. At reputation cap: effects are 200%% of their base magnitude.",
+        .. "augmented. Harmful effects are never boosted. "
+        .. "At reputation cap: effects are 200%% of their base magnitude.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
@@ -504,11 +470,8 @@ interfaces.ErnPerkFramework.registerPerk({
         setRank(1)
         safeAddSpell("bound helm")
         safeAddSpell("bound cuirass")
-
         hasWitOfTelvanni = true
-        -- Restore persisted CE boosts before recalculating so the slot-change
-        -- detection doesn't re-stack all bonuses on top of saved values
-        loadConstantBoosts()
+        -- Tables restored from save by onLoad - just run CE detection
         updateConstantEffects()
     end,
     onRemove = function()
@@ -518,6 +481,9 @@ interfaces.ErnPerkFramework.registerPerk({
         hasWitOfTelvanni     = false
         currentEnchantedItem = nil
         lastHTCellId         = nil
+        for itemRecordId, entry in pairs(activeCastOnUseBonuses) do
+            reverseCastOnUseEntry(itemRecordId, entry)
+        end
         removeAllConstantBoosts()
     end,
 })
@@ -571,11 +537,9 @@ interfaces.ErnPerkFramework.registerPerk({
     },
     onAdd = function()
         setRank(3)
-        safeAddSpell("FPerks_HT3_Restore_Magicka_1")
     end,
     onRemove = function()
         setRank(nil)
-        safeRemoveSpell("FPerks_HT3_Restore_Magicka_1")
     end,
 })
 
@@ -610,13 +574,14 @@ interfaces.ErnPerkFramework.registerPerk({
 local function onUpdate(dt)
     if not hasWitOfTelvanni then return end
 
-    -- Cell change check: recalculate constant effect scale when the
-    -- player moves to a new cell. This reflects faction reputation
-    -- gains without requiring re-equipping. Clears the boost cache
-    -- first so updateConstantEffects sees all slots as changed.
-    -- Note: loadConstantBoosts() is NOT called here because
-    -- removeAllConstantBoosts() already saves an empty table, so
-    -- there is nothing meaningful to load back.
+    -- Poll CastOnUse bonuses for expiry via durationLeft
+    castOnUsePollTimer = castOnUsePollTimer - dt
+    if castOnUsePollTimer <= 0 then
+        castOnUsePollTimer = CAST_ON_USE_POLL_INTERVAL
+        pollCastOnUseBonuses()
+    end
+
+    -- Cell change: recalculate CE scale
     local cell   = self.cell
     local cellId = cell and cell.id or nil
     if cellId ~= lastHTCellId then
@@ -633,12 +598,25 @@ local function onUpdate(dt)
     end
 end
 
+local function onSave()
+    return {
+        activeCastOnUseBonuses = activeCastOnUseBonuses,
+        activeConstantBoosts   = activeConstantBoosts,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    -- Restore tracking tables only - bonuses already baked into
+    -- stat.modifier from the save file, so nothing is re-applied.
+    activeCastOnUseBonuses = data.activeCastOnUseBonuses or {}
+    activeConstantBoosts   = data.activeConstantBoosts   or {}
+end
+
 return {
     engineHandlers = {
         onUpdate = onUpdate,
-        -- Restore CE boost table on load before any updateConstantEffects
-        -- call so slot-change detection sees the correct previous state
-        onLoad = loadConstantBoosts,
-        onInit = loadConstantBoosts,
+        onSave   = onSave,
+        onLoad   = onLoad,
     },
 }

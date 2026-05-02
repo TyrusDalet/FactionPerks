@@ -9,6 +9,10 @@
         FPerks_HR4_Passive          - +15 Strength, +15 Endurance,
                                       +50 Fortify Health, +25 Medium Armour, +25 Athletics
 
+    NOTE: Fortify Health is applied via stat.modifier so the maximum is raised correctly.
+    appliedHealthMod is persisted via onSave/onLoad so the delta calculation is correct
+    on reload and bonuses never stack. 
+
     Honour The Great House (P1+): Strength of the Redoran
         Incoming weapon hits below the damage threshold are negated.
         Threshold scales with faction reputation via honourScale:
@@ -16,9 +20,6 @@
             Post-cap:   continues growing at 30% of pre-cap rate
         Doubled threshold vs Sixth House enemies, Corprus creatures,
         Ash creatures, and Dreugh.
-        Shows "You Honour House Redoran." when a hit is negated.
-        Implemented via FPerks_DoStrengthOfRedoran - called from this
-        file's own Combat hit handler (player-side).
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -43,7 +44,6 @@ local perkTable = {
     [4] = { passive = {"FPerks_HR4_Passive"} },
 }
 
--- Perk id prep
 local hr1_id = ns .. "_hr_redoran_pledge"
 local hr2_id = ns .. "_hr_burden_of_duty"
 local hr3_id = ns .. "_hr_unbroken_line"
@@ -52,29 +52,27 @@ local hr4_id = ns .. "_hr_guardian_of_the_house"
 local setRank = utils.makeSetRank(perkTable, nil)
 
 -- ============================================================
+--  FORTIFY HEALTH - stat.modifier with onSave/onLoad
+-- ============================================================
+
+local appliedHealthMod = 0
+
+local function applyHealthMod(value)
+    local s = types.Actor.stats.dynamic.health(self)
+    local delta = value - appliedHealthMod
+    s.modifier = s.modifier + delta
+    if delta > 0 then
+        s.maximum = s.maximum + delta
+    end
+    appliedHealthMod = value
+end
+
+-- ============================================================
 --  STRENGTH OF THE REDORAN - Honour The Great House
---
---  Active from P1. When an incoming weapon hit deals less than
---  the current threshold, it is negated entirely (set to 0).
---
---  Threshold = 20 * honourScale('redoran')
---  At rep 0:   0  (not yet active)
---  At rep cap: 20 (full threshold)
---  Post-cap:   continues growing at 30% of pre-cap rate
---
---  Sixth House enemies (by faction), Corprus creatures, Ash
---  creatures, and Dreugh trigger double the threshold.
---
---  FPerks_DoStrengthOfRedoran is a global function called from
---  this file's own Combat hit handler (player-side).
 -- ============================================================
 
 local hasStrengthOfRedoran = false
 
--- Enemies that receive doubled negation threshold.
--- Named Dagoths and Sixth House NPCs are caught by faction check.
--- Corprus and Ash creatures are not in the sixth house faction
--- record, so are listed explicitly by record ID substring.
 local SIXTH_HOUSE_CREATURES = {
     ["ash ghoul"]       = true,
     ["ash slave"]       = true,
@@ -85,13 +83,11 @@ local SIXTH_HOUSE_CREATURES = {
 }
 
 local function isSixthHouseOrDreugh(actor)
-    -- Check sixth house faction membership (named Dagoths etc.)
     if types.NPC.objectIsInstance(actor) then
         for _, factionId in pairs(types.NPC.getFactions(actor)) do
             if factionId == "sixth house" then return true end
         end
     end
-    -- Check record ID for explicit creature list and Dreugh
     local rec = nil
     if types.NPC.objectIsInstance(actor) then
         rec = types.NPC.record(actor)
@@ -117,13 +113,9 @@ interfaces.Combat.addOnHitHandler(function(attack)
 end)
 
 function FPerks_DoStrengthOfRedoran(attack)
-    -- Called from this file's Combat hit handler (player-side).
-    -- Returns true if the hit was negated.
     if not hasStrengthOfRedoran then return false end
     local dmg = attack.damage and attack.damage.health or 0
-    if dmg <= 0 then
-        return false
-    end
+    if dmg <= 0 then return false end
 
     local threshold = redoranThreshold()
     if threshold <= 0 then return false end
@@ -142,11 +134,7 @@ function FPerks_DoStrengthOfRedoran(attack)
 end
 
 -- ============================================================
---  HOUSE REDORAN
---  Primary attributes: Strength, Endurance
---  Scaling: Fortify Health, Medium Armour, Athletics
---  Honour The Great House (P1+): Strength of the Redoran -
---           scaling damage negation threshold with Redoran reputation
+--  HOUSE REDORAN PERKS
 -- ============================================================
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -168,10 +156,12 @@ interfaces.ErnPerkFramework.registerPerk({
     onAdd = function()
         setRank(1)
         hasStrengthOfRedoran = true
+        applyHealthMod(10)
     end,
     onRemove = function()
         setRank(nil)
         hasStrengthOfRedoran = false
+        applyHealthMod(0)
     end,
 })
 
@@ -191,8 +181,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function() setRank(2); applyHealthMod(20) end,
+    onRemove = function() setRank(nil); applyHealthMod(0) end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -211,8 +201,8 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() setRank(3) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function() setRank(3); applyHealthMod(35) end,
+    onRemove = function() setRank(nil); applyHealthMod(0) end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -231,6 +221,28 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('endurance', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function() setRank(4); applyHealthMod(50) end,
+    onRemove = function() setRank(nil); applyHealthMod(0) end,
 })
+
+-- ============================================================
+--  SAVE / LOAD
+-- ============================================================
+
+local function onSave()
+    return {
+        appliedHealthMod = appliedHealthMod,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    appliedHealthMod = data.appliedHealthMod or 0
+end
+
+return {
+    engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
+    }
+}

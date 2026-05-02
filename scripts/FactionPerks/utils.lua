@@ -86,12 +86,17 @@ local FACTION_GROUPS = {
 -- Tamriel Rebuilt adds Cyrodiil and Skyrim branches for the
 -- imperial guilds. Detected by Tamriel_Data.esm presence.
 if core.contentFiles.has("Tamriel_Data.esm") then
+    table.insert(FACTION_GROUPS.thievesGuild,   't_cyr_thievesguild')
+    table.insert(FACTION_GROUPS.thievesGuild,   't_sky_thievesguild')
     table.insert(FACTION_GROUPS.fightersGuild,  't_cyr_fightersguild')
     table.insert(FACTION_GROUPS.fightersGuild,  't_sky_fightersguild')
     table.insert(FACTION_GROUPS.magesGuild,     't_cyr_magesguild')
     table.insert(FACTION_GROUPS.magesGuild,     't_sky_magesguild')
+    table.insert(FACTION_GROUPS.magesGuild,     't_ham_magesguild')
     table.insert(FACTION_GROUPS.imperialLegion, 't_cyr_imperiallegion')
-    table.insert(FACTION_GROUPS.imperialCult,   't_cyr_imperialcult')
+    table.insert(FACTION_GROUPS.imperialLegion, 't_sky_imperiallegion')
+    table.insert(FACTION_GROUPS.imperialCult,   't_sky_imperialcult')
+    table.insert(FACTION_GROUPS.imperialCult,   't_cyr_itinerantpriests')
     -- Add further TR branch IDs here as they are introduced
 end
 
@@ -189,29 +194,6 @@ local function makeSetRank(perkTable, flagHandlers)
             end
         end
     end
-end
--- ============================================================
---  notExpelled(factionId)
---
---  Returns a custom ErnPerkFramework requirement that fails if
---  the player is currently expelled from the given faction.
---  Add to the P1 requirements of each faction so that expulsion
---  causes the perk (and all perks that chain from it) to be
---  stripped until the player rejoins.
--- ============================================================
-
-local interfaces = require('openmw.interfaces')
-local ns         = require("scripts.FactionPerks.namespace")
-local localization = core.l10n(ns)
-
-local function notExpelled(factionId)
-    return {
-        id = 'isNotExpelled',
-        localizedName = localization('notExpelled', { factionName = factionId }),
-        check = function()
-            return not types.NPC.isExpelled(self, factionId)
-        end
-    }
 end
 
 -- ============================================================
