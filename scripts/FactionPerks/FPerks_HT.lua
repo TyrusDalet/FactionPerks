@@ -175,6 +175,50 @@ end
 --  CAST ON USE - bonus application
 -- ============================================================
 
+local function reverseCastOnUseEntry(itemRecordId, entry)
+    local activeEffects = types.Actor.activeEffects(self)
+    for _, b in ipairs(entry.bonuses) do
+        if b.path == "fortifyAttr" then
+            applyFortifyAttr(b.extraParam, -b.bonus)
+        elseif b.path == "fortifySkill" then
+            applyFortifySkill(b.extraParam, -b.bonus)
+        elseif b.path == "fortifyDyn" then
+            applyFortifyDyn(b.dynKey, -b.bonus)
+        else
+            if b.extraParam then
+                activeEffects:modify(-b.bonus, b.id, b.extraParam)
+            else
+                activeEffects:modify(-b.bonus, b.id)
+            end
+        end
+    end
+    activeCastOnUseBonuses[itemRecordId] = nil
+    print("HT Wit: Reversed CastOnUse bonus for " .. tostring(itemRecordId))
+end
+
+local function isCastOnUseStillActive(itemRecordId)
+    for _, spell in pairs(types.Actor.activeSpells(self)) do
+        if spell.id == itemRecordId then
+            for _, effect in pairs(spell.effects) do
+                if effect.durationLeft and effect.durationLeft > 0 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function pollCastOnUseBonuses()
+    for itemRecordId, entry in pairs(activeCastOnUseBonuses) do
+        if not isCastOnUseStillActive(itemRecordId) then
+            reverseCastOnUseEntry(itemRecordId, entry)
+        end
+    end
+end
+
+
+
 local function TelvanniWitEnchant(item)
     if not hasWitOfTelvanni then return end
     if not item or not item:isValid() then return end
@@ -186,6 +230,11 @@ local function TelvanniWitEnchant(item)
 
     local scale = utils.honourScale('telvanni') * 1.5
     if scale <= 0 then return end
+
+    if activeCastOnUseBonuses[item.recordId] then
+        reverseCastOnUseEntry(item.recordId, activeCastOnUseBonuses[item.recordId])
+    end
+
 
     local bonuses       = {}
     local activeEffects = types.Actor.activeEffects(self)
@@ -244,52 +293,6 @@ local function TelvanniWitEnchant(item)
     activeCastOnUseBonuses[item.recordId] = { bonuses = bonuses }
     ui.showMessage("You Honour the Wit of House Telvanni.")
     print("HT Wit: Applied CastOnUse bonus for " .. tostring(item.recordId))
-end
-
--- ============================================================
---  CAST ON USE - expiry polling via durationLeft
--- ============================================================
-
-local function reverseCastOnUseEntry(itemRecordId, entry)
-    local activeEffects = types.Actor.activeEffects(self)
-    for _, b in ipairs(entry.bonuses) do
-        if b.path == "fortifyAttr" then
-            applyFortifyAttr(b.extraParam, -b.bonus)
-        elseif b.path == "fortifySkill" then
-            applyFortifySkill(b.extraParam, -b.bonus)
-        elseif b.path == "fortifyDyn" then
-            applyFortifyDyn(b.dynKey, -b.bonus)
-        else
-            if b.extraParam then
-                activeEffects:modify(-b.bonus, b.id, b.extraParam)
-            else
-                activeEffects:modify(-b.bonus, b.id)
-            end
-        end
-    end
-    activeCastOnUseBonuses[itemRecordId] = nil
-    print("HT Wit: Reversed CastOnUse bonus for " .. tostring(itemRecordId))
-end
-
-local function isCastOnUseStillActive(itemRecordId)
-    for _, spell in pairs(types.Actor.activeSpells(self)) do
-        if spell.id == itemRecordId then
-            for _, effect in pairs(spell.effects) do
-                if effect.durationLeft and effect.durationLeft > 0 then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-
-local function pollCastOnUseBonuses()
-    for itemRecordId, entry in pairs(activeCastOnUseBonuses) do
-        if not isCastOnUseStillActive(itemRecordId) then
-            reverseCastOnUseEntry(itemRecordId, entry)
-        end
-    end
 end
 
 -- ============================================================
