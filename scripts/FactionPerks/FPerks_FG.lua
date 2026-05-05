@@ -55,8 +55,10 @@ local function applyHealthMod(value)
     local s = types.Actor.stats.dynamic.health(self)
     local delta = value - appliedHealthMod
     s.modifier = s.modifier + delta
-    if delta > 0 then
-        s.maximum = s.maximum + delta
+    -- On respec (delta < 0), clamp current to the new lower cap.
+    -- Without this, current can exceed base+modifier indefinitely.
+    if delta < 0 then
+        s.current = math.min(s.current, s.base + s.modifier)
     end
     appliedHealthMod = value
 end
@@ -125,6 +127,20 @@ interfaces.Combat.addOnHitHandler(function(attack)
     lastFGCounterTime = now
     print("FG Counter Attack! Damage: " .. tostring(dmg))
 end)
+
+-- ============================================================
+--  CARTOGRAPHY CONSOLE COMMANDS
+--  lua fg debug             - prints debug information
+-- ============================================================
+
+local function onConsoleCommand(mode, command)
+    local lower = command:lower()
+
+    if lower:find("^lua fg debug") then
+    local s = types.Actor.stats.dynamic.fatigue(self)
+    print("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+    end
+end
 
 -- ============================================================
 --  FIGHTERS GUILD PERKS
@@ -247,5 +263,6 @@ return {
     engineHandlers = {
         onSave = onSave,
         onLoad = onLoad,
+        onConsoleCommand = onConsoleCommand,
     }
 }

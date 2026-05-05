@@ -58,8 +58,10 @@ local function applyHealthMod(value)
     local s = types.Actor.stats.dynamic.health(self)
     local delta = value - appliedHealthMod
     s.modifier = s.modifier + delta
-    if delta > 0 then
-        s.maximum = s.maximum + delta
+    -- On respec (delta < 0), clamp current to the new lower cap.
+    -- Without this, current can exceed base+modifier indefinitely.
+    if delta < 0 then
+        s.current = math.min(s.current, s.base + s.modifier)
     end
     appliedHealthMod = value
 end
@@ -127,6 +129,19 @@ function FPerks_DoStrengthOfRedoran(attack)
         print('damage negated')
         ambient.playSound('light armor hit')
         return true
+    end
+end
+-- ============================================================
+--  CARTOGRAPHY CONSOLE COMMANDS
+--  lua hr debug             - prints debug information
+-- ============================================================
+
+local function onConsoleCommand(mode, command)
+    local lower = command:lower()
+
+    if lower:find("^lua hr debug") then
+    local s = types.Actor.stats.dynamic.health(self)
+    print("Health: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end
 end
 
@@ -241,5 +256,6 @@ return {
     engineHandlers = {
         onSave = onSave,
         onLoad = onLoad,
+        onConsoleCommand = onConsoleCommand,
     }
 }

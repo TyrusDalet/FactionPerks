@@ -64,8 +64,8 @@ local function applyFatigueMod(value)
     local s = types.Actor.stats.dynamic.fatigue(self)
     local delta = value - appliedFatigueMod
     s.modifier = s.modifier + delta
-    if delta > 0 then
-        s.maximum = s.maximum + delta
+    if delta < 0 then
+        s.current = math.min(s.current, s.base + s.modifier)
     end
     appliedFatigueMod = value
 end
@@ -144,6 +144,20 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     ilLastAttacker     = nil
     ilFatigueBeforeHit = 0
 end)
+
+-- ============================================================
+--  CARTOGRAPHY CONSOLE COMMANDS
+--  lua il debug             - prints debug information
+-- ============================================================
+
+local function onConsoleCommand(mode, command)
+    local lower = command:lower()
+
+    if lower:find("^lua il debug") then
+    local s = types.Actor.stats.dynamic.fatigue(self)
+    print("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+    end
+end
 
 -- ============================================================
 --  IMPERIAL LEGION PERKS
@@ -271,5 +285,6 @@ return {
     engineHandlers = {
         onSave = onSave,
         onLoad = onLoad,
+        onConsoleCommand = onConsoleCommand,
     }
 }

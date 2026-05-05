@@ -65,14 +65,16 @@ local visited           = {} -- map of cellId -> cellName for this character
 
 local function applyMagickaMod(value)
     local s = types.Actor.stats.dynamic.magicka(self)
-    local delta = value - appliedMagickaMod
-    s.modifier = s.modifier + delta
+    local delta = value - appliedMagickaMod --Calculate difference between new value and existing value
+    s.modifier = s.modifier + delta -- Applies the delta to the magicka modifier
+    local newMax = s.base + s.modifier -- Caclulate new maximum magicka
     if delta > 0 then
-        s.maximum = s.maximum + delta
+        s.current = math.min(s.current + delta, newMax) --Sets current magicka to current increased by the delta - or max magicka, whichever is lower, following vanilla Fortify logic
+    elseif delta < 0 then
+        s.current = math.min(s.current, newMax) --Sets current magicka to the lower of current magicka, or the new maximum after the delta was removed from the player
     end
     appliedMagickaMod = value
 end
-
 -- ============================================================
 --  MAGICAL CARTOGRAPHY - Scholastic Rigour (P2+)
 -- ============================================================
@@ -96,6 +98,7 @@ local UNIQUE_LOCATIONS = {
     ["sotha sil, dome of sotha sil"]   = true,
     ["magas volar"]   = true,
     ["solstheim, mortrag glacier: huntsman's hall"]   = true,
+    ["shrine of azura"] = true,
     -- TR
     ["vorthas uldun, chambers of methats uldun"]   = true,
     ["mala tor, lattagarlas"]   = true,
@@ -243,6 +246,7 @@ end)
 --
 --  lua mg cartography dump  - print all stored Places of Power
 --  lua mg cartography clear - wipe visited table, reset effects
+--  lua mg debug             - prints debug information
 -- ============================================================
 
 local function onConsoleCommand(mode, command)
@@ -272,6 +276,13 @@ local function onConsoleCommand(mode, command)
         appliedDetect = 0
         print("MG Cartography: Visited table cleared. All bonuses reversed.")
         ui.showMessage("Magical Cartography data cleared.")
+
+    elseif lower:find("^lua mg debug") then
+    local s = types.Actor.stats.dynamic.magicka(self)
+    print("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
+    print("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+    print("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
+    print("Visited count: " .. getVisitedCount())
     end
 end
 
