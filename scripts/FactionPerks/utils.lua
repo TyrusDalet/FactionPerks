@@ -71,16 +71,17 @@ end
 -- ============================================================
 
 local FACTION_GROUPS = {
-    thievesGuild   = { 'thieves guild' },
-    moragTong      = { 'morag tong' },
-    fightersGuild  = { 'fighters guild' },
-    magesGuild     = { 'mages guild' },
-    imperialLegion = { 'imperial legion' },
-    imperialCult   = { 'imperial cult' },
-    temple         = { 'temple' },
-    hlaalu         = { 'hlaalu' },
-    redoran        = { 'redoran' },
-    telvanni       = { 'telvanni' },
+    thievesGuild      = { 'thieves guild' },
+    moragTong         = { 'morag tong' },
+    fightersGuild     = { 'fighters guild' },
+    magesGuild        = { 'mages guild' },
+    imperialLegion    = { 'imperial legion' },
+    imperialCult      = { 'imperial cult' },
+    temple            = { 'temple' },
+    hlaalu            = { 'hlaalu' },
+    redoran           = { 'redoran' },
+    telvanni          = { 'telvanni' },
+    eastEmpireCompany = { 'east empire company' },
 }
 
 -- Tamriel Rebuilt adds Cyrodiil and Skyrim branches for the
@@ -288,7 +289,6 @@ return {
     getRepCap       = getRepCap,
     honourScale     = honourScale,
     makeSetRank     = makeSetRank,
-    notExpelled     = notExpelled,
     perkHidden      = perkHidden,
     safeAddSpell    = safeAddSpell,
     safeRemoveSpell = safeRemoveSpell,

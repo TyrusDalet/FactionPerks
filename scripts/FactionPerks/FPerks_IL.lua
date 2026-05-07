@@ -99,6 +99,8 @@ interfaces.Combat.addOnHitHandler(function(attack)
     local rank = getILRank()
     if not rank then return end
     if not attack.attacker or not attack.attacker:isValid() then return end
+    if not attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
+    if not attack.damage == 0 then return end
 
     ilLastAttacker     = attack.attacker
     ilFatigueBeforeHit = types.Actor.stats.dynamic.fatigue(self).current
@@ -108,7 +110,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if skillId ~= "block" then return end
 
     local rank = getILRank()
-    if not rank then return end
+    if not rank >= 3 then return end
     if not ilLastAttacker or not ilLastAttacker:isValid() then return end
 
     local blockSkill = types.NPC.stats.skills.block(self).modified
@@ -135,7 +137,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
         fatigue.current  = math.min(fatigue.current + fatigueRestore, maxFatigue)
     end
 
-    ambient.playSound("conjuration hit")
+    ambient.playSound("health damage")
 
     print("IL Resolve: reflected=" .. reflectDmg
         .. " fatigue restored=" .. fatigueRestore
