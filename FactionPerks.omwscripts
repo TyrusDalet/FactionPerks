@@ -11,3 +11,4 @@ PLAYER:scripts/FactionPerks/FPerks_TT.lua
 PLAYER:scripts/FactionPerks/FPerks_HR.lua
 PLAYER:scripts/FactionPerks/FPerks_HT.lua
 PLAYER:scripts/FactionPerks/FPerks_IC.lua
+PLAYER:scripts/FactionPerks/FPerks_EEC.lua
