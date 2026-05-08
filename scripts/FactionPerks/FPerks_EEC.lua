@@ -16,9 +16,9 @@
         The first time the player speaks with a merchant, that merchant's
         available barter gold is permanently boosted by a flat+percentage hybrid
         that scales with perk rank:
-            P2: max(50,  floor(baseGold * 0.25))
-            P3: max(150,  floor(baseGold * 0.35))
-            P4: max(250, floor(baseGold * 0.50))
+            P2: max(250,  floor(baseGold * 0.25))
+            P3: max(500,  floor(baseGold * 0.35))
+            P4: max(1000, floor(baseGold * 0.50))
         Boosted merchants are tracked per-save (keyed by NPC instance ID).
         Each entry stores the merchant's baseGold and the rank that applied the
         current bonus, enabling retroactive upgrades on rank-up:
@@ -73,9 +73,9 @@ local R = interfaces.ErnPerkFramework.requirements
 --
 --  Total portfolio value = price * count.
 --  Per-rank stock component:
---    P2: 0.1% of portfolio, capped at 20%  of merchant baseGold
---    P3: 0.1% of portfolio, capped at 50%  of merchant baseGold
---    P4: 0.1% of portfolio, capped at 100% of merchant baseGold
+--    P2: 0.2% of portfolio, capped at 20%  of merchant baseGold
+--    P3: 0.5% of portfolio, capped at 50%  of merchant baseGold
+--    P4: 1.0% of portfolio, capped at 100% of merchant baseGold
 --
 --  The ErnPerkFramework global script syncs all MWScript
 --  globals into storage.globalSection("ErnPerkFramework_mwVars")
@@ -146,19 +146,17 @@ local EEC_FACTOR_POLL_INTERVAL = 0.5
 
 -- Tracks the gold bonus currently applied to each merchant.
 -- Keyed by npc.id (unique instance ID, not record ID).
--- Value: { base, factor, baseGold, appliedRank, goldBeforeBonus }
---   base            = gold currently added by Empire's Coffers
---   factor          = additional gold added by Factor's Promise (removed on power expiry)
---   baseGold        = the merchant's base gold from their record; stored so
---                     rank-upgrade deltas can be recalculated without a global round-trip
---   appliedRank     = the EEC perk rank that produced the current base bonus;
---                     used to detect deferred upgrade opportunities
+-- Value: { baseBonus, totalApplied, baseGold, appliedRank, goldBeforeBonus }
+--   baseBonus       = the coffers bonus WITHOUT the Factor's Promise multiplier;
+--                     used to calculate how much to remove when the power expires
+--   totalApplied    = total gold currently added to this merchant (base + factor);
+--                     delta between this and the expected total is applied as a
+--                     SINGLE boostMerchant call, eliminating race conditions from
+--                     two rapid global events reading stale getBarterGold values
+--   baseGold        = the merchant's base gold from their record
+--   appliedRank     = the EEC perk rank that produced the current baseBonus
 --   goldBeforeBonus = the merchant's actual barter gold at the moment we first
---                     applied a bonus (read via getBarterGold before boosting).
---                     A restock returns them to exactly this value, which is how
---                     we detect restocks unambiguously. Selling to the merchant
---                     reduces their gold below the boosted amount but will not
---                     match goldBeforeBonus unless they have fully restocked.
+--                     applied a bonus. A restock returns them to exactly this value.
 local eecBoostedMerchants = {}
 
 -- ============================================================
@@ -194,13 +192,14 @@ local function calcBaseBonus(baseGold, rank)
     local baseComp   = math.max(flatVal, pctVal)
 
     -- Stock component (Tamriel_Data only).
-    local stockComp = 0
+       local stockComp = 0
     if hasTamrielData then
-        local s         = EEC_STOCK_BONUS[rank]
+        local s         = EEC_STOCK_BONUS[rank] --Gets current rank's stock limits
         local portfolio = getEECPortfolioValue()
-        local stockRaw  = math.floor(portfolio * s.pct)
-        local stockCap  = math.floor(baseGold  * s.cap)
-        stockComp = math.min(stockRaw, stockCap)
+        local stockRaw  = (math.floor(portfolio * s.pct)) / 100 -- calculates the percent value of the total stock
+        local stockCap  = math.floor(baseGold  * s.cap) -- Sets the cap to the % value of the merchant's base gold
+        local stockValue = math.floor(baseGold * stockRaw) -- Sets the % value of the stock amount in regards to the merchant's gold
+        stockComp = math.min(stockValue, stockCap) -- Gets the lower value of the current percent value or the rank cap
     end
 
     local bonus = baseComp + stockComp
@@ -307,22 +306,22 @@ end
 -- ============================================================
 
 local function removeFactorBonuses()
-    -- Restore factor gold on any nearby merchants we can reach.
     for _, actor in pairs(nearby.actors) do
         if types.NPC.objectIsInstance(actor) then
             local entry = eecBoostedMerchants[actor.id]
-            if entry and entry.factor > 0 then
-                restoreMerchant(actor, entry.factor)
-                print("EEC: Removed factor bonus " .. tostring(entry.factor)
+            if entry and entry.totalApplied > entry.baseBonus then
+                local factorAmount = entry.totalApplied - entry.baseBonus
+                restoreMerchant(actor, factorAmount)
+                entry.totalApplied = entry.baseBonus
+                print("EEC: Removed factor bonus " .. tostring(factorAmount)
                     .. " from " .. tostring(actor.id))
-                entry.factor = 0
             end
         end
     end
-    -- Zero factor on all remaining entries regardless of proximity.
-    -- Their gold keeps the bonus until natural restock.
+    -- Zero out any non-nearby entries' factor component by syncing totalApplied
+    -- back to baseBonus. Their gold keeps the bonus until natural restock.
     for _, entry in pairs(eecBoostedMerchants) do
-        entry.factor = 0
+        entry.totalApplied = entry.baseBonus
     end
     eecFactorActive = false
 end
@@ -338,13 +337,10 @@ local function eecClearAllBonuses()
     for _, actor in pairs(nearby.actors) do
         if types.NPC.objectIsInstance(actor) then
             local entry = eecBoostedMerchants[actor.id]
-            if entry then
-                local total = entry.base + entry.factor
-                if total > 0 then
-                    restoreMerchant(actor, total)
-                    print("EEC: Restored " .. tostring(total)
-                        .. " gold to " .. tostring(actor.id))
-                end
+            if entry and entry.totalApplied > 0 then
+                restoreMerchant(actor, entry.totalApplied)
+                print("EEC: Restored " .. tostring(entry.totalApplied)
+                    .. " gold to " .. tostring(actor.id))
             end
         end
     end
@@ -367,17 +363,19 @@ local function upgradeNearbyMerchants(newRank)
         if types.NPC.objectIsInstance(actor) then
             local entry = eecBoostedMerchants[actor.id]
             if entry and entry.appliedRank and entry.appliedRank < newRank then
-                -- Discard breakdown; upgrade path doesn't show a message since
-                -- the player may be upgrading perks away from a merchant.
-                local newBonus = (calcBaseBonus(entry.baseGold, newRank))
-                local delta    = newBonus - entry.base
+                local newBase  = (calcBaseBonus(entry.baseGold, newRank))
+                -- Compute expected total: new base, plus factor multiplier if active.
+                local newTotal = eecFactorActive and (newBase * 3) or newBase
+                local delta    = newTotal - entry.totalApplied
                 if delta > 0 then
                     boostMerchant(actor, delta)
-                    entry.base        = newBonus
-                    entry.appliedRank = newRank
+                    entry.baseBonus    = newBase
+                    entry.totalApplied = newTotal
+                    entry.appliedRank  = newRank
                     print("EEC: Upgraded " .. tostring(actor.id)
-                        .. " base bonus to " .. tostring(newBonus)
-                        .. " (delta +" .. tostring(delta) .. ")")
+                        .. " to baseBonus=" .. tostring(newBase)
+                        .. " totalApplied=" .. tostring(newTotal)
+                        .. " (delta=+" .. tostring(delta) .. ")")
                 end
             end
         end
@@ -403,7 +401,6 @@ local EEC_TALK_MODES = {
 
 local function eecOnUiModeChanged(data)
     if not hasEECCoffers then return end
-    -- Ignore dialogue close; the bonus is intentionally persistent.
     if not data.newMode then return end
     if not EEC_TALK_MODES[data.newMode] then return end
     if not data.arg then return end
@@ -414,98 +411,124 @@ local function eecOnUiModeChanged(data)
     local rank = getEECRank()
     if not rank or rank < 2 then return end
 
-    local npcId   = npc.id
+    local npcId    = npc.id
     local baseGold = types.NPC.record(npc).baseGold
 
-    -- Merchants with no base gold are excluded entirely. Applying a bonus
-    -- to a gold-less merchant (e.g. a service-only NPC that happens to have
-    -- trade flags) would be misleading and potentially cause odd behaviour.
     if baseGold == 0 then return end
 
     local entry = eecBoostedMerchants[npcId]
 
+    -- ----------------------------------------------------------------
+    --  Helper: compute the full expected total for this merchant given
+    --  a base bonus and whether Factor's Promise is currently active.
+    --  Factor triples total effectiveness, i.e. base * 3.
+    -- ----------------------------------------------------------------
+    local function expectedTotal(base)
+        return eecFactorActive and (base * 3) or base
+    end
+
     if not entry then
-        -- First contact. Read current gold BEFORE we apply anything;
-        -- this becomes our restock detection baseline.
+        -- ------------------------------------------------------------
+        --  FIRST CONTACT
+        --  Read gold before applying anything; this is the restock
+        --  detection baseline.
+        -- ------------------------------------------------------------
         local currentGold = types.Actor.getBarterGold(npc)
-        -- Guard against merchants that currently have 0 gold (e.g. drained
-        -- by another player interaction this session).
         if currentGold == 0 then return end
 
-        local bonus, breakdown = calcBaseBonus(baseGold, rank)
-        boostMerchant(npc, bonus)
-        entry = {
-            base            = bonus,
-            factor          = 0,
+        local newBase, breakdown = calcBaseBonus(baseGold, rank)
+        local newTotal           = expectedTotal(newBase)
+
+        boostMerchant(npc, newTotal)
+        eecBoostedMerchants[npcId] = {
+            baseBonus       = newBase,
+            totalApplied    = newTotal,
             baseGold        = baseGold,
             appliedRank     = rank,
             goldBeforeBonus = currentGold,
         }
-        eecBoostedMerchants[npcId] = entry
         ui.showMessage(buildCoffersMsg(npc, breakdown))
-        print("EEC: Applied base bonus " .. tostring(bonus)
-            .. " to " .. tostring(npcId)
+        if eecFactorActive then
+            ui.showMessage(buildFactorMsg(npc))
+        end
+        print("EEC: First contact " .. tostring(npcId)
+            .. " baseBonus=" .. tostring(newBase)
+            .. " totalApplied=" .. tostring(newTotal)
             .. " (base=" .. tostring(breakdown.baseComponent)
-            .. " stock=" .. tostring(breakdown.stockComponent)
-            .. " goldBeforeBonus=" .. tostring(currentGold) .. ")")
+            .. " stock=" .. tostring(breakdown.stockComponent) .. ")")
 
     else
         local currentGold = types.Actor.getBarterGold(npc)
 
         if currentGold == entry.goldBeforeBonus then
-            -- ------------------------------------------------
+            -- ------------------------------------------------------------
             --  RESTOCK DETECTED
-            -- ------------------------------------------------
-            local newBonus, breakdown = calcBaseBonus(entry.baseGold, rank)
-            boostMerchant(npc, newBonus)
-            entry.base        = newBonus
-            entry.appliedRank = rank
-            entry.factor      = 0
-            if eecFactorActive then
-                local factorExtra = newBonus * 2
-                if factorExtra > 0 then
-                    boostMerchant(npc, factorExtra)
-                    entry.factor = factorExtra
-                    print("EEC: Reapplied factor bonus " .. tostring(factorExtra)
-                        .. " to restocked " .. tostring(npcId))
-                end
-            end
-            ui.showMessage(buildCoffersMsg(npc, breakdown))
-            print("EEC: Restock detected for " .. tostring(npcId)
-                .. ", reapplied bonus " .. tostring(newBonus)
-                .. " (base=" .. tostring(breakdown.baseComponent)
-                .. " stock=" .. tostring(breakdown.stockComponent) .. ")")
+            --  Merchant gold returned to exactly the pre-bonus snapshot.
+            --  Recalculate at current rank and reapply in one call.
+            -- ------------------------------------------------------------
+            local newBase, breakdown = calcBaseBonus(entry.baseGold, rank)
+            local newTotal           = expectedTotal(newBase)
 
-        elseif entry.appliedRank < rank then
-            -- ------------------------------------------------
-            --  DEFERRED RANK UPGRADE
-            -- ------------------------------------------------
-            local newBonus, breakdown = calcBaseBonus(entry.baseGold, rank)
-            local delta = newBonus - entry.base
+            boostMerchant(npc, newTotal)
+            entry.baseBonus    = newBase
+            entry.totalApplied = newTotal
+            entry.appliedRank  = rank
+            ui.showMessage(buildCoffersMsg(npc, breakdown))
+            if eecFactorActive then
+                ui.showMessage(buildFactorMsg(npc))
+            end
+            print("EEC: Restock " .. tostring(npcId)
+                .. " baseBonus=" .. tostring(newBase)
+                .. " totalApplied=" .. tostring(newTotal))
+
+        else
+            -- ------------------------------------------------------------
+            --  EXISTING ENTRY - compute expected total and apply delta.
+            --  This covers three cases in one unified path:
+            --    1. Factor's Promise just activated (eecFactorActive flipped
+            --       true since last dialogue with this merchant)
+            --    2. Deferred rank upgrade (appliedRank < current rank)
+            --    3. Factor's Promise expired (eecFactorActive is false but
+            --       totalApplied > baseBonus - handled by removeFactorBonuses,
+            --       but the delta path catches any edge cases cleanly)
+            -- ------------------------------------------------------------
+            local newBase  = (entry.appliedRank < rank)
+                and (calcBaseBonus(entry.baseGold, rank))
+                or  entry.baseBonus
+            local newTotal = expectedTotal(newBase)
+            local delta    = newTotal - entry.totalApplied
+
             if delta > 0 then
                 boostMerchant(npc, delta)
-                entry.base        = newBonus
-                entry.appliedRank = rank
-                ui.showMessage(buildCoffersMsg(npc, breakdown))
-                print("EEC: Deferred upgrade for " .. tostring(npcId)
-                    .. " to bonus " .. tostring(newBonus)
-                    .. " (delta=+" .. tostring(delta)
-                    .. " base=" .. tostring(breakdown.baseComponent)
-                    .. " stock=" .. tostring(breakdown.stockComponent) .. ")")
-            end
-        end
-    end
+                local showFactor = eecFactorActive
+                    and entry.totalApplied == entry.baseBonus
+                entry.baseBonus    = newBase
+                entry.totalApplied = newTotal
+                entry.appliedRank  = rank
 
-    -- Apply Factor's Promise bonus if the power is active and this
-    -- merchant has not yet received it this activation.
-    if eecFactorActive and entry.factor == 0 then
-        local factorExtra = entry.base * 3
-        if factorExtra > 0 then
-            boostMerchant(npc, factorExtra)
-            entry.factor = factorExtra
-            ui.showMessage(buildFactorMsg(npc))
-            print("EEC: Applied factor bonus " .. tostring(factorExtra)
-                .. " to " .. tostring(npcId))
+                if entry.appliedRank < rank then
+                    -- Rank upgrade component - show coffers message.
+                    local _, breakdown = calcBaseBonus(entry.baseGold, rank)
+                    ui.showMessage(buildCoffersMsg(npc, breakdown))
+                end
+                if showFactor then
+                    ui.showMessage(buildFactorMsg(npc))
+                end
+                print("EEC: Delta applied to " .. tostring(npcId)
+                    .. " delta=+" .. tostring(delta)
+                    .. " baseBonus=" .. tostring(newBase)
+                    .. " totalApplied=" .. tostring(newTotal))
+
+            elseif delta < 0 then
+                -- Shouldn't normally happen outside of removeFactorBonuses,
+                -- but guard against it to avoid negative gold.
+                restoreMerchant(npc, math.abs(delta))
+                entry.baseBonus    = newBase
+                entry.totalApplied = newTotal
+                entry.appliedRank  = rank
+                print("EEC: Negative delta corrected for " .. tostring(npcId)
+                    .. " delta=" .. tostring(delta))
+            end
         end
     end
 end
@@ -677,12 +700,11 @@ interfaces.ErnPerkFramework.registerPerk({
 -- ============================================================
 
 local function onSave()
-    -- NPC object references cannot be serialised; save amounts and metadata only.
     local savedMerchants = {}
     for npcId, data in pairs(eecBoostedMerchants) do
         savedMerchants[npcId] = {
-            base            = data.base,
-            factor          = data.factor,
+            baseBonus       = data.baseBonus,
+            totalApplied    = data.totalApplied,
             baseGold        = data.baseGold,
             appliedRank     = data.appliedRank,
             goldBeforeBonus = data.goldBeforeBonus,
@@ -761,11 +783,11 @@ local function onConsoleCommand(mode, command, selectedObject)
         for npcId, entry in pairs(eecBoostedMerchants) do
             i = i + 1
             print("  [" .. i .. "]"
-                .. "  id="          .. tostring(npcId)
-                .. "  base="        .. tostring(entry.base)
-                .. "  factor="      .. tostring(entry.factor)
-                .. "  baseGold="    .. tostring(entry.baseGold)
-                .. "  appliedRank=" .. tostring(entry.appliedRank))
+                .. "  id="           .. tostring(npcId)
+                .. "  baseBonus="    .. tostring(entry.baseBonus)
+                .. "  totalApplied=" .. tostring(entry.totalApplied)
+                .. "  baseGold="     .. tostring(entry.baseGold)
+                .. "  appliedRank="  .. tostring(entry.appliedRank))
         end
 
     -- --------------------------------------------------------
