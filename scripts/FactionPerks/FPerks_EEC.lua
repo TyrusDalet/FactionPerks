@@ -499,7 +499,7 @@ local function eecOnUiModeChanged(data)
     -- Apply Factor's Promise bonus if the power is active and this
     -- merchant has not yet received it this activation.
     if eecFactorActive and entry.factor == 0 then
-        local factorExtra = entry.base * 2
+        local factorExtra = entry.base * 3
         if factorExtra > 0 then
             boostMerchant(npc, factorExtra)
             entry.factor = factorExtra
@@ -513,7 +513,7 @@ end
 -- ============================================================
 --  onUpdate - FACTOR'S PROMISE EXPIRY DETECTION
 --  Polls activeSpells every 0.5s to detect the transition from
---  active → inactive for FPerks_EEC4_FactorPromise.
+--  active - inactive for FPerks_EEC4_FactorPromise.
 --  When expiry is detected, removeFactorBonuses() is called.
 -- ============================================================
 
