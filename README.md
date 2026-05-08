@@ -17,12 +17,6 @@ content=FactionPerkSpells.ESP
 ```
 
 
-## Major Plans
-
-While the mod innately has compatability with TR_Factions, I eventually want to look at adding perks for Tamriel Rebuilt, Project Cyrodiil, and Skyrim Home of the Nords factions
-But I might handle that in a seperate mod.
-
-
 -----------------------------------------------------------------------------------
 
 
@@ -218,19 +212,27 @@ Empire's Coffers:
 
     The first time you speak with a merchant, their available barter gold
     is permanently boosted by the weight of the Company's credit.
-    Bonus: +250 or +25% of their base gold, whichever is greater.
+    Bonus: +50 or +10% of their base gold, whichever is greater.
     The bonus upgrades automatically when you advance to a higher perk rank,
     whether the merchant is nearby at the time or on your next visit.
+
+    If the Stock Exchange Framework (Tamriel_Data) is installed:
+    An additional bonus of 0.1% of your EEC portfolio value is added,
+    capped at 20% of the merchant's base gold.
 
 ### Perk 3: Established Routes
 +10 Per/Wil, +18 Mercantile / Speechcraft
 
-Empire's Coffers increases to +500 or +35% of base gold.
+Empire's Coffers increases to +150 or +25% of base gold.
+
+    Stock Exchange cap increases to 50% of base gold.
 
 ### Perk 4: Senior Factor
 +15 Per/Wil, +25 Mercantile / Speechcraft
 
-Empire's Coffers increases to +1000 or +50% of base gold.
+Empire's Coffers increases to +250 or +50% of base gold.
+
+    Stock Exchange cap increases to 100% of base gold.
 
 Grants Power:
 
