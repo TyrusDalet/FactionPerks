@@ -100,7 +100,7 @@ Honour The Great House:
 ### Perk 3: Trade Acumen 
 +10 Per/Agi, +18 Mercantile / Speechcraft
 
-### Perk 4: Councillor’s Ear 
+### Perk 4: Councillor's Ear 
 +15 Per/Agi, +25 Mercantile / Speechcraft
 
 
@@ -209,6 +209,48 @@ Grants Power:
       Fortify all Attributes 50pts for 30s
 
 
+## East Empire Company
+
+### Perk 1: Company Charter
++3 Per/Wil, +5 Mercantile / Speechcraft
+
+### Perk 2: Empire's Coffers
++5 Per/Wil, +10 Mercantile / Speechcraft
+
+Empire's Coffers:
+
+    The first time you speak with a merchant, their available barter gold
+    is permanently boosted by the weight of the Company's credit.
+    Bonus: +50 or +10% of their base gold, whichever is greater.
+    The bonus upgrades automatically when you advance to a higher perk rank,
+    whether the merchant is nearby at the time or on your next visit.
+
+    If the Stock Exchange Framework (Tamriel_Data) is installed:
+    An additional bonus of 0.1% of your EEC portfolio value is added,
+    capped at 20% of the merchant's base gold.
+
+### Perk 3: Established Routes
++10 Per/Wil, +18 Mercantile / Speechcraft
+
+Empire's Coffers increases to +150 or +25% of base gold.
+
+    Stock Exchange cap increases to 50% of base gold.
+
+### Perk 4: Senior Factor
++15 Per/Wil, +25 Mercantile / Speechcraft
+
+Empire's Coffers increases to +250 or +50% of base gold.
+
+    Stock Exchange cap increases to 100% of base gold.
+
+Grants Power:
+
+    Factor's Promise
+
+      Fortify Mercantile +100 for 30s
+      Empire's Coffers is tripled in effectiveness for the duration
+
+
 ## Thieves Guild
 
 ### Perk 1: Light Fingers 
@@ -276,7 +318,7 @@ Magical Cartography:
 
 Fortify Maximum Magicka 0.5x INT
 
-### Perk 4: Archmagister’s Peer 
+### Perk 4: Archmagister's Peer 
 +15 Int/End, +50 Magicka, +25 Destruction / Alteration
 
 Fortify Maximum Magicka 1.0x INT
