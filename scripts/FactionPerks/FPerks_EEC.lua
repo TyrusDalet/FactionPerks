@@ -16,9 +16,9 @@
         The first time the player speaks with a merchant, that merchant's
         available barter gold is permanently boosted by a flat+percentage hybrid
         that scales with perk rank:
-            P2: max(250,  floor(baseGold * 0.25))
-            P3: max(500,  floor(baseGold * 0.35))
-            P4: max(1000, floor(baseGold * 0.50))
+            P2: max(50,  floor(baseGold * 0.25))
+            P3: max(150,  floor(baseGold * 0.35))
+            P4: max(250, floor(baseGold * 0.50))
         Boosted merchants are tracked per-save (keyed by NPC instance ID).
         Each entry stores the merchant's baseGold and the rank that applied the
         current bonus, enabling retroactive upgrades on rank-up:
@@ -57,8 +57,62 @@ local self            = require('openmw.self')
 local core            = require('openmw.core')
 local ui              = require('openmw.ui')
 local nearby          = require('openmw.nearby')
+local storage         = require('openmw.storage')
 
 local R = interfaces.ErnPerkFramework.requirements
+
+-- ============================================================
+--  TAMRIEL DATA / STOCK EXCHANGE FRAMEWORK
+--  Detected once at load time. If present, Empire's Coffers
+--  gains a third bonus component derived from the total value
+--  of the player's EEC stock portfolio.
+--
+--  Global variables (MWScript, synced by ErnPerkFramework):
+--    t_glob_stockpriceeec        - current price per EEC share
+--    t_glob_stockcountplayereec  - number of shares player holds
+--
+--  Total portfolio value = price * count.
+--  Per-rank stock component:
+--    P2: 0.1% of portfolio, capped at 20%  of merchant baseGold
+--    P3: 0.1% of portfolio, capped at 50%  of merchant baseGold
+--    P4: 0.1% of portfolio, capped at 100% of merchant baseGold
+--
+--  The ErnPerkFramework global script syncs all MWScript
+--  globals into storage.globalSection("ErnPerkFramework_mwVars")
+--  every ~3 seconds, keyed by player ID. We read from there
+--  directly - no additional global events needed.
+-- ============================================================
+
+local hasTamrielData = core.contentFiles.has("Tamriel_Data.esm")
+
+-- Reference to the ErnPerkFramework MWScript variable cache.
+-- Only initialised if Tamriel_Data is present to avoid
+-- unnecessary storage lookups on every bonus calculation.
+local eecMwVars = hasTamrielData
+    and storage.globalSection("ErnPerkFramework_mwVars")
+    or nil
+
+-- Returns the current total value of the player's EEC stock
+-- portfolio, or 0 if Tamriel_Data is not loaded or if the
+-- player has not enrolled in the stock exchange.
+local function getEECPortfolioValue()
+    if not eecMwVars then return 0 end
+    local vars  = eecMwVars:get(self.id)
+    if not vars then return 0 end
+    local price = vars["t_glob_stockpriceeec"]       or 0
+    local count = vars["t_glob_stockcountplayereec"] or 0
+    return price * count
+end
+
+-- Per-rank stock bonus parameters.
+-- pct  = fraction of portfolio value applied as bonus
+-- cap  = fraction of merchant baseGold that the stock
+--        component may not exceed
+local EEC_STOCK_BONUS = {
+    [2] = { pct = 0.001, cap = 0.20 },
+    [3] = { pct = 0.001, cap = 0.50 },
+    [4] = { pct = 0.001, cap = 1.00 },
+}
 
 local perkTable = {
     [1] = { passive = {"FPerks_EEC1_Passive"} },
@@ -92,28 +146,70 @@ local EEC_FACTOR_POLL_INTERVAL = 0.5
 
 -- Tracks the gold bonus currently applied to each merchant.
 -- Keyed by npc.id (unique instance ID, not record ID).
--- Value: { base, factor, baseGold, appliedRank }
---   base        = gold currently added by Empire's Coffers
---   factor      = additional gold added by Factor's Promise (removed on power expiry)
---   baseGold    = the merchant's base gold at time of first boost; stored so
---                 rank-upgrade deltas can be recalculated without a global round-trip
---   appliedRank = the EEC perk rank that produced the current base bonus;
---                 used by eecOnUiModeChanged to detect deferred upgrade opportunities
--- NOTE: If a merchant restocks between dialogue sessions, their gold resets to
--- baseGold and our tracked bonus is "lost". The entry remains so we do not
--- re-apply. This is an accepted limitation.
+-- Value: { base, factor, baseGold, appliedRank, goldBeforeBonus }
+--   base            = gold currently added by Empire's Coffers
+--   factor          = additional gold added by Factor's Promise (removed on power expiry)
+--   baseGold        = the merchant's base gold from their record; stored so
+--                     rank-upgrade deltas can be recalculated without a global round-trip
+--   appliedRank     = the EEC perk rank that produced the current base bonus;
+--                     used to detect deferred upgrade opportunities
+--   goldBeforeBonus = the merchant's actual barter gold at the moment we first
+--                     applied a bonus (read via getBarterGold before boosting).
+--                     A restock returns them to exactly this value, which is how
+--                     we detect restocks unambiguously. Selling to the merchant
+--                     reduces their gold below the boosted amount but will not
+--                     match goldBeforeBonus unless they have fully restocked.
 local eecBoostedMerchants = {}
 
 -- ============================================================
 --  BONUS CALCULATION
 -- ============================================================
 
--- Per-rank bonus parameters for Empire's Coffers.
+-- Per-rank bonus parameters for Empire's Coffers base component.
 local EEC_BONUS = {
-    [2] = { pct = 0.25, flat = 250  },
-    [3] = { pct = 0.35, flat = 500  },
-    [4] = { pct = 0.50, flat = 1000 },
+    [2] = { pct = 0.10, flat = 50  },
+    [3] = { pct = 0.25, flat = 150 },
+    [4] = { pct = 0.50, flat = 250 },
 }
+
+-- Returns the total Empire's Coffers gold bonus for the given
+-- merchant baseGold and perk rank, plus a breakdown table.
+-- Two return values:
+--   bonus     (number) - total gold to apply
+--   breakdown (table)  - {
+--       baseComponent  = flat or percentage component
+--       usedFlat       = true if flat value won over percentage
+--       stockComponent = stock portfolio component (0 if no TD)
+--   }
+-- If Tamriel_Data is loaded, a stock portfolio component is
+-- added on top of the base flat/percentage component.
+local function calcBaseBonus(baseGold, rank)
+    local b = EEC_BONUS[rank]
+    if not b then return 0, {} end
+
+    -- Base component: higher of flat value or percentage of baseGold.
+    local flatVal    = b.flat
+    local pctVal     = math.floor(baseGold * b.pct)
+    local usedFlat   = flatVal >= pctVal
+    local baseComp   = math.max(flatVal, pctVal)
+
+    -- Stock component (Tamriel_Data only).
+    local stockComp = 0
+    if hasTamrielData then
+        local s         = EEC_STOCK_BONUS[rank]
+        local portfolio = getEECPortfolioValue()
+        local stockRaw  = math.floor(portfolio * s.pct)
+        local stockCap  = math.floor(baseGold  * s.cap)
+        stockComp = math.min(stockRaw, stockCap)
+    end
+
+    local bonus = baseComp + stockComp
+    return bonus, {
+        baseComponent  = baseComp,
+        usedFlat       = usedFlat,
+        stockComponent = stockComp,
+    }
+end
 
 -- Returns the current EEC perk rank (2-4), or nil if below P2.
 local function getEECRank()
@@ -123,12 +219,44 @@ local function getEECRank()
     return nil
 end
 
--- Returns the base Empire's Coffers gold bonus for the given NPC
--- base gold and perk rank.
-local function calcBaseBonus(baseGold, rank)
-    local b = EEC_BONUS[rank]
-    if not b then return 0 end
-    return math.max(b.flat, math.floor(baseGold * b.pct))
+-- ============================================================
+--  FLAVOUR MESSAGES
+-- ============================================================
+
+-- Builds the Empire's Coffers application message from a bonus
+-- breakdown table. The base line differs depending on whether
+-- the flat or percentage component won; a stock line is
+-- appended when the stock component is non-zero.
+local function buildCoffersMsg(npc, breakdown)
+    local name  = types.NPC.record(npc).name or "The merchant"
+    local base  = breakdown.baseComponent  or 0
+    local stock = breakdown.stockComponent or 0
+
+    local baseLine
+    if breakdown.usedFlat then
+        baseLine = "The Company's standing credit opens " .. name
+            .. "'s strongbox - " .. tostring(base) .. " gold."
+    else
+        baseLine = "Recognising the scale of your dealings, " .. name
+            .. " opens their full reserves - " .. tostring(base) .. " gold."
+    end
+
+    local stockLine = ""
+    if stock > 0 then
+        stockLine = " Your EEC portfolio adds a further "
+            .. tostring(stock) .. " gold."
+    end
+
+    return baseLine .. stockLine
+end
+
+-- Shown when Factor's Promise applies the extra boost to a
+-- specific merchant during dialogue.
+local function buildFactorMsg(npc)
+    local name = types.NPC.record(npc).name or "The merchant"
+    return "Presented with your Factor's seal, " .. name
+        .. " nods slowly - they'll go a little into debt for the "
+        .. "privilege of your business."
 end
 
 -- ============================================================
@@ -239,7 +367,9 @@ local function upgradeNearbyMerchants(newRank)
         if types.NPC.objectIsInstance(actor) then
             local entry = eecBoostedMerchants[actor.id]
             if entry and entry.appliedRank and entry.appliedRank < newRank then
-                local newBonus = calcBaseBonus(entry.baseGold, newRank)
+                -- Discard breakdown; upgrade path doesn't show a message since
+                -- the player may be upgrading perks away from a merchant.
+                local newBonus = (calcBaseBonus(entry.baseGold, newRank))
                 local delta    = newBonus - entry.base
                 if delta > 0 then
                     boostMerchant(actor, delta)
@@ -284,44 +414,96 @@ local function eecOnUiModeChanged(data)
     local rank = getEECRank()
     if not rank or rank < 2 then return end
 
-    local npcId    = npc.id
+    local npcId   = npc.id
     local baseGold = types.NPC.record(npc).baseGold
-    local entry    = eecBoostedMerchants[npcId]
 
-    -- Apply the base bonus the first time we meet this merchant.
+    -- Merchants with no base gold are excluded entirely. Applying a bonus
+    -- to a gold-less merchant (e.g. a service-only NPC that happens to have
+    -- trade flags) would be misleading and potentially cause odd behaviour.
+    if baseGold == 0 then return end
+
+    local entry = eecBoostedMerchants[npcId]
+
     if not entry then
-        local bonus = calcBaseBonus(baseGold, rank)
-        boostMerchant(npc, bonus)
-        entry = { base = bonus, factor = 0, baseGold = baseGold, appliedRank = rank }
-        eecBoostedMerchants[npcId] = entry
-        ui.showMessage("The Company's coffers open behind your trade.")
-        print("EEC: Applied base bonus " .. tostring(bonus)
-            .. " to " .. tostring(npcId))
+        -- First contact. Read current gold BEFORE we apply anything;
+        -- this becomes our restock detection baseline.
+        local currentGold = types.Actor.getBarterGold(npc)
+        -- Guard against merchants that currently have 0 gold (e.g. drained
+        -- by another player interaction this session).
+        if currentGold == 0 then return end
 
-    -- Deferred upgrade path: this merchant was boosted at a lower rank and
-    -- was out of load range when upgradeNearbyMerchants() fired. Apply the
-    -- outstanding delta now that we can reach them.
-    elseif entry.appliedRank and entry.appliedRank < rank then
-        local newBonus = calcBaseBonus(entry.baseGold, rank)
-        local delta    = newBonus - entry.base
-        if delta > 0 then
-            boostMerchant(npc, delta)
+        local bonus, breakdown = calcBaseBonus(baseGold, rank)
+        boostMerchant(npc, bonus)
+        entry = {
+            base            = bonus,
+            factor          = 0,
+            baseGold        = baseGold,
+            appliedRank     = rank,
+            goldBeforeBonus = currentGold,
+        }
+        eecBoostedMerchants[npcId] = entry
+        ui.showMessage(buildCoffersMsg(npc, breakdown))
+        print("EEC: Applied base bonus " .. tostring(bonus)
+            .. " to " .. tostring(npcId)
+            .. " (base=" .. tostring(breakdown.baseComponent)
+            .. " stock=" .. tostring(breakdown.stockComponent)
+            .. " goldBeforeBonus=" .. tostring(currentGold) .. ")")
+
+    else
+        local currentGold = types.Actor.getBarterGold(npc)
+
+        if currentGold == entry.goldBeforeBonus then
+            -- ------------------------------------------------
+            --  RESTOCK DETECTED
+            -- ------------------------------------------------
+            local newBonus, breakdown = calcBaseBonus(entry.baseGold, rank)
+            boostMerchant(npc, newBonus)
             entry.base        = newBonus
             entry.appliedRank = rank
-            ui.showMessage("The Company's coffers deepen behind your trade.")
-            print("EEC: Deferred upgrade for " .. tostring(npcId)
-                .. " to bonus " .. tostring(newBonus)
-                .. " (delta +" .. tostring(delta) .. ")")
+            entry.factor      = 0
+            if eecFactorActive then
+                local factorExtra = newBonus * 2
+                if factorExtra > 0 then
+                    boostMerchant(npc, factorExtra)
+                    entry.factor = factorExtra
+                    print("EEC: Reapplied factor bonus " .. tostring(factorExtra)
+                        .. " to restocked " .. tostring(npcId))
+                end
+            end
+            ui.showMessage(buildCoffersMsg(npc, breakdown))
+            print("EEC: Restock detected for " .. tostring(npcId)
+                .. ", reapplied bonus " .. tostring(newBonus)
+                .. " (base=" .. tostring(breakdown.baseComponent)
+                .. " stock=" .. tostring(breakdown.stockComponent) .. ")")
+
+        elseif entry.appliedRank < rank then
+            -- ------------------------------------------------
+            --  DEFERRED RANK UPGRADE
+            -- ------------------------------------------------
+            local newBonus, breakdown = calcBaseBonus(entry.baseGold, rank)
+            local delta = newBonus - entry.base
+            if delta > 0 then
+                boostMerchant(npc, delta)
+                entry.base        = newBonus
+                entry.appliedRank = rank
+                ui.showMessage(buildCoffersMsg(npc, breakdown))
+                print("EEC: Deferred upgrade for " .. tostring(npcId)
+                    .. " to bonus " .. tostring(newBonus)
+                    .. " (delta=+" .. tostring(delta)
+                    .. " base=" .. tostring(breakdown.baseComponent)
+                    .. " stock=" .. tostring(breakdown.stockComponent) .. ")")
+            end
         end
     end
 
-    -- If Factor's Promise is active and this merchant has not yet received
-    -- the factor boost, apply the extra (2x base = 3x total effectiveness).
+    -- Apply Factor's Promise bonus if the power is active and this
+    -- merchant has not yet received it this activation.
     if eecFactorActive and entry.factor == 0 then
         local factorExtra = entry.base * 2
         if factorExtra > 0 then
             boostMerchant(npc, factorExtra)
             entry.factor = factorExtra
+            ui.showMessage(buildFactorMsg(npc))
             print("EEC: Applied factor bonus " .. tostring(factorExtra)
                 .. " to " .. tostring(npcId))
         end
@@ -349,7 +531,7 @@ local function onUpdate(dt)
         print("EEC: Factor's Promise expired, restoring factor bonuses.")
         removeFactorBonuses()
     elseif not eecFactorActive and powerActive then
-        -- The power has just been cast (or was active at load — cleared on load,
+        -- The power has just been cast (or was active at load - cleared on load,
         -- so this branch is only hit on a fresh cast).
         eecFactorActive = true
         print("EEC: Factor's Promise activated.")
@@ -389,7 +571,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Empire's Coffers",
     localizedDescription = "The weight of the Company's treasury stands behind your every trade. "
         .. "Merchants who deal with you find their available gold bolstered by the "
-        .. "Company's credit — a permanent arrangement for as long as you hold its favour.\
+        .. "Company's credit - a permanent arrangement for as long as you hold its favour.\
  "
         .. "Requires Company Charter. "
         .. "(+5 Personality, +5 Willpower, +10 Mercantile, +10 Speechcraft)\
@@ -397,7 +579,12 @@ interfaces.ErnPerkFramework.registerPerk({
 "
         .. "Empire's Coffers: The first time you speak with a merchant, they receive "
         .. "a permanent boost to their available barter gold: "
-        .. "+250 or +25%% of their base gold, whichever is greater.",
+        .. "+50 or +10% of their base gold, whichever is greater."
+        .. (hasTamrielData and
+            "\
+ Stock Exchange: An additional bonus of 0.1% of your EEC portfolio value is added, "
+            .. "capped at 20% of the merchant's base gold."
+            or ""),
     hidden = perkHidden(GUILD, 2, 5),
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
@@ -428,7 +615,11 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "(+10 Personality, +10 Willpower, +18 Mercantile, +18 Speechcraft)\
 \
 "
-        .. "Empire's Coffers increases to +500 or +35%% of base gold.",
+        .. "Empire's Coffers increases to +150 or +25% of base gold."
+        .. (hasTamrielData and
+            "\
+ Stock Exchange cap increases to 50% of base gold."
+            or ""),
     hidden = perkHidden(GUILD, 5, 10),
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
@@ -453,11 +644,15 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "(+15 Personality, +15 Willpower, +25 Mercantile, +25 Speechcraft)\
 \
 "
-        .. "Empire's Coffers increases to +1000 or +50%% of base gold.\
+        .. "Empire's Coffers increases to +250 or +50% of base gold.\
 \
 "
         .. "Factor's Promise (1/day): Fortify Mercantile +100 for 30s. "
-        .. "Empire's Coffers is tripled in effectiveness for the duration.",
+        .. "Empire's Coffers is tripled in effectiveness for the duration."
+        .. (hasTamrielData and
+            "\
+ Stock Exchange cap increases to 100% of base gold."
+            or ""),
     hidden = perkHidden(GUILD, 8, 15),
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {
@@ -486,10 +681,11 @@ local function onSave()
     local savedMerchants = {}
     for npcId, data in pairs(eecBoostedMerchants) do
         savedMerchants[npcId] = {
-            base        = data.base,
-            factor      = data.factor,
-            baseGold    = data.baseGold,
-            appliedRank = data.appliedRank,
+            base            = data.base,
+            factor          = data.factor,
+            baseGold        = data.baseGold,
+            appliedRank     = data.appliedRank,
+            goldBeforeBonus = data.goldBeforeBonus,
         }
     end
     return {
@@ -498,21 +694,15 @@ local function onSave()
 end
 
 local function onLoad(data)
-    data                  = data or {}
-    eecBoostedMerchants   = data.eecBoostedMerchants or {}
-    -- Factor's Promise lasts 30s. Any factor bonuses present at save time
-    -- have almost certainly expired by the time the save is loaded.
-    -- Clear factor amounts without attempting gold restoration; the gold
-    -- will restock naturally on affected merchants.
-    -- Also provide safe fallbacks for older saves that predate baseGold/appliedRank
-    -- tracking: set appliedRank to 2 (lowest Coffers rank) so the deferred
-    -- upgrade path in eecOnUiModeChanged will recalculate correctly on
-    -- next dialogue open.
-    for _, entry in pairs(eecBoostedMerchants) do
-        entry.factor      = 0
-        entry.baseGold    = entry.baseGold    or 0
-        entry.appliedRank = entry.appliedRank or 2
-    end
+    -- The game engine resets all NPC barter gold to their base values on every
+    -- load, regardless of what setBarterGold set during the previous session.
+    -- Any entries we saved are therefore stale - the merchants no longer have
+    -- their bonuses in-game even though the table thinks they do.
+    -- Wiping the table here ensures every merchant gets correctly re-boosted
+    -- on their next dialogue open, including saves that were made mid-session
+    -- after some merchants had already been boosted.
+    eecBoostedMerchants = {}
+    -- Factor's Promise lasts 30s and cannot survive a load.
     eecFactorActive = false
 end
 
@@ -659,7 +849,7 @@ local function onConsoleCommand(mode, command, selectedObject)
 
     -- --------------------------------------------------------
     --  lua eec clear
-    --  Calls eecClearAllBonuses — identical to losing the perk.
+    --  Calls eecClearAllBonuses - identical to losing the perk.
     --  Restores nearby tracked merchants to baseGold and wipes
     --  the entire tracking table.
     -- --------------------------------------------------------

@@ -337,7 +337,7 @@ interfaces.ErnPerkFramework.registerPerk({
 "
         .. "Magical Cartography: Visiting Places of Power grants +1 Resist Magicka "
         .. "and +2 Detect Enchantment per location. Every 10 locations grants "
-        .. "a 5%% magicka refund on successful spell casts (max 25%%).",
+        .. "a 5% magicka refund on successful spell casts (max 25%).",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {

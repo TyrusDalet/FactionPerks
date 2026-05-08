@@ -177,7 +177,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "questions asked. When you crouch, shadow swallows you whole.\
  "
         .. "Requires Shadow Step. "
-        .. "(+10 Agility, +10 Speed, +18 Sneak, +18 Security, 25%% Chameleon while sneaking)",
+        .. "(+10 Agility, +10 Speed, +18 Sneak, +18 Security, 25% Chameleon while sneaking)",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\acrobat", cost = 3,
     requirements = {
@@ -201,7 +201,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Crouch, and you vanish almost entirely from sight.\
  "
         .. "Requires Fence Network. "
-        .. "(+15 Agility, +15 Speed, +25 Sneak, +25 Security, 50%% Chameleon while sneaking)",
+        .. "(+15 Agility, +15 Speed, +25 Sneak, +25 Security, 50% Chameleon while sneaking)",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\acrobat", cost = 4,
     requirements = {

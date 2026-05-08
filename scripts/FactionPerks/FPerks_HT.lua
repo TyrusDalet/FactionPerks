@@ -458,11 +458,11 @@ interfaces.ErnPerkFramework.registerPerk({
 "
         .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
         .. "that target yourself are augmented based on your Telvanni reputation. "
-        .. "At reputation cap: effects are 250%% of their base magnitude.\
+        .. "At reputation cap: effects are 250% of their base magnitude.\
 "
         .. "Constant Effect enchantments on equipped items are permanently "
         .. "augmented. Harmful effects are never boosted. "
-        .. "At reputation cap: effects are 200%% of their base magnitude.",
+        .. "At reputation cap: effects are 200% of their base magnitude.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {

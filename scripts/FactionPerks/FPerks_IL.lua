@@ -206,7 +206,7 @@ interfaces.ErnPerkFramework.registerPerk({
 \
 "
         .. "Legionary's Resolve: Blocking reflects damage to your attacker "
-        .. "based on your Block skill. Restores 30%% of fatigue spent blocking.",
+        .. "based on your Block skill. Restores 30% of fatigue spent blocking.",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
@@ -224,7 +224,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Forced March",
     localizedDescription = "The Legion demands its soldiers keep pace regardless "
         .. "of terrain. When the situation demands it, you can push far beyond "
-        .. "normal limits. Blocking now restores 50%% of fatigue spent.\
+        .. "normal limits. Blocking now restores 50% of fatigue spent.\
  "
         .. "Requires Shield Wall. "
         .. "(+10 Endurance, +10 Strength, +18 Heavy Armour, +18 Block, +35 Fortify Fatigue, "
@@ -252,7 +252,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedName = "Legate",
     localizedDescription = "You command the respect of every soldier who serves "
         .. "alongside you. The Emperor's discipline has forged your body into "
-        .. "something that endures. Blocking now restores 75%% of fatigue spent.\
+        .. "something that endures. Blocking now restores 75% of fatigue spent.\
  "
         .. "Requires Forced March. "
         .. "(+15 Endurance, +15 Strength, +25 Heavy Armour, +25 Block, +50 Fortify Fatigue)",
