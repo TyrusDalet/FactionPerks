@@ -16,16 +16,6 @@ content=FactionPerks.omwscripts
 content=FactionPerkSpells.ESP
 ```
 
-
-## Major Plans
-
-I want to expand the non-Great House perks a little bit. Thieves Guild and Morag Tong have cool passive abilities at perks 3 and 4, and I want
-to bring that level of uniqueness to each other faction.
-
-While the mod innately has compatability with TR_Factions, I eventually want to look at adding perks for Tamriel Rebuilt, Project Cyrodiil, and Skyrim Home of the Nords factions
-But I might handle that in a seperate mod.
-
-
 -----------------------------------------------------------------------------------
 
 
