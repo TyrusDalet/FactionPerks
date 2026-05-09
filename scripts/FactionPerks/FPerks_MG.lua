@@ -99,14 +99,25 @@ local UNIQUE_LOCATIONS = {
     ["magas volar"]   = true,
     ["solstheim, mortrag glacier: huntsman's hall"]   = true,
     ["shrine of azura"] = true,
+    ["bamz-amschend, skybreak gallery"] = true,
+    ["norenen-dur, basilica of divine whispers"] = true,
+
     -- TR
     ["vorthas uldun, chambers of methats uldun"]   = true,
     ["mala tor, lattagarlas"]   = true,
     ["old ebonheart, guild of mages: entrance hall"]   = true,
     ["the space gone missing, outer caverns"]   = true,
+    ["emmurbalpitu, crepuscular shrine"] = true,
+    ["shutaddipal: shrine"] = true,
+    ["ald khan, shrine"] = true,
+
     -- PT
     ["garlas agea, aransel"] = true,
+    ["nefa, starlight sanctum"] = true,
+    ["garlas malatar, carac abaran"] = true,
+
     -- SHotN
+    ["angturiel, cloudshaper dome"] = true,
 }
 
 local function isPlaceOfPower(cellName)
@@ -337,7 +348,7 @@ interfaces.ErnPerkFramework.registerPerk({
 "
         .. "Magical Cartography: Visiting Places of Power grants +1 Resist Magicka "
         .. "and +2 Detect Enchantment per location. Every 10 locations grants "
-        .. "a 5%% magicka refund on successful spell casts (max 25%%).",
+        .. "a 5% magicka refund on successful spell casts (max 25%).",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
