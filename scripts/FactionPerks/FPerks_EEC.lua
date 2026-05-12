@@ -575,10 +575,10 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = eec1_id,
     localizedName = "Company Charter",
-    localizedDescription = "You have been granted a trading licence by the East Empire Company. "
-        .. "The Company's name and reputation open doors that gold alone cannot.\
- "
-        .. "(+3 Personality, +3 Willpower, +5 Mercantile, +5 Speechcraft)",
+    category = {"Imperial Factions", "East Empire Company", 1},
+    localizedFlavour = "You have been granted a trading licence by the East Empire Company. "
+        .. "The Company's name and reputation open doors that gold alone cannot.",
+    localizedDescription = "(+3 Personality, +3 Willpower, +5 Mercantile, +5 Speechcraft)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
@@ -592,11 +592,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec2_id,
     localizedName = "Empire's Coffers",
-    localizedDescription = "The weight of the Company's treasury stands behind your every trade. "
+    category = {"Imperial Factions", "East Empire Company", 2},
+    localizedFlavour = "The weight of the Company's treasury stands behind your every trade. "
         .. "Merchants who deal with you find their available gold bolstered by the "
-        .. "Company's credit - a permanent arrangement for as long as you hold its favour.\
- "
-        .. "Requires Company Charter. "
+        .. "Company's credit - a permanent arrangement for as long as you hold its favour.",
+    localizedDescription = "Requires Company Charter. "
         .. "(+5 Personality, +5 Willpower, +10 Mercantile, +10 Speechcraft)\
 \
 "
@@ -631,10 +631,10 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec3_id,
     localizedName = "Established Routes",
-    localizedDescription = "The Company's trade network spans sea and shore. "
-        .. "Merchants across Vvardenfell recognise you as a person of consequence.\
- "
-        .. "Requires Empire's Coffers. "
+    category = {"Imperial Factions", "East Empire Company", 3},
+    localizedFlavour = "The Company's trade network spans sea and shore. "
+        .. "Merchants across Vvardenfell recognise you as a person of consequence.",
+    localizedDescription = "Requires Empire's Coffers. "
         .. "(+10 Personality, +10 Willpower, +18 Mercantile, +18 Speechcraft)\
 \
 "
@@ -658,12 +658,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec4_id,
     localizedName = "Senior Factor",
-    localizedDescription = "You hold the Company's highest confidence. "
+    category = {"Imperial Factions", "East Empire Company", 4},
+    localizedFlavour = "You hold the Company's highest confidence. "
         .. "Once each day, you may invoke the full weight of the Company's promise, "
         .. "sharpening your mercantile instincts and flooding merchants' coffers "
-        .. "far beyond their normal limits.\
- "
-        .. "Requires Established Routes. "
+        .. "far beyond their normal limits.",
+    localizedDescription = "Requires Established Routes. "
         .. "(+15 Personality, +15 Willpower, +25 Mercantile, +25 Speechcraft)\
 \
 "

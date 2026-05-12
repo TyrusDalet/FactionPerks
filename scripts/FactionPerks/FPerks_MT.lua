@@ -85,6 +85,7 @@ end))
 interfaces.ErnPerkFramework.registerPerk({
     id = mt1_id,
     localizedName = "Writ Bearer",
+    category = {"Dunmeri Factions", "Morag Tong", 1},
     localizedDescription = "You carry the legal sanction of the Morag Tong. "
         .. "Your kills are honoured executions, not murders.\
  "
@@ -106,6 +107,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt2_id,
     localizedName = "Blade Discipline",
+    category = {"Dunmeri Factions", "Morag Tong", 2},
     localizedDescription = "The Tong teaches economy of motion. Your strikes are precise "
         .. "and swift. You have learned to channel pure battle-fury at will.\
  "
@@ -132,6 +134,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt3_id,
     localizedName = "Calm Before",
+    category = {"Dunmeri Factions", "Morag Tong", 3},
     localizedDescription = "You have learned the art of stillness. "
         .. "A Tong assassin who cannot wait cannot succeed.\
  "
@@ -156,6 +159,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt4_id,
     localizedName = "Honoured Executioner",
+    category = {"Dunmeri Factions", "Morag Tong", 4},
     localizedDescription = "The Grand Master himself has commended your work. "
         .. "The shadows open for you whenever you call upon them.\
  "

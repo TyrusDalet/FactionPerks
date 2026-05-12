@@ -152,6 +152,7 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hr1_id,
     localizedName = "Redoran Pledge",
+    category = {"Great Houses", "House Redoran", 1},
     localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\
  "
         .. "(+3 Strength, +3 Endurance, +10 Fortify Health, +5 Medium Armour, +5 Athletics)\
@@ -180,6 +181,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr2_id,
     localizedName = "Burden of Duty",
+    category = {"Great Houses", "House Redoran", 2},
     localizedDescription = "Redoran warriors do not complain - they endure. "
         .. "The weight of armour and obligation have become one and the same to you.\
  "
@@ -200,6 +202,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr3_id,
     localizedName = "Unbroken Line",
+    category = {"Great Houses", "House Redoran", 3},
     localizedDescription = "House Redoran does not retreat. You have internalised this truth "
         .. "until it became something closer to armour than principle.\
  "
@@ -220,6 +223,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr4_id,
     localizedName = "Guardian of the House",
+    category = {"Great Houses", "House Redoran", 4},
     localizedDescription = "You are House Redoran's shield made flesh. Your honour is "
         .. "unimpeachable, your resolve unyielding.\
  "

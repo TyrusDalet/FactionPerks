@@ -180,6 +180,7 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
     localizedName = "Legion Recruit",
+    category = {"Imperial Factions", "Imperial Legion", 1},
     localizedDescription = "You have sworn the oath and donned the cuirass. "
         .. "The Legion's drillmasters have improved your guard.\
  "
@@ -197,6 +198,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
+    category = {"Imperial Factions", "Imperial Legion", 2},
     localizedDescription = "You have mastered the disciplined defensive formations "
         .. "of the Imperial army. When you block an attack, the force is turned "
         .. "back against your attacker, and the effort of blocking costs you less.\
@@ -222,6 +224,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il3_id,
     localizedName = "Forced March",
+    category = {"Imperial Factions", "Imperial Legion", 3},
     localizedDescription = "The Legion demands its soldiers keep pace regardless "
         .. "of terrain. When the situation demands it, you can push far beyond "
         .. "normal limits. Blocking now restores 50% of fatigue spent.\
@@ -250,6 +253,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il4_id,
     localizedName = "Legate",
+    category = {"Imperial Factions", "Imperial Legion", 4},
     localizedDescription = "You command the respect of every soldier who serves "
         .. "alongside you. The Emperor's discipline has forged your body into "
         .. "something that endures. Blocking now restores 75% of fatigue spent.\
