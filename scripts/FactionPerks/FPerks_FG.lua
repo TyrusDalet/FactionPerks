@@ -149,6 +149,7 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
+    category = {"Imperial Factions", "Fighter's Guild", 1},
     localizedDescription = "The basic drills are already sharpening your edge.\
  "
         .. "(+3 Strength, +3 Endurance, +10 Fortify Health, "
@@ -166,6 +167,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg2_id,
     localizedName = "Iron Discipline",
+    category = {"Imperial Factions", "Fighter's Guild", 2},
     localizedDescription = "The Guild's contracts have hardened you. "
         .. "You wade into battle with the confidence of experience. "
         .. "When an enemy swings and misses, you punish the opening immediately.\
@@ -192,6 +194,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg3_id,
     localizedName = "Battle Tested",
+    category = {"Imperial Factions", "Fighter's Guild", 3},
     localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
         .. "When the moment demands it, you can call upon a terrifying fury. "
         .. "Your counter attack cooldown is reduced.\
@@ -223,6 +226,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg4_id,
     localizedName = "Champion of the Guild",
+    category = {"Imperial Factions", "Fighter's Guild", 4},
     localizedDescription = "The Fighters Guild holds you as one of its finest. "
         .. "Your counter attack is now almost instantaneous.\
  "

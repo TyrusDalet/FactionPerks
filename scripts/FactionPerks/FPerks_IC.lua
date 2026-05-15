@@ -93,6 +93,7 @@ local ic1_id = ns .. "_ic_lay_worshipper"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic1_id,
     localizedName = "Lay Worshipper",
+    category = {"Imperial Factions", "Imperial Cult", 1},
     localizedDescription = "You have joined the Cult and attend its rites faithfully. "
         .. "The Nine Divines offer you modest but real protection.\
  "
@@ -118,6 +119,7 @@ local ic2_id = ns .. "_ic_charitable_hand"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic2_id,
     localizedName = "Charitable Hand",
+    category = {"Imperial Factions", "Imperial Cult", 2},
     localizedDescription = "You have distributed alms and tended to the sick in the name of the Divines. "
         .. "Your faith has strengthened your body as well as your spirit.\
  "
@@ -139,6 +141,7 @@ local ic3_id = ns .. "_ic_divine_favour"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic3_id,
     localizedName = "Divine Favour",
+    category = {"Imperial Factions", "Imperial Cult", 3},
     localizedDescription = "The Divines have marked you as a servant of true worth. "
         .. "When you strike the unholy, divine power smites them through your hand.\
  "
@@ -164,6 +167,7 @@ local ic4_id = ns .. "_ic_blessed_of_the_nine"
 interfaces.ErnPerkFramework.registerPerk({
     id = ic4_id,
     localizedName = "Blessed of the Nine",
+    category = {"Imperial Factions", "Imperial Cult", 4},
     localizedDescription = "The Nine Divines have extended their grace to you directly. "
         .. "Once each day you may call upon their full blessing. "
         .. "The cooldown on Divine Smite is halved.\

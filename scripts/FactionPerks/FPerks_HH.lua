@@ -188,6 +188,7 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hh1_id,
     localizedName = "Hlaalu Courtesies",
+    category = {"Great Houses", "House Hlaalu", 1},
     localizedDescription = "The formal pleasantries of Great House Hlaalu open many doors. "
         .. "Merchants warm to you and find their resolve to haggle weakened.\
  "
@@ -215,6 +216,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh2_id,
     localizedName = "Silver Tongue",
+    category = {"Great Houses", "House Hlaalu", 2},
     localizedDescription = "Your words carry weight. Merchants sense your confidence "
         .. "and their prices soften further.\
  "
@@ -235,6 +237,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh3_id,
     localizedName = "Trade Acumen",
+    category = {"Great Houses", "House Hlaalu", 3},
     localizedDescription = "Merchants treat you as one of their own, dropping their guard further.\
  "
         .. "Requires Silver Tongue. "
@@ -254,6 +257,7 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh4_id,
     localizedName = "Councillor's Ear",
+    category = {"Great Houses", "House Hlaalu", 4},
     localizedDescription = "A Councillor of House Hlaalu considers you a trusted confidant. "
         .. "Merchants can barely bring themselves to refuse you anything.\
  "
