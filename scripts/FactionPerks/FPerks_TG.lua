@@ -225,8 +225,24 @@ interfaces.ErnPerkFramework.registerPerk({
 -- ============================================================
 --  ENGINE CALLBACKS
 -- ============================================================
+local function onSave()
+    return {
+        hasChameleon25 = hasChameleon25,
+        hasChameleon50 = hasChameleon50,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    hasChameleon25 = data.hasChameleon25 or false
+    hasChameleon50 = data.hasChameleon50 or false
+end
+
+
 return {
     engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
         onUpdate = onUpdate,
     }
 }
