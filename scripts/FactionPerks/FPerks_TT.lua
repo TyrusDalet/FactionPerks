@@ -92,7 +92,6 @@ local tt1_id = ns .. "_tt_ordinate_aspirant"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt1_id,
     localizedName = "Ordinate Aspirant",
-    category = {"Dunmeri Factions", "Tribunal Temple", 1},
     localizedDescription = "You have taken up the Temple's creed and begun study of its mysteries. "
         .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.\
  "
@@ -118,7 +117,6 @@ local tt2_id = ns .. "_tt_pilgrim_soul"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt2_id,
     localizedName = "Pilgrim Soul",
-    category = {"Dunmeri Factions", "Tribunal Temple", 2},
     localizedDescription = "You have walked the Pilgrimages of the Seven Graces. "
         .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.\
  "
@@ -147,7 +145,6 @@ local tt3_id = ns .. "_tt_voice_of_reclamation"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt3_id,
     localizedName = "Voice of Reclamation",
-    category = {"Dunmeri Factions", "Tribunal Temple", 3},
     localizedDescription = "The Temple's holy authority now speaks through you. "
         .. "Ancestor Ghosts, Bonelords, and Bonewalkers recognise you as a servant "
         .. "of ALMSIVI and will not raise their hand against you.\
@@ -177,7 +174,6 @@ local tt4_id = ns .. "_tt_hand_of_almsivi"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt4_id,
     localizedName = "Hand of ALMSIVI",
-    category = {"Dunmeri Factions", "Tribunal Temple", 4},
     localizedDescription = "You are an instrument of Vivec, Almalexia, and Sotha Sil. "
         .. "Once each day you may call upon honoured ancestors to fight at your side.\
  "

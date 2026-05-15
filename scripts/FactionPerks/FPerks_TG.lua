@@ -128,7 +128,6 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = tg1_id,
     localizedName = "Light Fingers",
-    category = {"Imperial Factions", "Thieves Guild", 1},
     localizedDescription = "Years of petty theft have given you an instinct for opportunity. "
         .. "Your hands are quick and your presence quiet.\
  "
@@ -150,7 +149,6 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg2_id,
     localizedName = "Shadow Step",
-    category = {"Imperial Factions", "Thieves Guild", 2},
     localizedDescription = "You have learned to move between pools of darkness with uncanny ease. "
         .. "Guards look straight through you.\
  "
@@ -175,7 +173,6 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg3_id,
     localizedName = "Fence Network",
-    category = {"Imperial Factions", "Thieves Guild", 3},
     localizedDescription = "You have cultivated contacts willing to move stolen goods with no "
         .. "questions asked. When you crouch, shadow swallows you whole.\
  "
@@ -200,7 +197,6 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg4_id,
     localizedName = "Master Thief",
-    category = {"Imperial Factions", "Thieves Guild", 4},
     localizedDescription = "There is no lock you cannot pick, no pocket you cannot cut. "
         .. "Crouch, and you vanish almost entirely from sight.\
  "

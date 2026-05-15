@@ -91,10 +91,6 @@ local CELL_CHECK_INTERVAL = 2.0
 -- ============================================================
 
 local UNIQUE_LOCATIONS = {
-    -- A location is a Place of Power if it is something magically powerful, or is the location of magical phenomena
-    -- It can't be easily accessed by the Imperial Mages Guild
-    -- Or has been sealed away (in the case of the entrance hall)
-
     -- Vanilla
     ["akulakhan's chamber"] = true,
     ["vivec, palace of vivec"]     = true,
@@ -112,6 +108,8 @@ local UNIQUE_LOCATIONS = {
     ["old ebonheart, guild of mages: entrance hall"]   = true,
     ["the space gone missing, outer caverns"]   = true,
     ["emmurbalpitu, crepuscular shrine"] = true,
+    ["shutaddipal: shrine"] = true,
+    ["ald khan, shrine"] = true,
 
     -- PT
     ["garlas agea, aransel"] = true,
@@ -120,17 +118,12 @@ local UNIQUE_LOCATIONS = {
 
     -- SHotN
     ["angturiel, cloudshaper dome"] = true,
-    ["braignainesaide, marbaildomuin"] = true,
 }
 
 local function isPlaceOfPower(cellName)
     if type(cellName) ~= "string" then return false end
     local lower = cellName:lower()
     if lower:find("inner shrine",     1, true) then return true end
-
-    -- Tries to ensure that any Shrine is included, as long as that's it's only type, and not followed by anything subsequent
-    if lower:find(", shrine",     1, true) and not lower:find(", shrine,",     1, true) and not lower:find(", shrine:",     1, true) then return true end
-
     if lower:find("propylon chamber", 1, true) then return true end
     if UNIQUE_LOCATIONS[lower]                 then return true end
     return false
@@ -325,7 +318,6 @@ local mg1_id = ns .. "_mg_guild_initiate"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg1_id,
     localizedName = "Guild Initiate",
-    category = {"Imperial Factions", "Mage's Guild", 1},
     localizedDescription = "You have passed the Guild's entrance rites. "
         .. "The library shelves are open to you.\
  "
@@ -345,7 +337,6 @@ local mg2_id = ns .. "_mg_scholastic_rigour"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg2_id,
     localizedName = "Scholastic Rigour",
-    category = {"Imperial Factions", "Mage's Guild", 2},
     localizedDescription = "The Guild's structured study has sharpened your mind. "
         .. "You have learned to identify and catalogue the Places of Power "
         .. "that saturate Vvardenfell, drawing knowledge and resistance from each.\
@@ -386,7 +377,6 @@ local mg3_id = ns .. "_mg_arcane_reservoir"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg3_id,
     localizedName = "Arcane Reservoir",
-    category = {"Imperial Factions", "Mage's Guild", 3},
     localizedDescription = "Years of disciplined spellcasting have deepened your reserves. "
         .. "Your magicka pool expands with your intellect.\
  "
@@ -410,7 +400,6 @@ local mg4_id = ns .. "_mg_archmagisters_peer"
 interfaces.ErnPerkFramework.registerPerk({
     id = mg4_id,
     localizedName = "Archmagister's Peer",
-    category = {"Imperial Factions", "Mage's Guild", 4},
     localizedDescription = "The senior mages regard you as a genuine equal. "
         .. "Your intellect feeds your power directly.\
  "

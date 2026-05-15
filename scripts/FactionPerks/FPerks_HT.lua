@@ -449,7 +449,6 @@ local ht1_id = ns .. "_ht_uninvited_student"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht1_id,
     localizedName = "Uninvited Student",
-    category = {"Great Houses", "House Telvanni", 1},
     localizedDescription = "House Telvanni does not recruit - it tolerates those strong "
         .. "enough to push their way in. You have done so. For now, that is enough.\
  "
@@ -496,7 +495,6 @@ local ht2_id = ns .. "_ht_tower_sorcery"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht2_id,
     localizedName = "Tower Sorcery",
-    category = {"Great Houses", "House Telvanni", 2},
     localizedDescription = "Telvanni wizards are defined by their mastery of enchantment. "
         .. "You have begun to understand the principles that animate their towers "
         .. "and servants.\
@@ -526,7 +524,6 @@ local ht3_id = ns .. "_ht_self_made_power"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht3_id,
     localizedName = "Self-Made Power",
-    category = {"Great Houses", "House Telvanni", 3},
     localizedDescription = "House Telvanni respects only power earned, never granted. "
         .. "You have shaped yourself through relentless study.\
  "
@@ -553,7 +550,6 @@ local ht4_id = ns .. "_ht_telvanni_lord"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht4_id,
     localizedName = "Telvanni Lord",
-    category = {"Great Houses", "House Telvanni", 4},
     localizedDescription = "You are acknowledged by the Telvanni masters - a rare "
         .. "concession from those who acknowledge no one. The heights are yours "
         .. "to claim.\
