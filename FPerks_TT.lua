@@ -92,11 +92,12 @@ local tt1_id = ns .. "_tt_ordinate_aspirant"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt1_id,
     localizedName = "Ordinate Aspirant",
-    localizedDescription = "You have taken up the Temple's creed and begun study of its mysteries. "
-        .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.\
- "
-        .. "(+3 Intelligence, +3 Willpower, +5 Restoration, +5 Mysticism, "
-        .. "grants Almsivi Intervention)",
+    category = {"Dunmeri Factions", "Tribunal Temple", 1},
+    localizedFlavour = "You have taken up the Temple's creed and begun study of its mysteries. "
+        .. "ALMSIVI turns aside blows and afflictions that threaten their faithful.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Intelligence, +3 Willpower, "
+        .. "+5 Restoration, +5 Mysticism)\f"
+        .. "Effect 2: \n Grants Almsivi Intervention.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
@@ -117,12 +118,13 @@ local tt2_id = ns .. "_tt_pilgrim_soul"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt2_id,
     localizedName = "Pilgrim Soul",
-    localizedDescription = "You have walked the Pilgrimages of the Seven Graces. "
-        .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.\
- "
-        .. "Requires Ordinate Aspirant. "
-        .. "(+5 Intelligence, +5 Willpower, +10 Restoration, +10 Mysticism, "
-        .. "1/day Cure Disease + Cure Poison + Cure Blight on Touch)",
+    category = {"Dunmeri Factions", "Tribunal Temple", 2},
+    localizedFlavour = "You have walked the Pilgrimages of the Seven Graces. "
+        .. "Once each day you may call upon ALMSIVI to cleanse disease, poison, and blight.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Intelligence, +5 Willpower, "
+        .. "+10 Restoration, +10 Mysticism)\f"
+        .. "Effect 2: \n Grants Touch of ALMSIVI (1/day): Cure Disease, Cure Blight, "
+        .. "and Cure Poison on Touch.",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
@@ -145,12 +147,13 @@ local tt3_id = ns .. "_tt_voice_of_reclamation"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt3_id,
     localizedName = "Voice of Reclamation",
-    localizedDescription = "The Temple's holy authority now speaks through you. "
-        .. "Ancestor Ghosts, Bonelords, and Bonewalkers recognise you as a servant "
-        .. "of ALMSIVI and will not raise their hand against you.\
- "
-        .. "Requires Pilgrim Soul. "
-        .. "(+10 Intelligence, +10 Willpower, +18 Restoration, +18 Mysticism)",
+    category = {"Dunmeri Factions", "Tribunal Temple", 3},
+    localizedFlavour = "The Temple's holy authority now speaks through you. "
+        .. "Ancestor Ghosts, Bonelords, and Bonewalkers recognise you as a servant of ALMSIVI.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Intelligence, +10 Willpower, "
+        .. "+18 Restoration, +18 Mysticism)\f"
+        .. "Effect 2: \n Honoured Ancestors: Non-summoned Ancestor Ghosts, Bonelords, and "
+        .. "Bonewalkers will not attack you.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
@@ -174,12 +177,13 @@ local tt4_id = ns .. "_tt_hand_of_almsivi"
 interfaces.ErnPerkFramework.registerPerk({
     id = tt4_id,
     localizedName = "Hand of ALMSIVI",
-    localizedDescription = "You are an instrument of Vivec, Almalexia, and Sotha Sil. "
-        .. "Once each day you may call upon honoured ancestors to fight at your side.\
- "
-        .. "Requires Voice of Reclamation. "
-        .. "(+15 Intelligence, +15 Willpower, +25 Restoration, +25 Mysticism, "
-        .. "1/day Summon 2 Greater Bonewalkers + 2 Bonelords for 60s)",
+    category = {"Dunmeri Factions", "Tribunal Temple", 4},
+    localizedFlavour = "You are an instrument of Vivec, Almalexia, and Sotha Sil. "
+        .. "Once each day you may call upon the honoured dead to fight at your side.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Intelligence, +15 Willpower, "
+        .. "+25 Restoration, +25 Mysticism)\f"
+        .. "Effect 2: \n Grants Call Honoured Ancestors (1/day): Summon 2 Greater Bonewalkers "
+        .. "and 2 Bonelords for 60s.",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {

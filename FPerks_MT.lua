@@ -85,10 +85,10 @@ end))
 interfaces.ErnPerkFramework.registerPerk({
     id = mt1_id,
     localizedName = "Writ Bearer",
-    localizedDescription = "You carry the legal sanction of the Morag Tong. "
-        .. "Your kills are honoured executions, not murders.\
- "
-        .. "(+3 Speed, +3 Agility, +5 Sneak, +5 Acrobatics)",
+    category = {"Dunmeri Factions", "Morag Tong", 1},
+    localizedFlavour = "You carry the legal sanction of the Morag Tong. "
+        .. "Your kills are honoured executions, not murders.",
+    localizedDescription = "Grants the following stats: (+3 Speed, +3 Agility, +5 Sneak, +5 Acrobatics)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
@@ -106,11 +106,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt2_id,
     localizedName = "Blade Discipline",
-    localizedDescription = "The Tong teaches economy of motion. Your strikes are precise "
-        .. "and swift. You have learned to channel pure battle-fury at will.\
- "
-        .. "Requires Writ Bearer. "
-        .. "(+5 Speed, +5 Agility, +10 Sneak, +10 Acrobatics, grants Frenzy power)",
+    category = {"Dunmeri Factions", "Morag Tong", 2},
+    localizedFlavour = "The Tong teaches economy of motion. Your strikes are precise and swift. "
+        .. "You have learned to channel pure battle-fury at will.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Speed, +5 Agility, "
+        .. "+10 Sneak, +10 Acrobatics)\f"
+        .. "Effect 2: \n Grants Mephala's Touch: Frenzy Humanoid 50pts for 30s.",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
@@ -132,11 +133,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt3_id,
     localizedName = "Calm Before",
-    localizedDescription = "You have learned the art of stillness. "
-        .. "A Tong assassin who cannot wait cannot succeed.\
- "
-        .. "Requires Blade Discipline. "
-        .. "(+10 Speed, +10 Agility, +18 Sneak, +18 Acrobatics)",
+    category = {"Dunmeri Factions", "Morag Tong", 3},
+    localizedFlavour = "You have learned the art of stillness. "
+        .. "A Tong assassin who cannot wait cannot succeed.",
+    localizedDescription = "Grants the following stats: (+10 Speed, +10 Agility, "
+        .. "+18 Sneak, +18 Acrobatics)",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
@@ -156,14 +157,13 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = mt4_id,
     localizedName = "Honoured Executioner",
-    localizedDescription = "The Grand Master himself has commended your work. "
-        .. "The shadows open for you whenever you call upon them.\
- "
-        .. "Requires Calm Before. "
-        .. "(+15 Speed, +15 Agility, +25 Sneak, +25 Acrobatics, grants Invisibility power)\
-\
- "
-        .. "Weapon attacks whilst Sneaking inflict a lifesteal effect.",
+    category = {"Dunmeri Factions", "Morag Tong", 4},
+    localizedFlavour = "The Grand Master himself has commended your work. "
+        .. "The shadows open for you whenever you call upon them.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Speed, +15 Agility, "
+        .. "+25 Sneak, +25 Acrobatics)\f"
+        .. "Effect 2: \n Grants Mephala's Shroud: Invisibility for 60s.\f"
+        .. "Effect 3: \n Weapon attacks whilst Sneaking apply a 25pt for 5s Absorb Health effect.",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {

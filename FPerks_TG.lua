@@ -128,10 +128,10 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = tg1_id,
     localizedName = "Light Fingers",
-    localizedDescription = "Years of petty theft have given you an instinct for opportunity. "
-        .. "Your hands are quick and your presence quiet.\
- "
-        .. "(+3 Agility, +3 Speed, +5 Sneak, +5 Security)",
+    category = {"Imperial Factions", "Thieves Guild", 1},
+    localizedFlavour = "Years of petty theft have given you an instinct for opportunity. "
+        .. "Your hands are quick and your presence quiet.",
+    localizedDescription = "Grants the following stats: (+3 Agility, +3 Speed, +5 Sneak, +5 Security)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\acrobat", cost = 1,
     requirements = {
@@ -149,11 +149,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg2_id,
     localizedName = "Shadow Step",
-    localizedDescription = "You have learned to move between pools of darkness with uncanny ease. "
-        .. "Guards look straight through you.\
- "
-        .. "Requires Light Fingers. "
-        .. "(+5 Agility, +5 Speed, +10 Sneak, +10 Security)",
+    category = {"Imperial Factions", "Thieves Guild", 2},
+    localizedFlavour = "You have learned to move between pools of darkness with uncanny ease. "
+        .. "Guards look straight through you.",
+    localizedDescription = "Grants the following stats: (+5 Agility, +5 Speed, "
+        .. "+10 Sneak, +10 Security)",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\acrobat", cost = 2,
     requirements = {
@@ -173,11 +173,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg3_id,
     localizedName = "Fence Network",
-    localizedDescription = "You have cultivated contacts willing to move stolen goods with no "
-        .. "questions asked. When you crouch, shadow swallows you whole.\
- "
-        .. "Requires Shadow Step. "
-        .. "(+10 Agility, +10 Speed, +18 Sneak, +18 Security, 25% Chameleon while sneaking)",
+    category = {"Imperial Factions", "Thieves Guild", 3},
+    localizedFlavour = "You have cultivated contacts willing to move stolen goods with no questions asked. "
+        .. "When you crouch, shadow swallows you whole.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Agility, +10 Speed, "
+        .. "+18 Sneak, +18 Security)\f"
+        .. "Effect 2: \n 25% Chameleon while sneaking.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\acrobat", cost = 3,
     requirements = {
@@ -197,11 +198,12 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = tg4_id,
     localizedName = "Master Thief",
-    localizedDescription = "There is no lock you cannot pick, no pocket you cannot cut. "
-        .. "Crouch, and you vanish almost entirely from sight.\
- "
-        .. "Requires Fence Network. "
-        .. "(+15 Agility, +15 Speed, +25 Sneak, +25 Security, 50% Chameleon while sneaking)",
+    category = {"Imperial Factions", "Thieves Guild", 4},
+    localizedFlavour = "There is no lock you cannot pick, no pocket you cannot cut. "
+        .. "Crouch, and you vanish almost entirely from sight.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Agility, +15 Speed, "
+        .. "+25 Sneak, +25 Security)\f"
+        .. "Effect 2: \n 25% additional Chameleon while sneaking (50% total with Fence Network).",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\acrobat", cost = 4,
     requirements = {
@@ -221,8 +223,24 @@ interfaces.ErnPerkFramework.registerPerk({
 -- ============================================================
 --  ENGINE CALLBACKS
 -- ============================================================
+local function onSave()
+    return {
+        hasChameleon25 = hasChameleon25,
+        hasChameleon50 = hasChameleon50,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    hasChameleon25 = data.hasChameleon25 or false
+    hasChameleon50 = data.hasChameleon50 or false
+end
+
+
 return {
     engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
         onUpdate = onUpdate,
     }
 }

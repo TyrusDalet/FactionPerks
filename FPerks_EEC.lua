@@ -575,10 +575,10 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = eec1_id,
     localizedName = "Company Charter",
-    localizedDescription = "You have been granted a trading licence by the East Empire Company. "
-        .. "The Company's name and reputation open doors that gold alone cannot.\
- "
-        .. "(+3 Personality, +3 Willpower, +5 Mercantile, +5 Speechcraft)",
+    category = {"Imperial Factions", "East Empire Company", 1},
+    localizedFlavour = "You have been granted a trading licence by the East Empire Company. "
+        .. "The Company's name and reputation open doors that gold alone cannot.",
+    localizedDescription = "Grants the following stats: (+3 Personality, +3 Willpower, +5 Mercantile, +5 Speechcraft)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
@@ -592,20 +592,17 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec2_id,
     localizedName = "Empire's Coffers",
-    localizedDescription = "The weight of the Company's treasury stands behind your every trade. "
+    category = {"Imperial Factions", "East Empire Company", 2},
+    localizedFlavour = "The weight of the Company's treasury stands behind your every trade. "
         .. "Merchants who deal with you find their available gold bolstered by the "
-        .. "Company's credit - a permanent arrangement for as long as you hold its favour.\
- "
-        .. "Requires Company Charter. "
-        .. "(+5 Personality, +5 Willpower, +10 Mercantile, +10 Speechcraft)\
-\
-"
-        .. "Empire's Coffers: The first time you speak with a merchant, they receive "
-        .. "a permanent boost to their available barter gold: "
-        .. "+50 or +10% of their base gold, whichever is greater."
+        .. "Company's credit - a permanent arrangement for as long as you hold its favour.",
+    localizedDescription =  
+            "Effect 1: \n Grants the following stats: (+5 Personality, +5 Willpower, +10 Mercantile, +10 Speechcraft)\f"
+        ..  "Effect 2: \n Empires Coffers: The first time you speak with a merchant, they receive "
+        ..  "a permanent boost to their available barter gold: "
+        ..  "+50 or +10% of their base gold, whichever is greater."
         .. (hasTamrielData and
-            "\
- Stock Exchange: An additional bonus of 0.1% of your EEC portfolio value is added, "
+            "\f Effect 3: \n Stock Exchange: An additional bonus of 0.1% of your EEC portfolio value is added, "
             .. "capped at 20% of the merchant's base gold."
             or ""),
     hidden = perkHidden(GUILD, 2, 5),
@@ -631,17 +628,14 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec3_id,
     localizedName = "Established Routes",
-    localizedDescription = "The Company's trade network spans sea and shore. "
-        .. "Merchants across Vvardenfell recognise you as a person of consequence.\
- "
-        .. "Requires Empire's Coffers. "
-        .. "(+10 Personality, +10 Willpower, +18 Mercantile, +18 Speechcraft)\
-\
-"
-        .. "Empire's Coffers increases to +150 or +25% of base gold."
+    category = {"Imperial Factions", "East Empire Company", 3},
+    localizedFlavour = "The Company's trade network spans sea and shore. "
+        .. "Merchants across Vvardenfell recognise you as a person of consequence.",
+    localizedDescription = 
+            "Effect 1: \n Grants the following stats: (+10 Personality, +10 Willpower, +18 Mercantile, +18 Speechcraft)\f"
+        .. "Effect 2: \n Empire's Coffers increases to +150 or +25% of base gold."
         .. (hasTamrielData and
-            "\
- Stock Exchange cap increases to 50% of base gold."
+            "\f Effect 3: \n Stock Exchange cap increases to 50% of base gold."
             or ""),
     hidden = perkHidden(GUILD, 5, 10),
     art = "textures\\levelup\\healer", cost = 3,
@@ -658,23 +652,18 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec4_id,
     localizedName = "Senior Factor",
-    localizedDescription = "You hold the Company's highest confidence. "
+    category = {"Imperial Factions", "East Empire Company", 4},
+    localizedFlavour = "You hold the Company's highest confidence. "
         .. "Once each day, you may invoke the full weight of the Company's promise, "
         .. "sharpening your mercantile instincts and flooding merchants' coffers "
-        .. "far beyond their normal limits.\
- "
-        .. "Requires Established Routes. "
-        .. "(+15 Personality, +15 Willpower, +25 Mercantile, +25 Speechcraft)\
-\
-"
-        .. "Empire's Coffers increases to +250 or +50% of base gold.\
-\
-"
-        .. "Factor's Promise (1/day): Fortify Mercantile +100 for 30s. "
-        .. "Empire's Coffers is tripled in effectiveness for the duration."
+        .. "far beyond their normal limits.",
+    localizedDescription =
+            "Effect 1: \n Grants the following stats: (+15 Personality, +15 Willpower, +25 Mercantile, +25 Speechcraft)\f"
+        ..  "Effect 2: \n Empire's Coffers increases to +250 or +50% of base gold.\f"
+        ..  "Effect 3: \n Grants Factor's Promise (1/day): Fortify Mercantile +100 for 30s. "
+        ..  "Empire's Coffers is tripled in effectiveness for the duration."
         .. (hasTamrielData and
-            "\
- Stock Exchange cap increases to 100% of base gold."
+            "\f Effect 4: \n Stock Exchange cap increases to 100% of base gold."
             or ""),
     hidden = perkHidden(GUILD, 8, 15),
     art = "textures\\levelup\\healer", cost = 4,

@@ -152,13 +152,14 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hr1_id,
     localizedName = "Redoran Pledge",
-    localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\
- "
-        .. "(+3 Strength, +3 Endurance, +10 Fortify Health, +5 Medium Armour, +5 Athletics)\
-\
-"
-        .. "Honour the Strength of the Great House Redoran: Scaling damage negation "
-        .. "threshold with Redoran Reputation. Doubled against Sixth House and Dreugh foes.",
+    category = {"Great Houses", "House Redoran", 1},
+    localizedFlavour = "House Redoran's code is simple: duty, honour, and the will to enforce both. "
+        .. "You have pledged yourself to that code, and the warriors of the House have taken note.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Strength, +3 Endurance, "
+        .. "+10 Fortify Health, +5 Medium Armour, +5 Athletics)\f"
+        .. "Effect 2: \n Strength of the Redoran: Incoming weapon hits below a damage threshold "
+        .. "are negated. Threshold scales with Redoran reputation. At reputation cap: 20 damage "
+        .. "threshold. Doubled against Sixth House and Dreugh enemies.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
@@ -180,11 +181,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr2_id,
     localizedName = "Burden of Duty",
-    localizedDescription = "Redoran warriors do not complain - they endure. "
-        .. "The weight of armour and obligation have become one and the same to you.\
- "
-        .. "Requires Redoran Pledge. "
-        .. "(+5 Strength, +5 Endurance, +20 Fortify Health, +10 Medium Armour, +10 Athletics)",
+    category = {"Great Houses", "House Redoran", 2},
+    localizedFlavour = "Redoran warriors do not complain - they endure. "
+        .. "The weight of armour and obligation have become one and the same to you.",
+    localizedDescription = "Grants the following stats: (+5 Strength, +5 Endurance, "
+        .. "+20 Fortify Health, +10 Medium Armour, +10 Athletics)",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
@@ -200,11 +201,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr3_id,
     localizedName = "Unbroken Line",
-    localizedDescription = "House Redoran does not retreat. You have internalised this truth "
-        .. "until it became something closer to armour than principle.\
- "
-        .. "Requires Burden of Duty. "
-        .. "(+10 Strength, +10 Endurance, +35 Fortify Health, +18 Medium Armour, +18 Athletics)",
+    category = {"Great Houses", "House Redoran", 3},
+    localizedFlavour = "House Redoran does not retreat. You have internalised this truth "
+        .. "until it became something closer to armour than principle.",
+    localizedDescription = "Grants the following stats: (+10 Strength, +10 Endurance, "
+        .. "+35 Fortify Health, +18 Medium Armour, +18 Athletics)",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
@@ -220,11 +221,11 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hr4_id,
     localizedName = "Guardian of the House",
-    localizedDescription = "You are House Redoran's shield made flesh. Your honour is "
-        .. "unimpeachable, your resolve unyielding.\
- "
-        .. "Requires Unbroken Line. "
-        .. "(+15 Strength, +15 Endurance, +50 Fortify Health, +25 Medium Armour, +25 Athletics)",
+    category = {"Great Houses", "House Redoran", 4},
+    localizedFlavour = "You are House Redoran's shield made flesh. "
+        .. "Your honour is unimpeachable, your resolve unyielding.",
+    localizedDescription = "Grants the following stats: (+15 Strength, +15 Endurance, "
+        .. "+50 Fortify Health, +25 Medium Armour, +25 Athletics)",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {
