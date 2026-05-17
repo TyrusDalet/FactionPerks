@@ -181,10 +181,10 @@ interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
     localizedName = "Legion Recruit",
     category = {"Imperial Factions", "Imperial Legion", 1},
-    localizedDescription = "You have sworn the oath and donned the cuirass. "
-        .. "The Legion's drillmasters have improved your guard.\
- "
-        .. "(+3 Endurance, +3 Strength, +5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
+    localizedFlavour = "You have sworn the oath and donned the cuirass. "
+        .. "The Legion's drillmasters have improved your guard.",
+    localizedDescription = "Grants the following stats: (+3 Endurance, +3 Strength, "
+        .. "+5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
@@ -199,16 +199,13 @@ interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
     category = {"Imperial Factions", "Imperial Legion", 2},
-    localizedDescription = "You have mastered the disciplined defensive formations "
-        .. "of the Imperial army. When you block an attack, the force is turned "
-        .. "back against your attacker, and the effort of blocking costs you less.\
- "
-        .. "Requires Legion Recruit. "
-        .. "(+5 Endurance, +5 Strength, +10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\
-\
-"
-        .. "Legionary's Resolve: Blocking reflects damage to your attacker "
-        .. "based on your Block skill. Restores 30% of fatigue spent blocking.",
+    localizedFlavour = "You have mastered the disciplined defensive formations of the Imperial army. "
+        .. "When you block an attack, the force is turned back against your attacker, "
+        .. "and the effort of blocking costs you less.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Endurance, +5 Strength, "
+        .. "+10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\f"
+        .. "Effect 2: \n Legionary's Resolve: Blocking reflects damage to your attacker "
+        .. "based on your Block skill (Block x 0.25). Restores 30% of fatigue spent blocking.",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
     requirements = {
@@ -225,13 +222,13 @@ interfaces.ErnPerkFramework.registerPerk({
     id = il3_id,
     localizedName = "Forced March",
     category = {"Imperial Factions", "Imperial Legion", 3},
-    localizedDescription = "The Legion demands its soldiers keep pace regardless "
-        .. "of terrain. When the situation demands it, you can push far beyond "
-        .. "normal limits. Blocking now restores 50% of fatigue spent.\
- "
-        .. "Requires Shield Wall. "
-        .. "(+10 Endurance, +10 Strength, +18 Heavy Armour, +18 Block, +35 Fortify Fatigue, "
-        .. "grants Legion's Prowess power)",
+    localizedFlavour = "The Legion demands its soldiers keep pace regardless of terrain. "
+        .. "When the situation demands it, you can push far beyond normal limits.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Endurance, +10 Strength, "
+        .. "+18 Heavy Armour, +18 Block, +35 Fortify Fatigue)\f"
+        .. "Effect 2: \n Grants Legion's Prowess (1/day): Fortify Athletics, Strength, Speed, "
+        .. "Endurance, and Health by 50 for 30s.\f"
+        .. "Effect 3: \n Blocking fatigue restoration increased to 50%.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
@@ -254,12 +251,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = il4_id,
     localizedName = "Legate",
     category = {"Imperial Factions", "Imperial Legion", 4},
-    localizedDescription = "You command the respect of every soldier who serves "
-        .. "alongside you. The Emperor's discipline has forged your body into "
-        .. "something that endures. Blocking now restores 75% of fatigue spent.\
- "
-        .. "Requires Forced March. "
-        .. "(+15 Endurance, +15 Strength, +25 Heavy Armour, +25 Block, +50 Fortify Fatigue)",
+    localizedFlavour = "You command the respect of every soldier who serves alongside you. "
+        .. "The Emperor's discipline has forged your body into something that endures.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Endurance, +15 Strength, "
+        .. "+25 Heavy Armour, +25 Block, +50 Fortify Fatigue)\f"
+        .. "Effect 2: \n Blocking fatigue restoration increased to 75%.",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {

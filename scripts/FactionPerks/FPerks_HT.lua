@@ -450,20 +450,15 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht1_id,
     localizedName = "Uninvited Student",
     category = {"Great Houses", "House Telvanni", 1},
-    localizedDescription = "House Telvanni does not recruit - it tolerates those strong "
-        .. "enough to push their way in. You have done so. For now, that is enough.\
- "
-        .. "(+3 Intelligence, +3 Willpower, +5 Enchant, +5 Conjuration, "
-        .. "grants Bound Helm and Bound Cuirass)\
-\
-"
-        .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
-        .. "that target yourself are augmented based on your Telvanni reputation. "
-        .. "At reputation cap: effects are 250% of their base magnitude.\
-"
-        .. "Constant Effect enchantments on equipped items are permanently "
-        .. "augmented. Harmful effects are never boosted. "
-        .. "At reputation cap: effects are 200% of their base magnitude.",
+    localizedFlavour = "House Telvanni does not recruit - it tolerates those strong enough to push "
+        .. "their way in. You have done so. For now, that is enough.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Intelligence, +3 Willpower, "
+        .. "+5 Enchant, +5 Conjuration)\f"
+        .. "Effect 2: \n Grants Bound Helm and Bound Cuirass.\f"
+        .. "Effect 3: \n Wit of Telvanni: Cast on Use enchantments targeting yourself are augmented "
+        .. "based on Telvanni reputation. At reputation cap: +150% effect magnitude. "
+        .. "Constant Effect enchantments on equipped items are permanently augmented. "
+        .. "At reputation cap: +100% effect magnitude. Harmful effects are never boosted.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
@@ -483,7 +478,6 @@ interfaces.ErnPerkFramework.registerPerk({
         safeRemoveSpell("bound helm")
         safeRemoveSpell("bound cuirass")
         hasWitOfTelvanni     = false
-        currentEnchantedItem = nil
         lastHTCellId         = nil
         for itemRecordId, entry in pairs(activeCastOnUseBonuses) do
             reverseCastOnUseEntry(itemRecordId, entry)
@@ -497,13 +491,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht2_id,
     localizedName = "Tower Sorcery",
     category = {"Great Houses", "House Telvanni", 2},
-    localizedDescription = "Telvanni wizards are defined by their mastery of enchantment. "
-        .. "You have begun to understand the principles that animate their towers "
-        .. "and servants.\
- "
-        .. "Requires Uninvited Student. "
-        .. "(+5 Intelligence, +5 Willpower, +10 Enchant, +10 Conjuration, "
-        .. "grants Tranasa's Spelltrap)",
+    localizedFlavour = "Telvanni wizards are defined by their mastery of enchantment. "
+        .. "You have begun to understand the principles that animate their towers and servants.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Intelligence, +5 Willpower, "
+        .. "+10 Enchant, +10 Conjuration)\f"
+        .. "Effect 2: \n Grants Tranasa's Spelltrap.",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
@@ -527,12 +519,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht3_id,
     localizedName = "Self-Made Power",
     category = {"Great Houses", "House Telvanni", 3},
-    localizedDescription = "House Telvanni respects only power earned, never granted. "
-        .. "You have shaped yourself through relentless study.\
- "
-        .. "Requires Tower Sorcery. "
-        .. "(+10 Intelligence, +10 Willpower, +18 Enchant, +18 Conjuration, "
-        .. "Fortify Maximum Magicka 0.5x Intelligence, Restore Magicka 1pt/s)",
+    localizedFlavour = "House Telvanni respects only power earned, never granted. "
+        .. "You have shaped yourself through relentless study.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Intelligence, +10 Willpower, "
+        .. "+18 Enchant, +18 Conjuration)\f"
+        .. "Effect 2: \n Fortify Maximum Magicka by 0.5x Intelligence. Restore Magicka 1pt/s.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\mage", cost = 3,
     requirements = {
@@ -554,14 +545,12 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht4_id,
     localizedName = "Telvanni Lord",
     category = {"Great Houses", "House Telvanni", 4},
-    localizedDescription = "You are acknowledged by the Telvanni masters - a rare "
-        .. "concession from those who acknowledge no one. The heights are yours "
-        .. "to claim.\
- "
-        .. "Requires Self-Made Power. "
-        .. "(+15 Intelligence, +15 Willpower, +25 Enchant, +25 Conjuration, "
-        .. "Fortify Maximum Magicka 1.0x Intelligence, "
-        .. "additional Restore Magicka 2pt/s)",
+    localizedFlavour = "You are acknowledged by the Telvanni masters - a rare concession from those "
+        .. "who acknowledge no one. The heights are yours to claim.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Intelligence, +15 Willpower, "
+        .. "+25 Enchant, +25 Conjuration)\f"
+        .. "Effect 2: \n Fortify Maximum Magicka by 1.0x Intelligence. "
+        .. "Restore Magicka 2pt/s.",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {

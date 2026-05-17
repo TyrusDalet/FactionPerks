@@ -94,11 +94,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ic1_id,
     localizedName = "Lay Worshipper",
     category = {"Imperial Factions", "Imperial Cult", 1},
-    localizedDescription = "You have joined the Cult and attend its rites faithfully. "
-        .. "The Nine Divines offer you modest but real protection.\
- "
-        .. "(+3 Willpower, +3 Personality, +5 Speechcraft, +5 Restoration, "
-        .. "grants Divine Intervention)",
+    localizedFlavour = "You have joined the Cult and attend its rites faithfully. "
+        .. "The Nine Divines offer you modest but real protection.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Willpower, +3 Personality, "
+        .. "+5 Speechcraft, +5 Restoration)\f"
+        .. "Effect 2: \n Grants Divine Intervention.",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\healer", cost = 1,
     requirements = {
@@ -120,11 +120,10 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ic2_id,
     localizedName = "Charitable Hand",
     category = {"Imperial Factions", "Imperial Cult", 2},
-    localizedDescription = "You have distributed alms and tended to the sick in the name of the Divines. "
-        .. "Your faith has strengthened your body as well as your spirit.\
- "
-        .. "Requires Lay Worshipper. "
-        .. "(+5 Willpower, +5 Personality, +10 Speechcraft, +10 Restoration)",
+    localizedFlavour = "You have distributed alms and tended to the sick in the name of the Divines. "
+        .. "Your faith has strengthened your body as well as your spirit.",
+    localizedDescription = "Grants the following stats: (+5 Willpower, +5 Personality, "
+        .. "+10 Speechcraft, +10 Restoration)",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\healer", cost = 2,
     requirements = {
@@ -142,15 +141,12 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ic3_id,
     localizedName = "Divine Favour",
     category = {"Imperial Factions", "Imperial Cult", 3},
-    localizedDescription = "The Divines have marked you as a servant of true worth. "
-        .. "When you strike the unholy, divine power smites them through your hand.\
- "
-        .. "Requires Charitable Hand. "
-        .. "(+10 Willpower, +10 Personality, +18 Speechcraft, +18 Restoration)\
-\
-"
-        .. "Divine Smite: Striking undead, daedra, or vampires deals bonus divine damage "
-        .. "equal to your Imperial Cult rank x 10. 10s cooldown per target.",
+    localizedFlavour = "The Divines have marked you as a servant of true worth. "
+        .. "When you strike the unholy, divine power smites them through your hand.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Willpower, +10 Personality, "
+        .. "+18 Speechcraft, +18 Restoration)\f"
+        .. "Effect 2: \n Divine Smite: Striking undead, daedra, or vampires with a weapon deals "
+        .. "bonus divine damage equal to your Imperial Cult rank x10. 10s cooldown per target.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\healer", cost = 3,
     requirements = {
@@ -168,16 +164,12 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ic4_id,
     localizedName = "Blessed of the Nine",
     category = {"Imperial Factions", "Imperial Cult", 4},
-    localizedDescription = "The Nine Divines have extended their grace to you directly. "
-        .. "Once each day you may call upon their full blessing. "
-        .. "The cooldown on Divine Smite is halved.\
- "
-        .. "Requires Divine Favour. "
-        .. "(+15 Willpower, +15 Personality, +25 Speechcraft, +25 Restoration, "
-        .. "1/day Fortify All Attributes +50 for 30s)\
-\
-"
-        .. "Divine Smite cooldown reduced to 5s per target.",
+    localizedFlavour = "The Nine Divines have extended their grace to you directly. "
+        .. "Once each day you may call upon their full blessing.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Willpower, +15 Personality, "
+        .. "+25 Speechcraft, +25 Restoration)\f"
+        .. "Effect 2: \n Grants Blessing of the Nine (1/day): Fortify All Attributes +50 for 30s.\f"
+        .. "Effect 3: \n Divine Smite cooldown reduced to 5s per target.",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\healer", cost = 4,
     requirements = {

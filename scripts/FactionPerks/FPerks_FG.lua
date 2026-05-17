@@ -150,10 +150,9 @@ interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
     category = {"Imperial Factions", "Fighter's Guild", 1},
-    localizedDescription = "The basic drills are already sharpening your edge.\
- "
-        .. "(+3 Strength, +3 Endurance, +10 Fortify Health, "
-        .. "+5 Long Blade, +5 Blunt Weapon, +5 Axe)",
+    localizedFlavour = "The basic drills are already sharpening your edge.",
+    localizedDescription = "Grants the following stats: (+3 Strength, +3 Endurance, "
+        .. "+10 Fortify Health, +5 Long Blade, +5 Blunt Weapon, +5 Axe)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\knight", cost = 1,
     requirements = {
@@ -168,16 +167,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = fg2_id,
     localizedName = "Iron Discipline",
     category = {"Imperial Factions", "Fighter's Guild", 2},
-    localizedDescription = "The Guild's contracts have hardened you. "
-        .. "You wade into battle with the confidence of experience. "
-        .. "When an enemy swings and misses, you punish the opening immediately.\
- "
-        .. "Requires Dues Paid. "
-        .. "(+5 Strength, +5 Endurance, +20 Fortify Health, "
-        .. "+10 Long Blade, +10 Blunt Weapon, +10 Axe)\
-\
-"
-        .. "Counter Attack: When an enemy misses you with a weapon, "
+    localizedFlavour = "The Guild's contracts have hardened you. "
+        .. "You wade into battle with the confidence of experience.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Strength, +5 Endurance, "
+        .. "+20 Fortify Health, +10 Long Blade, +10 Blunt Weapon, +10 Axe)\f"
+        .. "Effect 2: \n Counter Attack: When an enemy misses you with a weapon, "
         .. "you immediately strike back. 10s cooldown.",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\knight", cost = 2,
@@ -195,16 +189,13 @@ interfaces.ErnPerkFramework.registerPerk({
     id = fg3_id,
     localizedName = "Battle Tested",
     category = {"Imperial Factions", "Fighter's Guild", 3},
-    localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
-        .. "When the moment demands it, you can call upon a terrifying fury. "
-        .. "Your counter attack cooldown is reduced.\
- "
-        .. "Requires Iron Discipline. "
-        .. "(+10 Strength, +10 Endurance, +35 Fortify Health, "
-        .. "+18 Long Blade, +18 Blunt Weapon, +18 Axe, grants Martial Rage power)\
-\
-"
-        .. "Counter Attack cooldown reduced to 6s.",
+    localizedFlavour = "Daedra, bandits, necromancers - you have killed them all on contract. "
+        .. "When the moment demands it, you can call upon a terrifying fury.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Strength, +10 Endurance, "
+        .. "+35 Fortify Health, +18 Long Blade, +18 Blunt Weapon, +18 Axe)\f"
+        .. "Effect 2: \n Grants Martial Rage (1/day): Fortify Health 50pts, Fortify Fatigue 200pts, "
+        .. "Fortify Attack 100pts for 30s.\f"
+        .. "Effect 3: \n Counter Attack cooldown reduced to 6s.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\knight", cost = 3,
     requirements = {
@@ -227,15 +218,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = fg4_id,
     localizedName = "Champion of the Guild",
     category = {"Imperial Factions", "Fighter's Guild", 4},
-    localizedDescription = "The Fighters Guild holds you as one of its finest. "
-        .. "Your counter attack is now almost instantaneous.\
- "
-        .. "Requires Battle Tested. "
-        .. "(+15 Strength, +15 Endurance, +50 Fortify Health, "
-        .. "+25 Long Blade, +25 Blunt Weapon, +25 Axe)\
-\
-"
-        .. "Counter Attack cooldown reduced to 1.5s.",
+    localizedFlavour = "The Fighters Guild holds you as one of its finest. "
+        .. "Your counter attack is now almost instantaneous.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Strength, +15 Endurance, "
+        .. "+50 Fortify Health, +25 Long Blade, +25 Blunt Weapon, +25 Axe)\f"
+        .. "Effect 2: \n Counter Attack cooldown reduced to 1.5s.",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\knight", cost = 4,
     requirements = {

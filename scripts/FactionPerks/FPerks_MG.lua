@@ -112,8 +112,6 @@ local UNIQUE_LOCATIONS = {
     ["old ebonheart, guild of mages: entrance hall"]   = true,
     ["the space gone missing, outer caverns"]   = true,
     ["emmurbalpitu, crepuscular shrine"] = true,
-    ["shutaddipal: shrine"] = true,
-    ["ald khan, shrine"] = true,
 
     -- PT
     ["garlas agea, aransel"] = true,
@@ -328,11 +326,10 @@ interfaces.ErnPerkFramework.registerPerk({
     id = mg1_id,
     localizedName = "Guild Initiate",
     category = {"Imperial Factions", "Mage's Guild", 1},
-    localizedDescription = "You have passed the Guild's entrance rites. "
-        .. "The library shelves are open to you.\
- "
-        .. "(+3 Intelligence, +3 Endurance, +10 Fortify Magicka, "
-        .. "+5 Destruction, +5 Alteration)",
+    localizedFlavour = "You have passed the Guild's entrance rites. "
+        .. "The library shelves are open to you.",
+    localizedDescription = "Grants the following stats: (+3 Intelligence, +3 Willpower, "
+        .. "+10 Fortify Magicka, +5 Destruction, +5 Alteration)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
     requirements = {
@@ -348,18 +345,14 @@ interfaces.ErnPerkFramework.registerPerk({
     id = mg2_id,
     localizedName = "Scholastic Rigour",
     category = {"Imperial Factions", "Mage's Guild", 2},
-    localizedDescription = "The Guild's structured study has sharpened your mind. "
+    localizedFlavour = "The Guild's structured study has sharpened your mind. "
         .. "You have learned to identify and catalogue the Places of Power "
-        .. "that saturate Vvardenfell, drawing knowledge and resistance from each.\
- "
-        .. "Requires Guild Initiate. "
-        .. "(+5 Intelligence, +5 Endurance, +20 Fortify Magicka, "
-        .. "+10 Destruction, +10 Alteration)\
-\
-"
-        .. "Magical Cartography: Visiting Places of Power grants +1 Resist Magicka "
-        .. "and +2 Detect Enchantment per location. Every 10 locations grants "
-        .. "a 5% magicka refund on successful spell casts (max 25%).",
+        .. "that saturate Vvardenfell, drawing knowledge and resistance from each.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Intelligence, +5 Willpower, "
+        .. "+20 Fortify Magicka, +10 Destruction, +10 Alteration)\f"
+        .. "Effect 2: \n Magical Cartography: Visiting Places of Power grants +1 Resist Magicka "
+        .. "and +2 Detect Enchantment per location. Every 10 locations grants a 5% magicka refund "
+        .. "on successful spell casts (max 25%).",
     hidden = perkHidden(GUILD, 3, 5),
     art = "textures\\levelup\\mage", cost = 2,
     requirements = {
@@ -389,13 +382,11 @@ interfaces.ErnPerkFramework.registerPerk({
     id = mg3_id,
     localizedName = "Arcane Reservoir",
     category = {"Imperial Factions", "Mage's Guild", 3},
-    localizedDescription = "Years of disciplined spellcasting have deepened your reserves. "
-        .. "Your magicka pool expands with your intellect.\
- "
-        .. "Requires Scholastic Rigour. "
-        .. "(+10 Intelligence, +10 Endurance, +35 Fortify Magicka, "
-        .. "+18 Destruction, +18 Alteration, "
-        .. "Fortify Maximum Magicka 0.5x Intelligence)",
+    localizedFlavour = "Years of disciplined spellcasting have deepened your reserves. "
+        .. "Your magicka pool expands with your intellect.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Intelligence, +10 Willpower, "
+        .. "+35 Fortify Magicka, +18 Destruction, +18 Alteration)\f"
+        .. "Effect 2: \n Fortify Maximum Magicka by 0.5x Intelligence.",
     hidden = perkHidden(GUILD, 6, 10),
     art = "textures\\levelup\\mage", cost = 3,
     requirements = {
@@ -413,14 +404,12 @@ interfaces.ErnPerkFramework.registerPerk({
     id = mg4_id,
     localizedName = "Archmagister's Peer",
     category = {"Imperial Factions", "Mage's Guild", 4},
-    localizedDescription = "The senior mages regard you as a genuine equal. "
-        .. "Your intellect feeds your power directly.\
- "
-        .. "Requires Arcane Reservoir. "
-        .. "(+15 Intelligence, +15 Endurance, +50 Fortify Magicka, "
-        .. "+25 Destruction, +25 Alteration, "
-        .. "Fortify Maximum Magicka 1.0x Intelligence "
-        .. "[replaces Arcane Reservoir's 0.5x bonus])",
+    localizedFlavour = "The senior mages regard you as a genuine equal. "
+        .. "Your intellect feeds your power directly.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Intelligence, +15 Willpower, "
+        .. "+50 Fortify Magicka, +25 Destruction, +25 Alteration)\f"
+        .. "Effect 2: \n Fortify Maximum Magicka by 1.0x Intelligence "
+        .. "(replaces Arcane Reservoir's 0.5x bonus).",
     hidden = perkHidden(GUILD, 9, 15),
     art = "textures\\levelup\\mage", cost = 4,
     requirements = {
