@@ -110,7 +110,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if skillId ~= "block" then return end
 
     local rank = getILRank()
-    if not rank >= 3 then return end
+    if not rank or rank > 3 then return end
     if not ilLastAttacker or not ilLastAttacker:isValid() then return end
 
     local blockSkill = types.NPC.stats.skills.block(self).modified
