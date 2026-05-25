@@ -90,9 +90,14 @@ end
 --  FPerks_DoICSmite handles its own eligibility checks internally.
 --  Fires for all creatures - undead, daedra, and vampires
 --  are filtered inside isSmiteTarget in shared.lua.
+--  FPerks_DoMT4Attack handles its own eligibility checks internally
+--  (attacker must be the player, player must be sneaking, hit must
+--  deal health damage). Mirrored from npc.lua so lifesteal works
+--  against creatures as well as NPCs.
 -- ============================================================
 
 I.Combat.addOnHitHandler(function(attack)
+    FPerks_DoMT4Attack(attack)
     FPerks_DoICSmite(attack)
 end)
 
