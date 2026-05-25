@@ -21,21 +21,29 @@ end
 
 local function MT4AttackSuccessful(attack)
 
-    -- Successful attack check
+    -- Attacker must be the player. This is the most important guard:
+    -- without it, followers whose NPC scripts received the playerSneaking
+    -- event would pass the checks below and incorrectly trigger lifesteal
+    -- on every weapon hit they make.
+    if not (attack.attacker and attack.attacker.type == types.Player) then
+        return false
+    end
+
+    -- Weapon attack check (melee or ranged only, not spell damage)
     if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then --If it's NOT a successful hit with a weapon, back out
         return false
     end
 
     -- Proceed
 
-    -- player crouch check
-    if attack.attacker.type == types.Player and not FPerks_PlayerIsSneaking then --If the attacker is the player, and FPerks_PlayerIsSneaking is false back out
+    -- Player must be sneaking at the moment of the hit
+    if not FPerks_PlayerIsSneaking then --If FPerks_PlayerIsSneaking is false, back out
         return false
     end
 
     --Proceed
 
-    return true --If all are true, then the attack is a successful one
+    return true --If all checks pass, the attack qualifies for lifesteal
 end
 
 function FPerks_DoMT4Attack(attack)
