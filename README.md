@@ -251,10 +251,10 @@ Counterattack cooldown: 1.5s
 ## Mages Guild
 
 ### Perk 1: Guild Initiate 
-+3 Int/End, +10 Magicka, +5 Destruction / Alteration
++3 Int/Will, +10 Magicka, +5 Destruction / Alteration
 
 ### Perk 2: Scholastic Rigour 
-+5 Int/End, +20 Magicka, +10 Destruction / Alteration
++5 Int/Will, +20 Magicka, +10 Destruction / Alteration
 
 Magical Cartography:
 
@@ -262,12 +262,12 @@ Magical Cartography:
     Every 10 places visted grants 5% magicka refund on spells (max 25%)
 
 ### Perk 3: Arcane Reservoir 
-+10 Int/End, +35 Magicka, +18 Destruction / Alteration
++10 Int/Will, +35 Magicka, +18 Destruction / Alteration
 
 Fortify Maximum Magicka 0.5x INT
 
 ### Perk 4: Archmagister’s Peer 
-+15 Int/End, +50 Magicka, +25 Destruction / Alteration
++15 Int/Will, +50 Magicka, +25 Destruction / Alteration
 
 Fortify Maximum Magicka 1.0x INT
 
