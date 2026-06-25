@@ -32,18 +32,55 @@ local ambient    = require('openmw.ambient')
 local R = interfaces.ErnPerkFramework.requirements
 
 local perkTable = {
-    [1] = { passive = {"FPerks_FG1_Passive"} },
-    [2] = { passive = {"FPerks_FG2_Passive"} },
-    [3] = { passive = {"FPerks_FG3_Passive"} },
-    [4] = { passive = {"FPerks_FG4_Passive"} }
+    [1] = { attributes = { endurance=3,  strength=3  }, skills = { longblade=5,  bluntweapon=5, axe=5  } },
+    [2] = { attributes = { endurance=5,  strength=5  }, skills = { longblade=10, bluntweapon=10, axe=10 } },
+    [3] = { attributes = { endurance=10, strength=10 }, skills = { longblade=18, bluntweapon=18, axe=18 } },
+    [4] = { attributes = { endurance=15, strength=15 }, skills = { longblade=25, bluntweapon=25, axe=25 } },
 }
+
+local appliedStats = { attributes = {}, skills = {} }
+
 
 local fg1_id = ns .. "_fg_dues_paid"
 local fg2_id = ns .. "_fg_iron_discipline"
 local fg3_id = ns .. "_fg_battle_tested"
 local fg4_id = ns .. "_fg_champion_of_the_guild"
 
-local setRank = utils.makeSetRank(perkTable, nil)
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
+
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "Fighter's Guild Perks"
+
+local function getFGRank()
+    if R().hasPerk(fg4_id).check() then return 4 end
+    if R().hasPerk(fg3_id).check() then return 3 end
+    if R().hasPerk(fg2_id).check() then return 2 end
+    if R().hasPerk(fg1_id).check() then return 1 end
+    return nil
+end
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getFGRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
 
 -- ============================================================
 --  FORTIFY HEALTH - stat.modifier with onSave/onLoad
@@ -123,6 +160,7 @@ interfaces.Combat.addOnHitHandler(function(attack)
     local fatigue = types.Actor.stats.dynamic.fatigue(self)
     fatigue.current = math.max(0, fatigue.current - 8)
     ambient.playSound(getArmorHitSound(attack.attacker))
+    ambient.playSound("critical damage")
 
     lastFGCounterTime = now
     print("FG Counter Attack! Damage: " .. tostring(dmg))
@@ -159,8 +197,16 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumFactionRank('fighters guild', 0),
         R().minimumLevel(1)
     },
-    onAdd    = function() setRank(1); applyHealthMod(10) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(1)
+        applyHealthMod(10)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -181,8 +227,16 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('strength', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2); applyHealthMod(20) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(2)
+        applyHealthMod(20)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
@@ -205,11 +259,15 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(10),
     },
     onAdd = function()
-        setRank(3); applyHealthMod(35)
+        setRank(3)
+        applyHealthMod(35)
+        reportAAM()
         safeAddSpell("FPerks_FG3_Enrage")
     end,
     onRemove = function()
-        setRank(nil); applyHealthMod(0)
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
         safeRemoveSpell("FPerks_FG3_Enrage")
     end,
 })
@@ -231,8 +289,16 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumAttributeLevel('strength', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4); applyHealthMod(50) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(4)
+        applyHealthMod(50)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 -- ============================================================
@@ -242,12 +308,34 @@ interfaces.ErnPerkFramework.registerPerk({
 local function onSave()
     return {
         appliedHealthMod = appliedHealthMod,
+        appliedStats = appliedStats
     }
 end
 
 local function onLoad(data)
     data = data or {}
     appliedHealthMod = data.appliedHealthMod or 0
+        -- Manually reverse any saved stat modifiers now, before the framework
+    -- re-fires onAdd. This ensures setRank starts from zero and applies
+    -- cleanly without intermediate states that confuse AAM.
+    local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+
+    -- Mutate in-place so makeSetRank's captured reference stays valid.
+    -- appliedStats is now empty; setRank will re-populate it cleanly.
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
 end
 
 return {
