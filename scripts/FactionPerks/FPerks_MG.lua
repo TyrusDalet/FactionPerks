@@ -1,13 +1,13 @@
 --[[
     MG:
-        FPerks_MG1_Passive          - +3 Intelligence, +3 Endurance,
+        FPerks_MG1_Passive          - +3 Intelligence, +3 willpower,
                                       +10 Fortify Magicka, +5 Destruction, +5 Alteration
-        FPerks_MG2_Passive          - +5 Intelligence, +5 Endurance,
+        FPerks_MG2_Passive          - +5 Intelligence, +5 willpower,
                                       +20 Fortify Magicka, +10 Destruction, +10 Alteration
-        FPerks_MG3_Passive          - +10 Intelligence, +10 Endurance,
+        FPerks_MG3_Passive          - +10 Intelligence, +10 willpower,
                                       +35 Fortify Magicka, +18 Destruction, +18 Alteration,
                                       Fortify Maximum Magicka 0.5x Intelligence (magnitude 5)
-        FPerks_MG4_Passive          - +15 Intelligence, +15 Endurance,
+        FPerks_MG4_Passive          - +15 Intelligence, +15 willpower,
                                       +50 Fortify Magicka, +25 Destruction, +25 Alteration,
                                       Fortify Maximum Magicka 1.0x Intelligence (magnitude 10)
 
@@ -321,7 +321,7 @@ interfaces.ErnPerkFramework.registerPerk({
     localizedDescription = "You have passed the Guild's entrance rites. "
         .. "The library shelves are open to you.\
  "
-        .. "(+3 Intelligence, +3 Endurance, +10 Fortify Magicka, "
+        .. "(+3 Intelligence, +3 willpower, +10 Fortify Magicka, "
         .. "+5 Destruction, +5 Alteration)",
     hidden = perkHidden(GUILD, 0, 1),
     art = "textures\\levelup\\mage", cost = 1,
@@ -342,7 +342,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "that saturate Vvardenfell, drawing knowledge and resistance from each.\
  "
         .. "Requires Guild Initiate. "
-        .. "(+5 Intelligence, +5 Endurance, +20 Fortify Magicka, "
+        .. "(+5 Intelligence, +5 willpower, +20 Fortify Magicka, "
         .. "+10 Destruction, +10 Alteration)\
 \
 "
@@ -381,7 +381,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Your magicka pool expands with your intellect.\
  "
         .. "Requires Scholastic Rigour. "
-        .. "(+10 Intelligence, +10 Endurance, +35 Fortify Magicka, "
+        .. "(+10 Intelligence, +10 willpower, +35 Fortify Magicka, "
         .. "+18 Destruction, +18 Alteration, "
         .. "Fortify Maximum Magicka 0.5x Intelligence)",
     hidden = perkHidden(GUILD, 6, 10),
@@ -404,7 +404,7 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Your intellect feeds your power directly.\
  "
         .. "Requires Arcane Reservoir. "
-        .. "(+15 Intelligence, +15 Endurance, +50 Fortify Magicka, "
+        .. "(+15 Intelligence, +15 willpower, +50 Fortify Magicka, "
         .. "+25 Destruction, +25 Alteration, "
         .. "Fortify Maximum Magicka 1.0x Intelligence "
         .. "[replaces Arcane Reservoir's 0.5x bonus])",
