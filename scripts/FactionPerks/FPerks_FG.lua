@@ -123,6 +123,7 @@ interfaces.Combat.addOnHitHandler(function(attack)
     local fatigue = types.Actor.stats.dynamic.fatigue(self)
     fatigue.current = math.max(0, fatigue.current - 8)
     ambient.playSound(getArmorHitSound(attack.attacker))
+    ambient.playSound("critical damage")
 
     lastFGCounterTime = now
     print("FG Counter Attack! Damage: " .. tostring(dmg))
