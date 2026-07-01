@@ -19,6 +19,7 @@
 
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
 local perkHidden  = utils.perkHidden
 local GUILD        = utils.FACTION_GROUPS.hlaalu
 local interfaces = require("openmw.interfaces")
@@ -26,20 +27,23 @@ local types      = require('openmw.types')
 local self       = require('openmw.self')
 local core       = require('openmw.core')
 local ui         = require('openmw.ui')
+local localization = core.l10n(ns)
 
 -- ============================================================
 --  CORE HELPERS
 -- ============================================================
 
-local R = interfaces.ErnPerkFramework.requirements
+local R = utils.requirements
 
 -- Create a table with all the Faction spell effects in it, each object is the perk of that rank
 local perkTable = {
-    [1] = { passive = {"FPerks_HH1_Passive"} },
-    [2] = { passive = {"FPerks_HH2_Passive"} },
-    [3] = { passive = {"FPerks_HH3_Passive"} },
-    [4] = { passive = {"FPerks_HH4_Passive"} },
+    [1] = { attributes = { personality=3,  agility=3  }, skills = { mercantile=5,  speechcraft=5 } },
+    [2] = { attributes = { personality=5,  agility=5  }, skills = { mercantile=10, speechcraft=10 } },
+    [3] = { attributes = { personality=10, agility=10 }, skills = { mercantile=18, speechcraft=18 } },
+    [4] = { attributes = { personality=15, agility=15 }, skills = { mercantile=25, speechcraft=25 } },
 }
+
+local appliedStats = { attributes = {}, skills = {} }
 
 -- Perk id prep
 local hh1_id = ns .. "_hh_courtesies"
@@ -47,7 +51,41 @@ local hh2_id = ns .. "_hh_silver_tongue"
 local hh3_id = ns .. "_hh_trade_acumen"
 local hh4_id = ns .. "_hh_councillors_ear"
 
-local setRank = utils.makeSetRank(perkTable, nil)
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
+
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "Great House Hlaalu Perks"
+
+local function getHHRank()
+    if R().hasPerk(hh4_id).check() then return 4 end
+    if R().hasPerk(hh3_id).check() then return 3 end
+    if R().hasPerk(hh2_id).check() then return 2 end
+    if R().hasPerk(hh1_id).check() then return 1 end
+    return nil
+end
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getHHRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
 
 -- ============================================================
 --  HLAALU DIALOGUE EFFECTS
@@ -130,7 +168,7 @@ local function hhApplyMerchant(npc)
     hhCurrentDisp = d
     hhCurrentMerc = m
     if not hhMerchantMsgShown then
-        ui.showMessage("You Honour House Hlaalu.")
+        ui.showMessage(localization("hh_honourMessage", {}))
         hhMerchantMsgShown = true
     end
 end
@@ -188,26 +226,28 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hh1_id,
     localizedName = "Hlaalu Courtesies",
-    localizedDescription = "The formal pleasantries of Great House Hlaalu open many doors. "
-        .. "Merchants warm to you and find their resolve to haggle weakened.\
- "
-        .. "(+3 Personality, +3 Agility, +5 Mercantile, +5 Speechcraft)\
-\
- "
-        .. "Honour the Guile of the Great House Hlaalu: Scaling disposition with Merchants, "
-        .. "and improving bartering with Hlaalu Reputation",
+    category = {"Great Houses", "House Hlaalu", 1},
+    localizedFlavour = "The formal pleasantries of Great House Hlaalu open many doors. "
+        .. "Those who deal with you find their instinct to haggle subtly weakened.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Personality, +3 Agility, "
+        .. "+5 Mercantile, +5 Speechcraft)\f"
+        .. "Effect 2: \n Guile of the Hlaalu: Disposition with merchants and their Mercantile skill "
+        .. "scale with Hlaalu reputation. At reputation cap: +100 Disposition, -30 Mercantile.",
     hidden = perkHidden(GUILD, 0, 1),
-    art = "textures\\levelup\\healer", cost = 1,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(1) end,
     requirements = {
-        R().minimumFactionRank('hlaalu', 0),
+        FactionGroupRank("hlaalu",0),
         R().minimumLevel(1)
     },
     onAdd = function()
         setRank(1)
+        reportAAM()
         hhHasGuile = true
     end,
     onRemove = function()
         setRank(nil)
+        reportAAM()
         hhClearEffects()
     end,
 })
@@ -215,67 +255,114 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = hh2_id,
     localizedName = "Silver Tongue",
-    localizedDescription = "Your words carry weight. Merchants sense your confidence "
-        .. "and their prices soften further.\
- "
-        .. "Requires Hlaalu Courtesies. "
-        .. "(+5 Personality, +5 Agility, +10 Mercantile, +10 Speechcraft)",
+    category = {"Great Houses", "House Hlaalu", 2},
+    localizedFlavour = "Your words carry weight. Merchants sense your confidence "
+        .. "and their prices soften further.",
+    localizedDescription = "Grants the following stats: (+5 Personality, +5 Agility, "
+        .. "+10 Mercantile, +10 Speechcraft)",
     hidden = perkHidden(GUILD, 3, 5),
-    art = "textures\\levelup\\healer", cost = 2,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(hh1_id),
-        R().minimumFactionRank('hlaalu', 3),
+        FactionGroupRank("hlaalu",3),
         R().minimumAttributeLevel('personality', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function()
+        setRank(2)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = hh3_id,
     localizedName = "Trade Acumen",
-    localizedDescription = "Merchants treat you as one of their own, dropping their guard further.\
- "
-        .. "Requires Silver Tongue. "
-        .. "(+10 Personality, +10 Agility, +18 Mercantile, +18 Speechcraft)",
+    category = {"Great Houses", "House Hlaalu", 3},
+    localizedFlavour = "Merchants treat you as one of their own, dropping their guard further.",
+    localizedDescription = "Grants the following stats: (+10 Personality, +10 Agility, "
+        .. "+18 Mercantile, +18 Speechcraft)",
     hidden = perkHidden(GUILD, 6, 10),
-    art = "textures\\levelup\\healer", cost = 3,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(hh2_id),
-        R().minimumFactionRank('hlaalu', 6),
+        FactionGroupRank("hlaalu",6),
         R().minimumAttributeLevel('personality', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() setRank(3) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function()
+        setRank(3)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = hh4_id,
     localizedName = "Councillor's Ear",
-    localizedDescription = "A Councillor of House Hlaalu considers you a trusted confidant. "
-        .. "Merchants can barely bring themselves to refuse you anything.\
- "
-        .. "Requires Trade Acumen. "
-        .. "(+15 Personality, +15 Agility, +25 Mercantile, +25 Speechcraft)",
+    category = {"Great Houses", "House Hlaalu", 4},
+    localizedFlavour = "A Councillor of House Hlaalu considers you a trusted confidant. "
+        .. "Merchants can barely bring themselves to refuse you anything.",
+    localizedDescription = "Grants the following stats: (+15 Personality, +15 Agility, "
+        .. "+25 Mercantile, +25 Speechcraft)",
     hidden = perkHidden(GUILD, 9, 15),
-    art = "textures\\levelup\\healer", cost = 4,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(hh3_id),
-        R().minimumFactionRank('hlaalu', 9),
+        FactionGroupRank("hlaalu",9),
         R().minimumAttributeLevel('personality', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function()
+        setRank(4)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        reportAAM()
+        end,
 })
 
 -- ============================================================
 --  ENGINE CALLBACKS
 -- ============================================================
+local function onSave()
+    return { appliedStats = appliedStats }
+end
+
+local function onLoad(data)
+    data = data or {}
+    local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+    -- Clear so setRank re-populates cleanly on re-fire
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
+end
+
 return {
     eventHandlers = {
         UiModeChanged = hhOnUiModeChanged,
+        onSave = onSave,
+        onLoad = onLoad,
     },
 }

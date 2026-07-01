@@ -24,6 +24,7 @@
 
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
 local perkHidden  = utils.perkHidden
 local GUILD        = utils.FACTION_GROUPS.redoran
 local interfaces  = require("openmw.interfaces")
@@ -32,21 +33,57 @@ local self        = require('openmw.self')
 local ui          = require('openmw.ui')
 local ambient     = require('openmw.ambient')
 
-local R = interfaces.ErnPerkFramework.requirements
+local R = utils.requirements
 
 local perkTable = {
-    [1] = { passive = {"FPerks_HR1_Passive"} },
-    [2] = { passive = {"FPerks_HR2_Passive"} },
-    [3] = { passive = {"FPerks_HR3_Passive"} },
-    [4] = { passive = {"FPerks_HR4_Passive"} },
+    [1] = { attributes = { strength=3,  endurance=3  }, skills = { mediumarmor=5,  athletics=5 } },
+    [2] = { attributes = { strength=5,  endurance=5  }, skills = { mediumarmor=10, athletics=10 } },
+    [3] = { attributes = { strength=10, endurance=10 }, skills = { mediumarmor=18, athletics=18 } },
+    [4] = { attributes = { strength=15, endurance=15 }, skills = { mediumarmor=25, athletics=25 } },
 }
+
+local appliedStats = { attributes = {}, skills = {} }
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
 
 local hr1_id = ns .. "_hr_redoran_pledge"
 local hr2_id = ns .. "_hr_burden_of_duty"
 local hr3_id = ns .. "_hr_unbroken_line"
 local hr4_id = ns .. "_hr_guardian_of_the_house"
 
-local setRank = utils.makeSetRank(perkTable, nil)
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+
+local function getHRRank()
+    if R().hasPerk(hr4_id).check() then return 4 end
+    if R().hasPerk(hr3_id).check() then return 3 end
+    if R().hasPerk(hr2_id).check() then return 2 end
+    if R().hasPerk(hr1_id).check() then return 1 end
+    return nil
+end
+
+local FACTION_DISPLAY_NAME = "Great House Redoran Perks"
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getHRRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
 
 -- ============================================================
 --  FORTIFY HEALTH - stat.modifier with onSave/onLoad
@@ -152,89 +189,120 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = hr1_id,
     localizedName = "Redoran Pledge",
-    localizedDescription = "You have pledged yourself to House Redoran's code of duty and honour.\
- "
-        .. "(+3 Strength, +3 Endurance, +10 Fortify Health, +5 Medium Armour, +5 Athletics)\
-\
-"
-        .. "Honour the Strength of the Great House Redoran: Scaling damage negation "
-        .. "threshold with Redoran Reputation. Doubled against Sixth House and Dreugh foes.",
+    category = {"Great Houses", "House Redoran", 1},
+    localizedFlavour = "House Redoran's code is simple: duty, honour, and the will to enforce both. "
+        .. "You have pledged yourself to that code, and the warriors of the House have taken note.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Strength, +3 Endurance, "
+        .. "+10 Fortify Health, +5 Medium Armour, +5 Athletics)\f"
+        .. "Effect 2: \n Strength of the Redoran: Incoming weapon hits below a damage threshold "
+        .. "are negated. Threshold scales with Redoran reputation. At reputation cap: 20 damage "
+        .. "threshold. Doubled against Sixth House and Dreugh enemies.",
     hidden = perkHidden(GUILD, 0, 1),
-    art = "textures\\levelup\\knight", cost = 1,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(1) end,
     requirements = {
-        R().minimumFactionRank('redoran', 0),
+        FactionGroupRank("redoran",0),
         R().minimumLevel(1),
     },
     onAdd = function()
         setRank(1)
         hasStrengthOfRedoran = true
         applyHealthMod(10)
+        reportAAM()
     end,
     onRemove = function()
         setRank(nil)
         hasStrengthOfRedoran = false
         applyHealthMod(0)
+        reportAAM()
     end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = hr2_id,
     localizedName = "Burden of Duty",
-    localizedDescription = "Redoran warriors do not complain - they endure. "
-        .. "The weight of armour and obligation have become one and the same to you.\
- "
-        .. "Requires Redoran Pledge. "
-        .. "(+5 Strength, +5 Endurance, +20 Fortify Health, +10 Medium Armour, +10 Athletics)",
+    category = {"Great Houses", "House Redoran", 2},
+    localizedFlavour = "Redoran warriors do not complain - they endure. "
+        .. "The weight of armour and obligation have become one and the same to you.",
+    localizedDescription = "Grants the following stats: (+5 Strength, +5 Endurance, "
+        .. "+20 Fortify Health, +10 Medium Armour, +10 Athletics)",
     hidden = perkHidden(GUILD, 3, 5),
-    art = "textures\\levelup\\knight", cost = 2,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(hr1_id),
-        R().minimumFactionRank('redoran', 3),
+        FactionGroupRank("redoran",3),
         R().minimumAttributeLevel('endurance', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2); applyHealthMod(20) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(2)
+        applyHealthMod(20)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = hr3_id,
     localizedName = "Unbroken Line",
-    localizedDescription = "House Redoran does not retreat. You have internalised this truth "
-        .. "until it became something closer to armour than principle.\
- "
-        .. "Requires Burden of Duty. "
-        .. "(+10 Strength, +10 Endurance, +35 Fortify Health, +18 Medium Armour, +18 Athletics)",
+    category = {"Great Houses", "House Redoran", 3},
+    localizedFlavour = "House Redoran does not retreat. You have internalised this truth "
+        .. "until it became something closer to armour than principle.",
+    localizedDescription = "Grants the following stats: (+10 Strength, +10 Endurance, "
+        .. "+35 Fortify Health, +18 Medium Armour, +18 Athletics)",
     hidden = perkHidden(GUILD, 6, 10),
-    art = "textures\\levelup\\knight", cost = 3,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(hr2_id),
-        R().minimumFactionRank('redoran', 6),
+        FactionGroupRank("redoran",6),
         R().minimumAttributeLevel('endurance', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() setRank(3); applyHealthMod(35) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(3)
+        applyHealthMod(35)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = hr4_id,
     localizedName = "Guardian of the House",
-    localizedDescription = "You are House Redoran's shield made flesh. Your honour is "
-        .. "unimpeachable, your resolve unyielding.\
- "
-        .. "Requires Unbroken Line. "
-        .. "(+15 Strength, +15 Endurance, +50 Fortify Health, +25 Medium Armour, +25 Athletics)",
+    category = {"Great Houses", "House Redoran", 4},
+    localizedFlavour = "You are House Redoran's shield made flesh. "
+        .. "Your honour is unimpeachable, your resolve unyielding.",
+    localizedDescription = "Grants the following stats: (+15 Strength, +15 Endurance, "
+        .. "+50 Fortify Health, +25 Medium Armour, +25 Athletics)",
     hidden = perkHidden(GUILD, 9, 15),
-    art = "textures\\levelup\\knight", cost = 4,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(hr3_id),
-        R().minimumFactionRank('redoran', 9),
+        FactionGroupRank("redoran",9),
         R().minimumAttributeLevel('endurance', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4); applyHealthMod(50) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(4)
+        applyHealthMod(50)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 -- ============================================================
@@ -244,12 +312,30 @@ interfaces.ErnPerkFramework.registerPerk({
 local function onSave()
     return {
         appliedHealthMod = appliedHealthMod,
+        appliedStats = appliedStats
     }
 end
 
 local function onLoad(data)
     data = data or {}
     appliedHealthMod = data.appliedHealthMod or 0
+    
+    local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+    -- Clear so setRank re-populates cleanly on re-fire
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
 end
 
 return {

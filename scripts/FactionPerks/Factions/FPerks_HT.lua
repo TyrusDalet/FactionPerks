@@ -42,6 +42,7 @@
 
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
 local perkHidden  = utils.perkHidden
 local safeAddSpell  = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell
@@ -52,16 +53,62 @@ local self        = require('openmw.self')
 local ui          = require('openmw.ui')
 local core        = require('openmw.core')
 
-local R = interfaces.ErnPerkFramework.requirements
+local R = utils.requirements
 
 local perkTable = {
-    [1] = { passive = {"FPerks_HT1_Passive"} },
-    [2] = { passive = {"FPerks_HT2_Passive"} },
-    [3] = { passive = {"FPerks_HT3_Passive"} },
-    [4] = { passive = {"FPerks_HT4_Passive"} },
+    [1] = { attributes = { intelligence=3,  willpower=3  }, skills = { enchant=5,  conjuration=5 } },
+    [2] = { attributes = { intelligence=5,  willpower=5  }, skills = { enchant=10, conjuration=10 } },
+    [3] = { attributes = { intelligence=10, willpower=10 },
+            skills = { enchant=18, conjuration=18 },
+            passive = { "FPerks_HT3_Restore_Magicka_1" } },
+    [4] = { attributes = { intelligence=15, willpower=15 },
+            skills = { enchant=25, conjuration=25 },
+            passive = { "FPerks_HT4_Restore_Magicka_2" } },
 }
 
-local setRank = utils.makeSetRank(perkTable, nil)
+local appliedStats = { attributes = {}, skills = {} }
+
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
+
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "Great House Telvanni Perks"
+
+local ht1_id = ns .. "_ht_uninvited_student"
+local ht2_id = ns .. "_ht_tower_sorcery"
+local ht3_id = ns .. "_ht_self_made_power"
+local ht4_id = ns .. "_ht_telvanni_lord"
+
+local function getHTRank()
+    if R().hasPerk(ht4_id).check() then return 4 end
+    if R().hasPerk(ht3_id).check() then return 3 end
+    if R().hasPerk(ht2_id).check() then return 2 end
+    if R().hasPerk(ht1_id).check() then return 1 end
+    return nil
+end
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getHTRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
+
 
 -- ============================================================
 --  WIT OF THE TELVANNI - shared state
@@ -445,32 +492,29 @@ end
 --  HOUSE TELVANNI PERKS
 -- ============================================================
 
-local ht1_id = ns .. "_ht_uninvited_student"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht1_id,
     localizedName = "Uninvited Student",
-    localizedDescription = "House Telvanni does not recruit - it tolerates those strong "
-        .. "enough to push their way in. You have done so. For now, that is enough.\
- "
-        .. "(+3 Intelligence, +3 Willpower, +5 Enchant, +5 Conjuration, "
-        .. "grants Bound Helm and Bound Cuirass)\
-\
-"
-        .. "Honour the Wit of the Great House Telvanni: Cast on Use enchantments "
-        .. "that target yourself are augmented based on your Telvanni reputation. "
-        .. "At reputation cap: effects are 250% of their base magnitude.\
-"
-        .. "Constant Effect enchantments on equipped items are permanently "
-        .. "augmented. Harmful effects are never boosted. "
-        .. "At reputation cap: effects are 200% of their base magnitude.",
+    category = {"Great Houses", "House Telvanni", 1},
+    localizedFlavour = "House Telvanni does not recruit - it tolerates those strong enough to push "
+        .. "their way in. You have done so. For now, that is enough.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+3 Intelligence, +3 Willpower, "
+        .. "+5 Enchant, +5 Conjuration)\f"
+        .. "Effect 2: \n Grants Bound Helm and Bound Cuirass.\f"
+        .. "Effect 3: \n Wit of Telvanni: Cast on Use enchantments targeting yourself are augmented "
+        .. "based on Telvanni reputation. At reputation cap: +150% effect magnitude. "
+        .. "Constant Effect enchantments on equipped items are permanently augmented. "
+        .. "At reputation cap: +100% effect magnitude. Harmful effects are never boosted.",
     hidden = perkHidden(GUILD, 0, 1),
-    art = "textures\\levelup\\mage", cost = 1,
+    art = "textures\\levelup\\mage",
+    cost = function() return utils.perkCost(1) end,
     requirements = {
-        R().minimumFactionRank('telvanni', 0),
+        FactionGroupRank("telvanni",0),
         R().minimumLevel(1),
     },
     onAdd = function()
         setRank(1)
+        reportAAM()
         safeAddSpell("bound helm")
         safeAddSpell("bound cuirass")
         hasWitOfTelvanni = true
@@ -479,10 +523,10 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
     onRemove = function()
         setRank(nil)
+        reportAAM()
         safeRemoveSpell("bound helm")
         safeRemoveSpell("bound cuirass")
         hasWitOfTelvanni     = false
-        currentEnchantedItem = nil
         lastHTCellId         = nil
         for itemRecordId, entry in pairs(activeCastOnUseBonuses) do
             reverseCastOnUseEntry(itemRecordId, entry)
@@ -491,83 +535,91 @@ interfaces.ErnPerkFramework.registerPerk({
     end,
 })
 
-local ht2_id = ns .. "_ht_tower_sorcery"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht2_id,
     localizedName = "Tower Sorcery",
-    localizedDescription = "Telvanni wizards are defined by their mastery of enchantment. "
-        .. "You have begun to understand the principles that animate their towers "
-        .. "and servants.\
- "
-        .. "Requires Uninvited Student. "
-        .. "(+5 Intelligence, +5 Willpower, +10 Enchant, +10 Conjuration, "
-        .. "grants Tranasa's Spelltrap)",
+    category = {"Great Houses", "House Telvanni", 2},
+    localizedFlavour = "Telvanni wizards are defined by their mastery of enchantment. "
+        .. "You have begun to understand the principles that animate their towers and servants.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Intelligence, +5 Willpower, "
+        .. "+10 Enchant, +10 Conjuration)\f"
+        .. "Effect 2: \n Grants Tranasa's Spelltrap.",
     hidden = perkHidden(GUILD, 3, 5),
-    art = "textures\\levelup\\mage", cost = 2,
+    art = "textures\\levelup\\mage",
+    cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(ht1_id),
-        R().minimumFactionRank('telvanni', 3),
+        FactionGroupRank("telvanni",3),
         R().minimumAttributeLevel('intelligence', 40),
         R().minimumLevel(5),
     },
     onAdd = function()
         setRank(2)
+        reportAAM()
         safeAddSpell("tranasa's spelltrap")
     end,
     onRemove = function()
         setRank(nil)
+        reportAAM()
         safeRemoveSpell("tranasa's spelltrap")
     end,
 })
 
-local ht3_id = ns .. "_ht_self_made_power"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht3_id,
     localizedName = "Self-Made Power",
-    localizedDescription = "House Telvanni respects only power earned, never granted. "
-        .. "You have shaped yourself through relentless study.\
- "
-        .. "Requires Tower Sorcery. "
-        .. "(+10 Intelligence, +10 Willpower, +18 Enchant, +18 Conjuration, "
-        .. "Fortify Maximum Magicka 0.5x Intelligence, Restore Magicka 1pt/s)",
+    category = {"Great Houses", "House Telvanni", 3},
+    localizedFlavour = "House Telvanni respects only power earned, never granted. "
+        .. "You have shaped yourself through relentless study.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Intelligence, +10 Willpower, "
+        .. "+18 Enchant, +18 Conjuration)\f"
+        .. "Effect 2: \n Fortify Maximum Magicka by 0.5x Intelligence. Restore Magicka 1pt/s.",
     hidden = perkHidden(GUILD, 6, 10),
-    art = "textures\\levelup\\mage", cost = 3,
+    art = "textures\\levelup\\mage",
+    cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(ht2_id),
-        R().minimumFactionRank('telvanni', 6),
+        FactionGroupRank("telvanni",6),
         R().minimumAttributeLevel('intelligence', 50),
         R().minimumLevel(10),
     },
     onAdd = function()
         setRank(3)
+        reportAAM()
     end,
     onRemove = function()
         setRank(nil)
+        reportAAM()
     end,
 })
 
-local ht4_id = ns .. "_ht_telvanni_lord"
 interfaces.ErnPerkFramework.registerPerk({
     id = ht4_id,
     localizedName = "Telvanni Lord",
-    localizedDescription = "You are acknowledged by the Telvanni masters - a rare "
-        .. "concession from those who acknowledge no one. The heights are yours "
-        .. "to claim.\
- "
-        .. "Requires Self-Made Power. "
-        .. "(+15 Intelligence, +15 Willpower, +25 Enchant, +25 Conjuration, "
-        .. "Fortify Maximum Magicka 1.0x Intelligence, "
-        .. "additional Restore Magicka 2pt/s)",
+    category = {"Great Houses", "House Telvanni", 4},
+    localizedFlavour = "You are acknowledged by the Telvanni masters - a rare concession from those "
+        .. "who acknowledge no one. The heights are yours to claim.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Intelligence, +15 Willpower, "
+        .. "+25 Enchant, +25 Conjuration)\f"
+        .. "Effect 2: \n Fortify Maximum Magicka by 1.0x Intelligence. "
+        .. "Restore Magicka 2pt/s.",
     hidden = perkHidden(GUILD, 9, 15),
-    art = "textures\\levelup\\mage", cost = 4,
+    art = "textures\\levelup\\mage",
+    cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(ht3_id),
-        R().minimumFactionRank('telvanni', 9),
+        FactionGroupRank("telvanni",9),
         R().minimumAttributeLevel('intelligence', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function()
+        setRank(4)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        reportAAM()
+        end,
 })
 
 -- ============================================================
@@ -605,6 +657,7 @@ local function onSave()
     return {
         activeCastOnUseBonuses = activeCastOnUseBonuses,
         activeConstantBoosts   = activeConstantBoosts,
+        appliedStats = appliedStats
     }
 end
 
@@ -614,6 +667,22 @@ local function onLoad(data)
     -- stat.modifier from the save file, so nothing is re-applied.
     activeCastOnUseBonuses = data.activeCastOnUseBonuses or {}
     activeConstantBoosts   = data.activeConstantBoosts   or {}
+    local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+    -- Clear so setRank re-populates cleanly on re-fire
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
 end
 
 return {

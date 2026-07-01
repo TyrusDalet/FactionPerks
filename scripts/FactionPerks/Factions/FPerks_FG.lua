@@ -19,6 +19,7 @@ FG:
 
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
 local perkHidden  = utils.perkHidden
 local safeAddSpell  = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell
@@ -29,21 +30,58 @@ local self       = require('openmw.self')
 local core       = require('openmw.core')
 local ambient    = require('openmw.ambient')
 
-local R = interfaces.ErnPerkFramework.requirements
+local R = utils.requirements
 
 local perkTable = {
-    [1] = { passive = {"FPerks_FG1_Passive"} },
-    [2] = { passive = {"FPerks_FG2_Passive"} },
-    [3] = { passive = {"FPerks_FG3_Passive"} },
-    [4] = { passive = {"FPerks_FG4_Passive"} }
+    [1] = { attributes = { endurance=3,  strength=3  }, skills = { longblade=5,  bluntweapon=5, axe=5  } },
+    [2] = { attributes = { endurance=5,  strength=5  }, skills = { longblade=10, bluntweapon=10, axe=10 } },
+    [3] = { attributes = { endurance=10, strength=10 }, skills = { longblade=18, bluntweapon=18, axe=18 } },
+    [4] = { attributes = { endurance=15, strength=15 }, skills = { longblade=25, bluntweapon=25, axe=25 } },
 }
+
+local appliedStats = { attributes = {}, skills = {} }
+
 
 local fg1_id = ns .. "_fg_dues_paid"
 local fg2_id = ns .. "_fg_iron_discipline"
 local fg3_id = ns .. "_fg_battle_tested"
 local fg4_id = ns .. "_fg_champion_of_the_guild"
 
-local setRank = utils.makeSetRank(perkTable, nil)
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
+
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "Fighter's Guild Perks"
+
+local function getFGRank()
+    if R().hasPerk(fg4_id).check() then return 4 end
+    if R().hasPerk(fg3_id).check() then return 3 end
+    if R().hasPerk(fg2_id).check() then return 2 end
+    if R().hasPerk(fg1_id).check() then return 1 end
+    return nil
+end
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getFGRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
 
 -- ============================================================
 --  FORTIFY HEALTH - stat.modifier with onSave/onLoad
@@ -150,73 +188,90 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = fg1_id,
     localizedName = "Dues Paid",
-    localizedDescription = "The basic drills are already sharpening your edge.\
- "
-        .. "(+3 Strength, +3 Endurance, +10 Fortify Health, "
-        .. "+5 Long Blade, +5 Blunt Weapon, +5 Axe)",
+    category = {"Imperial Factions", "Fighter's Guild", 1},
+    localizedFlavour = "The basic drills are already sharpening your edge.",
+    localizedDescription = "Grants the following stats: (+3 Strength, +3 Endurance, "
+        .. "+10 Fortify Health, +5 Long Blade, +5 Blunt Weapon, +5 Axe)",
     hidden = perkHidden(GUILD, 0, 1),
-    art = "textures\\levelup\\knight", cost = 1,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(1) end,
     requirements = {
-        R().minimumFactionRank('fighters guild', 0),
+        FactionGroupRank("fightersGuild",0),
         R().minimumLevel(1)
     },
-    onAdd    = function() setRank(1); applyHealthMod(10) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(1)
+        applyHealthMod(10)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = fg2_id,
     localizedName = "Iron Discipline",
-    localizedDescription = "The Guild's contracts have hardened you. "
-        .. "You wade into battle with the confidence of experience. "
-        .. "When an enemy swings and misses, you punish the opening immediately.\
- "
-        .. "Requires Dues Paid. "
-        .. "(+5 Strength, +5 Endurance, +20 Fortify Health, "
-        .. "+10 Long Blade, +10 Blunt Weapon, +10 Axe)\
-\
-"
-        .. "Counter Attack: When an enemy misses you with a weapon, "
+    category = {"Imperial Factions", "Fighter's Guild", 2},
+    localizedFlavour = "The Guild's contracts have hardened you. "
+        .. "You wade into battle with the confidence of experience.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Strength, +5 Endurance, "
+        .. "+20 Fortify Health, +10 Long Blade, +10 Blunt Weapon, +10 Axe)\f"
+        .. "Effect 2: \n Counter Attack: When an enemy misses you with a weapon, "
         .. "you immediately strike back. 10s cooldown.",
     hidden = perkHidden(GUILD, 3, 5),
-    art = "textures\\levelup\\knight", cost = 2,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(fg1_id),
-        R().minimumFactionRank('fighters guild', 3),
+        FactionGroupRank("fightersGuild",3),
         R().minimumAttributeLevel('strength', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2); applyHealthMod(20) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(2)
+        applyHealthMod(20)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = fg3_id,
     localizedName = "Battle Tested",
-    localizedDescription = "Daedra, bandits, necromancers - you have killed them all on contract. "
-        .. "When the moment demands it, you can call upon a terrifying fury. "
-        .. "Your counter attack cooldown is reduced.\
- "
-        .. "Requires Iron Discipline. "
-        .. "(+10 Strength, +10 Endurance, +35 Fortify Health, "
-        .. "+18 Long Blade, +18 Blunt Weapon, +18 Axe, grants Martial Rage power)\
-\
-"
-        .. "Counter Attack cooldown reduced to 6s.",
+    category = {"Imperial Factions", "Fighter's Guild", 3},
+    localizedFlavour = "Daedra, bandits, necromancers - you have killed them all on contract. "
+        .. "When the moment demands it, you can call upon a terrifying fury.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Strength, +10 Endurance, "
+        .. "+35 Fortify Health, +18 Long Blade, +18 Blunt Weapon, +18 Axe)\f"
+        .. "Effect 2: \n Grants Martial Rage (1/day): Fortify Health 50pts, Fortify Fatigue 200pts, "
+        .. "Fortify Attack 100pts for 30s.\f"
+        .. "Effect 3: \n Counter Attack cooldown reduced to 6s.",
     hidden = perkHidden(GUILD, 6, 10),
-    art = "textures\\levelup\\knight", cost = 3,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(fg2_id),
-        R().minimumFactionRank('fighters guild', 6),
+        FactionGroupRank("fightersGuild",6),
         R().minimumAttributeLevel('strength', 50),
         R().minimumLevel(10),
     },
     onAdd = function()
-        setRank(3); applyHealthMod(35)
+        setRank(3)
+        applyHealthMod(35)
+        reportAAM()
         safeAddSpell("FPerks_FG3_Enrage")
     end,
     onRemove = function()
-        setRank(nil); applyHealthMod(0)
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
         safeRemoveSpell("FPerks_FG3_Enrage")
     end,
 })
@@ -224,25 +279,31 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = fg4_id,
     localizedName = "Champion of the Guild",
-    localizedDescription = "The Fighters Guild holds you as one of its finest. "
-        .. "Your counter attack is now almost instantaneous.\
- "
-        .. "Requires Battle Tested. "
-        .. "(+15 Strength, +15 Endurance, +50 Fortify Health, "
-        .. "+25 Long Blade, +25 Blunt Weapon, +25 Axe)\
-\
-"
-        .. "Counter Attack cooldown reduced to 1.5s.",
+    category = {"Imperial Factions", "Fighter's Guild", 4},
+    localizedFlavour = "The Fighters Guild holds you as one of its finest. "
+        .. "Your counter attack is now almost instantaneous.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Strength, +15 Endurance, "
+        .. "+50 Fortify Health, +25 Long Blade, +25 Blunt Weapon, +25 Axe)\f"
+        .. "Effect 2: \n Counter Attack cooldown reduced to 1.5s.",
     hidden = perkHidden(GUILD, 9, 15),
-    art = "textures\\levelup\\knight", cost = 4,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(fg3_id),
-        R().minimumFactionRank('fighters guild', 9),
+        FactionGroupRank("fightersGuild",9),
         R().minimumAttributeLevel('strength', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4); applyHealthMod(50) end,
-    onRemove = function() setRank(nil); applyHealthMod(0) end,
+    onAdd    = function()
+        setRank(4)
+        applyHealthMod(50)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyHealthMod(0)
+        reportAAM()
+        end,
 })
 
 -- ============================================================
@@ -252,12 +313,34 @@ interfaces.ErnPerkFramework.registerPerk({
 local function onSave()
     return {
         appliedHealthMod = appliedHealthMod,
+        appliedStats = appliedStats
     }
 end
 
 local function onLoad(data)
     data = data or {}
     appliedHealthMod = data.appliedHealthMod or 0
+        -- Manually reverse any saved stat modifiers now, before the framework
+    -- re-fires onAdd. This ensures setRank starts from zero and applies
+    -- cleanly without intermediate states that confuse AAM.
+    local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+
+    -- Mutate in-place so makeSetRank's captured reference stays valid.
+    -- appliedStats is now empty; setRank will re-populate it cleanly.
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
 end
 
 return {

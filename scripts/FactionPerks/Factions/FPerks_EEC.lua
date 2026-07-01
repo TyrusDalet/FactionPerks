@@ -47,6 +47,7 @@
 
 local ns              = require("scripts.FactionPerks.namespace")
 local utils           = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
 local perkHidden      = utils.perkHidden
 local safeAddSpell    = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell
@@ -59,7 +60,7 @@ local ui              = require('openmw.ui')
 local nearby          = require('openmw.nearby')
 local storage         = require('openmw.storage')
 
-local R = interfaces.ErnPerkFramework.requirements
+local R = utils.requirements
 
 -- ============================================================
 --  TAMRIEL DATA / STOCK EXCHANGE FRAMEWORK
@@ -115,11 +116,15 @@ local EEC_STOCK_BONUS = {
 }
 
 local perkTable = {
-    [1] = { passive = {"FPerks_EEC1_Passive"} },
-    [2] = { passive = {"FPerks_EEC2_Passive"} },
-    [3] = { passive = {"FPerks_EEC3_Passive"} },
-    [4] = { passive = {"FPerks_EEC4_Passive"} },
+    [1] = { attributes = { personality=3,  willpower=3  }, skills = { mercantile=5,  speechcraft=5 } },
+    [2] = { attributes = { personality=5,  willpower=5  }, skills = { mercantile=10, speechcraft=10 } },
+    [3] = { attributes = { personality=10, willpower=10 }, skills = { mercantile=18, speechcraft=18 } },
+    [4] = { attributes = { personality=15, willpower=15 }, skills = { mercantile=25, speechcraft=25 } },
 }
+
+local appliedStats = { attributes = {}, skills = {} }
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
+
 
 -- Perk id prep
 local eec1_id = ns .. "_eec_company_charter"
@@ -127,8 +132,40 @@ local eec2_id = ns .. "_eec_empires_coffers"
 local eec3_id = ns .. "_eec_established_routes"
 local eec4_id = ns .. "_eec_senior_factor"
 
-local setRank = utils.makeSetRank(perkTable, nil)
 
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "East Empire Company Perks"
+
+local function getEECRank()
+    if R().hasPerk(eec4_id).check() then return 4 end
+    if R().hasPerk(eec3_id).check() then return 3 end
+    if R().hasPerk(eec2_id).check() then return 2 end
+    if R().hasPerk(eec1_id).check() then return 1 end
+    return nil
+end
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getEECRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
 -- ============================================================
 --  EMPIRE'S COFFERS STATE
 -- ============================================================
@@ -575,53 +612,60 @@ end
 interfaces.ErnPerkFramework.registerPerk({
     id = eec1_id,
     localizedName = "Company Charter",
-    localizedDescription = "You have been granted a trading licence by the East Empire Company. "
-        .. "The Company's name and reputation open doors that gold alone cannot.\
- "
-        .. "(+3 Personality, +3 Willpower, +5 Mercantile, +5 Speechcraft)",
+    category = {"Imperial Factions", "East Empire Company", 1},
+    localizedFlavour = "You have been granted a trading licence by the East Empire Company. "
+        .. "The Company's name and reputation open doors that gold alone cannot.",
+    localizedDescription = "Grants the following stats: (+3 Personality, +3 Willpower, +5 Mercantile, +5 Speechcraft)",
     hidden = perkHidden(GUILD, 0, 1),
-    art = "textures\\levelup\\healer", cost = 1,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(1) end,
     requirements = {
-        R().minimumFactionRank('east empire company', 0),
+        FactionGroupRank("eastEmpireCompany",0),
         R().minimumLevel(1),
     },
-    onAdd    = function() setRank(1) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function()
+        setRank(1)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = eec2_id,
     localizedName = "Empire's Coffers",
-    localizedDescription = "The weight of the Company's treasury stands behind your every trade. "
+    category = {"Imperial Factions", "East Empire Company", 2},
+    localizedFlavour = "The weight of the Company's treasury stands behind your every trade. "
         .. "Merchants who deal with you find their available gold bolstered by the "
-        .. "Company's credit - a permanent arrangement for as long as you hold its favour.\
- "
-        .. "Requires Company Charter. "
-        .. "(+5 Personality, +5 Willpower, +10 Mercantile, +10 Speechcraft)\
-\
-"
-        .. "Empire's Coffers: The first time you speak with a merchant, they receive "
-        .. "a permanent boost to their available barter gold: "
-        .. "+50 or +10% of their base gold, whichever is greater."
+        .. "Company's credit - a permanent arrangement for as long as you hold its favour.",
+    localizedDescription =  
+            "Effect 1: \n Grants the following stats: (+5 Personality, +5 Willpower, +10 Mercantile, +10 Speechcraft)\f"
+        ..  "Effect 2: \n Empires Coffers: The first time you speak with a merchant, they receive "
+        ..  "a permanent boost to their available barter gold: "
+        ..  "+50 or +10% of their base gold, whichever is greater."
         .. (hasTamrielData and
-            "\
- Stock Exchange: An additional bonus of 0.1% of your EEC portfolio value is added, "
+            "\f Effect 3: \n Stock Exchange: An additional bonus of 0.1% of your EEC portfolio value is added, "
             .. "capped at 20% of the merchant's base gold."
             or ""),
     hidden = perkHidden(GUILD, 2, 5),
-    art = "textures\\levelup\\healer", cost = 2,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(eec1_id),
-        R().minimumFactionRank('east empire company', 2),
+        FactionGroupRank("eastEmpireCompany",2),
         R().minimumAttributeLevel('personality', 40),
         R().minimumLevel(5),
     },
     onAdd = function()
         setRank(2)
+        reportAAM()
         hasEECCoffers = true
     end,
     onRemove = function()
         setRank(nil)
+        reportAAM()
         -- P2 gates the entire Coffers mechanic. Clearing here handles all
         -- cleanup even if P3/P4 are also being removed by a respec.
         eecClearAllBonuses()
@@ -631,66 +675,69 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = eec3_id,
     localizedName = "Established Routes",
-    localizedDescription = "The Company's trade network spans sea and shore. "
-        .. "Merchants across Vvardenfell recognise you as a person of consequence.\
- "
-        .. "Requires Empire's Coffers. "
-        .. "(+10 Personality, +10 Willpower, +18 Mercantile, +18 Speechcraft)\
-\
-"
-        .. "Empire's Coffers increases to +150 or +25% of base gold."
+    category = {"Imperial Factions", "East Empire Company", 3},
+    localizedFlavour = "The Company's trade network spans sea and shore. "
+        .. "Merchants across Vvardenfell recognise you as a person of consequence.",
+    localizedDescription = 
+            "Effect 1: \n Grants the following stats: (+10 Personality, +10 Willpower, +18 Mercantile, +18 Speechcraft)\f"
+        .. "Effect 2: \n Empire's Coffers increases to +150 or +25% of base gold."
         .. (hasTamrielData and
-            "\
- Stock Exchange cap increases to 50% of base gold."
+            "\f Effect 3: \n Stock Exchange cap increases to 50% of base gold."
             or ""),
     hidden = perkHidden(GUILD, 5, 10),
-    art = "textures\\levelup\\healer", cost = 3,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(eec2_id),
-        R().minimumFactionRank('east empire company', 5),
+        FactionGroupRank("eastEmpireCompany",5),
         R().minimumAttributeLevel('personality', 50),
         R().minimumLevel(10),
     },
-    onAdd    = function() setRank(3); upgradeNearbyMerchants(3) end,
-    onRemove = function() setRank(nil) end,
+    onAdd    = function()
+        setRank(3)
+        upgradeNearbyMerchants(3)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = eec4_id,
     localizedName = "Senior Factor",
-    localizedDescription = "You hold the Company's highest confidence. "
+    category = {"Imperial Factions", "East Empire Company", 4},
+    localizedFlavour = "You hold the Company's highest confidence. "
         .. "Once each day, you may invoke the full weight of the Company's promise, "
         .. "sharpening your mercantile instincts and flooding merchants' coffers "
-        .. "far beyond their normal limits.\
- "
-        .. "Requires Established Routes. "
-        .. "(+15 Personality, +15 Willpower, +25 Mercantile, +25 Speechcraft)\
-\
-"
-        .. "Empire's Coffers increases to +250 or +50% of base gold.\
-\
-"
-        .. "Factor's Promise (1/day): Fortify Mercantile +100 for 30s. "
-        .. "Empire's Coffers is tripled in effectiveness for the duration."
+        .. "far beyond their normal limits.",
+    localizedDescription =
+            "Effect 1: \n Grants the following stats: (+15 Personality, +15 Willpower, +25 Mercantile, +25 Speechcraft)\f"
+        ..  "Effect 2: \n Empire's Coffers increases to +250 or +50% of base gold.\f"
+        ..  "Effect 3: \n Grants Factor's Promise (1/day): Fortify Mercantile +100 for 30s. "
+        ..  "Empire's Coffers is tripled in effectiveness for the duration."
         .. (hasTamrielData and
-            "\
- Stock Exchange cap increases to 100% of base gold."
+            "\f Effect 4: \n Stock Exchange cap increases to 100% of base gold."
             or ""),
     hidden = perkHidden(GUILD, 8, 15),
-    art = "textures\\levelup\\healer", cost = 4,
+    art = "textures\\levelup\\healer",
+    cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(eec3_id),
-        R().minimumFactionRank('east empire company', 8),
+        FactionGroupRank("eastEmpireCompany",8),
         R().minimumAttributeLevel('personality', 75),
         R().minimumLevel(15),
     },
     onAdd = function()
         setRank(4)
+        reportAAM()
         upgradeNearbyMerchants(4)
         safeAddSpell("FPerks_EEC4_FactorPromise")
     end,
     onRemove = function()
         setRank(nil)
+        reportAAM()
         safeRemoveSpell("FPerks_EEC4_FactorPromise")
     end,
 })
@@ -712,6 +759,7 @@ local function onSave()
     end
     return {
         eecBoostedMerchants = savedMerchants,
+        appliedStats = appliedStats
     }
 end
 
@@ -726,6 +774,22 @@ local function onLoad(data)
     eecBoostedMerchants = {}
     -- Factor's Promise lasts 30s and cannot survive a load.
     eecFactorActive = false
+        local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+    -- Clear so setRank re-populates cleanly on re-fire
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
 end
 
 -- ============================================================

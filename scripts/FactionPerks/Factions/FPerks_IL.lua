@@ -28,6 +28,7 @@
 
 local ns          = require("scripts.FactionPerks.namespace")
 local utils       = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
 local perkHidden  = utils.perkHidden
 local safeAddSpell  = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell
@@ -38,21 +39,26 @@ local self        = require('openmw.self')
 local core        = require('openmw.core')
 local ambient     = require('openmw.ambient')
 
-local R = interfaces.ErnPerkFramework.requirements
+local R = utils.requirements
 
 local perkTable = {
-    [1] = { passive = {"FPerks_IL1_Passive"} },
-    [2] = { passive = {"FPerks_IL2_Passive"} },
-    [3] = { passive = {"FPerks_IL3_Passive"} },
-    [4] = { passive = {"FPerks_IL4_Passive"} },
+    [1] = { attributes = { endurance=3,  strength=3  }, skills = { heavyarmor=5,  block=5  } },
+    [2] = { attributes = { endurance=5,  strength=5  }, skills = { heavyarmor=10, block=10 } },
+    [3] = { attributes = { endurance=10, strength=10 }, skills = { heavyarmor=18, block=18 } },
+    [4] = { attributes = { endurance=15, strength=15 },
+            skills = { heavyarmor=25, block=25 },
+            passive = {"FPerks_IL4_Restore_Phys"} },
 }
+
+local appliedStats = { attributes = {}, skills = {} }
+
 
 local il1_id = ns .. "_il_legion_recruit"
 local il2_id = ns .. "_il_shield_wall"
 local il3_id = ns .. "_il_forced_march"
 local il4_id = ns .. "_il_legate"
 
-local setRank = utils.makeSetRank(perkTable, nil)
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
 
 -- ============================================================
 --  FORTIFY FATIGUE - stat.modifier with onSave/onLoad
@@ -89,8 +95,10 @@ local function getILRank()
     if R().hasPerk(il4_id).check() then return 4 end
     if R().hasPerk(il3_id).check() then return 3 end
     if R().hasPerk(il2_id).check() then return 2 end
+    if R().hasPerk(il1_id).check() then return 1 end
     return nil
 end
+
 
 interfaces.Combat.addOnHitHandler(function(attack)
     ilLastAttacker     = nil
@@ -100,7 +108,12 @@ interfaces.Combat.addOnHitHandler(function(attack)
     if not rank then return end
     if not attack.attacker or not attack.attacker:isValid() then return end
     if not attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
-    if not attack.damage == 0 then return end
+    if not attack.damage then return end
+    if attack.damage then --If the attack has damage inside it
+        local healthDmg  = attack.damage.health  or 0 -- Get the health damage dealt
+        local fatigueDmg = attack.damage.fatigue or 0 -- Get the fatigue damage dealt
+        if healthDmg > 0 and fatigueDmg > 0 then return end -- If the attack did ANY damage, then do not return damage
+    end
 
     ilLastAttacker     = attack.attacker
     ilFatigueBeforeHit = types.Actor.stats.dynamic.fatigue(self).current
@@ -110,7 +123,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if skillId ~= "block" then return end
 
     local rank = getILRank()
-    if not rank or rank > 3 then return end
+    if not rank and rank > 3 then return end
     if not ilLastAttacker or not ilLastAttacker:isValid() then return end
 
     local blockSkill = types.NPC.stats.skills.block(self).modified
@@ -148,7 +161,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
 end)
 
 -- ============================================================
---  CARTOGRAPHY CONSOLE COMMANDS
+--  LEGION CONSOLE COMMANDS
 --  lua il debug             - prints debug information
 -- ============================================================
 
@@ -162,75 +175,112 @@ local function onConsoleCommand(mode, command)
 end
 
 -- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "Imperial Legion Perks"
+
+local function reportAAM()
+    if not interfaces.AAM then return end
+    local rank = getILRank() -- your faction's getXXRank() function
+    if not rank then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+        return
+    end
+    local rankData = perkTable[rank]
+    local report = {}
+    for id, val in pairs(rankData.attributes or {}) do report[id] = val end
+    for id, val in pairs(rankData.skills     or {}) do report[id] = val end
+    if next(report) then
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, report)
+    else
+        interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
+    end
+end
+
+-- ============================================================
 --  IMPERIAL LEGION PERKS
 -- ============================================================
 
 local function guildRank(rank)
-    local reqs = {
-        R().minimumFactionRank('imperial legion', rank),
-    }
-    if core.contentFiles.has("tamriel_data.esm") then
-        table.insert(reqs, R().minimumFactionRank('t_cyr_imperiallegion', rank))
-        table.insert(reqs, R().minimumFactionRank('t_sky_imperiallegion', rank))
-    end
-    if #reqs == 1 then return reqs[1] end
-    return R().orGroup(table.unpack(reqs))
+    return FactionGroupRank("imperialLegion", rank)
 end
 
 interfaces.ErnPerkFramework.registerPerk({
     id = il1_id,
     localizedName = "Legion Recruit",
-    localizedDescription = "You have sworn the oath and donned the cuirass. "
-        .. "The Legion's drillmasters have improved your guard.\
- "
-        .. "(+3 Endurance, +3 Strength, +5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
+    category = {"Imperial Factions", "Imperial Legion", 1},
+    localizedFlavour = "You have sworn the oath and donned the cuirass. "
+        .. "The Legion's drillmasters have improved your guard.",
+    localizedDescription = "Grants the following stats: (+3 Endurance, +3 Strength, "
+        .. "+5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
     hidden = perkHidden(GUILD, 0, 1),
-    art = "textures\\levelup\\knight", cost = 1,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(1) end,
     requirements = {
         guildRank(0),
         R().minimumLevel(1)
     },
-    onAdd    = function() setRank(1); applyFatigueMod(10) end,
-    onRemove = function() setRank(nil); applyFatigueMod(0) end,
+    onAdd    = function()
+        setRank(1)
+        applyFatigueMod(10)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = il2_id,
     localizedName = "Shield Wall",
-    localizedDescription = "You have mastered the disciplined defensive formations "
-        .. "of the Imperial army. When you block an attack, the force is turned "
-        .. "back against your attacker, and the effort of blocking costs you less.\
- "
-        .. "Requires Legion Recruit. "
-        .. "(+5 Endurance, +5 Strength, +10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\
-\
-"
-        .. "Legionary's Resolve: Blocking reflects damage to your attacker "
-        .. "based on your Block skill. Restores 30% of fatigue spent blocking.",
+    category = {"Imperial Factions", "Imperial Legion", 2},
+    localizedFlavour = "You have mastered the disciplined defensive formations of the Imperial army. "
+        .. "When you block an attack, the force is turned back against your attacker, "
+        .. "and the effort of blocking costs you less.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Endurance, +5 Strength, "
+        .. "+10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\f"
+        .. "Effect 2: \n Legionary's Resolve: Blocking reflects damage to your attacker "
+        .. "based on your Block skill (Block x 0.25). Restores 30% of fatigue spent blocking.",
     hidden = perkHidden(GUILD, 3, 5),
-    art = "textures\\levelup\\knight", cost = 2,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(il1_id),
         guildRank(3),
         R().minimumAttributeLevel('endurance', 40),
         R().minimumLevel(5),
     },
-    onAdd    = function() setRank(2); applyFatigueMod(20) end,
-    onRemove = function() setRank(nil); applyFatigueMod(0) end,
+    onAdd    = function()
+        setRank(2)
+        applyFatigueMod(20)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        end,
 })
 
 interfaces.ErnPerkFramework.registerPerk({
     id = il3_id,
     localizedName = "Forced March",
-    localizedDescription = "The Legion demands its soldiers keep pace regardless "
-        .. "of terrain. When the situation demands it, you can push far beyond "
-        .. "normal limits. Blocking now restores 50% of fatigue spent.\
- "
-        .. "Requires Shield Wall. "
-        .. "(+10 Endurance, +10 Strength, +18 Heavy Armour, +18 Block, +35 Fortify Fatigue, "
-        .. "grants Legion's Prowess power)",
+    category = {"Imperial Factions", "Imperial Legion", 3},
+    localizedFlavour = "The Legion demands its soldiers keep pace regardless of terrain. "
+        .. "When the situation demands it, you can push far beyond normal limits.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Endurance, +10 Strength, "
+        .. "+18 Heavy Armour, +18 Block, +35 Fortify Fatigue)\f"
+        .. "Effect 2: \n Grants Legion's Prowess (1/day): Fortify Athletics, Strength, Speed, "
+        .. "Endurance, and Health by 50 for 30s.\f"
+        .. "Effect 3: \n Blocking fatigue restoration increased to 50%.",
     hidden = perkHidden(GUILD, 6, 10),
-    art = "textures\\levelup\\knight", cost = 3,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(il2_id),
         guildRank(6),
@@ -238,11 +288,15 @@ interfaces.ErnPerkFramework.registerPerk({
         R().minimumLevel(10),
     },
     onAdd = function()
-        setRank(3); applyFatigueMod(35)
+        setRank(3)
+        applyFatigueMod(35)
+        reportAAM()
         safeAddSpell("FPerks_IL3_Prowess")
     end,
     onRemove = function()
-        setRank(nil); applyFatigueMod(0)
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
         safeRemoveSpell("FPerks_IL3_Prowess")
     end,
 })
@@ -250,22 +304,32 @@ interfaces.ErnPerkFramework.registerPerk({
 interfaces.ErnPerkFramework.registerPerk({
     id = il4_id,
     localizedName = "Legate",
-    localizedDescription = "You command the respect of every soldier who serves "
-        .. "alongside you. The Emperor's discipline has forged your body into "
-        .. "something that endures. Blocking now restores 75% of fatigue spent.\
- "
-        .. "Requires Forced March. "
-        .. "(+15 Endurance, +15 Strength, +25 Heavy Armour, +25 Block, +50 Fortify Fatigue)",
+    category = {"Imperial Factions", "Imperial Legion", 4},
+    localizedFlavour = "You command the respect of every soldier who serves alongside you. "
+        .. "The Emperor's discipline has forged your body into something that endures.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Endurance, +15 Strength, "
+        .. "+25 Heavy Armour, +25 Block, +50 Fortify Fatigue)\f"
+        .. "Effect 2: \n Restore 1pt Health and Fatigue per second\f"
+        .. "Effect 3: \n Blocking fatigue restoration increased to 75%.",
     hidden = perkHidden(GUILD, 9, 15),
-    art = "textures\\levelup\\knight", cost = 4,
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(il3_id),
         guildRank(9),
         R().minimumAttributeLevel('endurance', 75),
         R().minimumLevel(15),
     },
-    onAdd    = function() setRank(4); applyFatigueMod(50) end,
-    onRemove = function() setRank(nil); applyFatigueMod(0) end,
+    onAdd    = function()
+        setRank(4)
+        applyFatigueMod(50)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        end,
 })
 
 -- ============================================================
@@ -275,12 +339,30 @@ interfaces.ErnPerkFramework.registerPerk({
 local function onSave()
     return {
         appliedFatigueMod = appliedFatigueMod,
+        appliedStats = appliedStats,
     }
 end
 
 local function onLoad(data)
     data = data or {}
     appliedFatigueMod = data.appliedFatigueMod or 0
+
+    local saved = data.appliedStats or { attributes = {}, skills = {} }
+    for id, val in pairs(saved.attributes or {}) do
+        if val ~= 0 then
+            types.Actor.stats.attributes[id](self).modifier =
+                types.Actor.stats.attributes[id](self).modifier - val
+        end
+    end
+    for id, val in pairs(saved.skills or {}) do
+        if val ~= 0 then
+            types.NPC.stats.skills[id](self).modifier =
+                types.NPC.stats.skills[id](self).modifier - val
+        end
+    end
+    -- Clear so setRank re-populates cleanly on re-fire
+    appliedStats.attributes = {}
+    appliedStats.skills     = {}
 end
 
 return {
