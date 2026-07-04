@@ -64,14 +64,15 @@ local function getICRank()
     if R().hasPerk(ic4_id).check() then return 4 end
     if R().hasPerk(ic3_id).check() then return 3 end
     if R().hasPerk(ic2_id).check() then return 2 end
-    if R().hasPerk(ic1_id).check() then return 1 end
-    return nil
+    if R().hasPerk(ic1_id).check() then return 1 
+    else return 0
+    end
 end
 
 local function reportAAM()
     if not interfaces.AAM then return end
     local rank = getICRank() -- your faction's getXXRank() function
-    if not rank then
+    if rank == 0 then
         interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
         return
     end

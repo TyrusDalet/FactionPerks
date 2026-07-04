@@ -61,14 +61,15 @@ local function getFGRank()
     if R().hasPerk(fg4_id).check() then return 4 end
     if R().hasPerk(fg3_id).check() then return 3 end
     if R().hasPerk(fg2_id).check() then return 2 end
-    if R().hasPerk(fg1_id).check() then return 1 end
-    return nil
+    if R().hasPerk(fg1_id).check() then return 1
+    else return 0
+    end
 end
 
 local function reportAAM()
     if not interfaces.AAM then return end
     local rank = getFGRank() -- your faction's getXXRank() function
-    if not rank then
+    if rank == 0 then
         interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
         return
     end

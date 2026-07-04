@@ -95,8 +95,9 @@ local function getILRank()
     if R().hasPerk(il4_id).check() then return 4 end
     if R().hasPerk(il3_id).check() then return 3 end
     if R().hasPerk(il2_id).check() then return 2 end
-    if R().hasPerk(il1_id).check() then return 1 end
-    return nil
+    if R().hasPerk(il1_id).check() then return 1
+    else return 0
+    end
 end
 
 
@@ -105,7 +106,7 @@ interfaces.Combat.addOnHitHandler(function(attack)
     ilFatigueBeforeHit = 0
 
     local rank = getILRank()
-    if not rank then return end
+    if rank == 0 then return end
     if not attack.attacker or not attack.attacker:isValid() then return end
     if not attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
     if not attack.damage then return end
@@ -123,7 +124,7 @@ interfaces.SkillProgression.addSkillUsedHandler(function(skillId, params)
     if skillId ~= "block" then return end
 
     local rank = getILRank()
-    if not rank and rank > 3 then return end
+    if rank < 2 then return end
     if not ilLastAttacker or not ilLastAttacker:isValid() then return end
 
     local blockSkill = types.NPC.stats.skills.block(self).modified
@@ -185,7 +186,7 @@ local FACTION_DISPLAY_NAME = "Imperial Legion Perks"
 local function reportAAM()
     if not interfaces.AAM then return end
     local rank = getILRank() -- your faction's getXXRank() function
-    if not rank then
+    if rank == 0 then
         interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
         return
     end

@@ -61,8 +61,9 @@ local function getHRRank()
     if R().hasPerk(hr4_id).check() then return 4 end
     if R().hasPerk(hr3_id).check() then return 3 end
     if R().hasPerk(hr2_id).check() then return 2 end
-    if R().hasPerk(hr1_id).check() then return 1 end
-    return nil
+    if R().hasPerk(hr1_id).check() then return 1 
+    else return 0
+    end
 end
 
 local FACTION_DISPLAY_NAME = "Great House Redoran Perks"
@@ -70,7 +71,7 @@ local FACTION_DISPLAY_NAME = "Great House Redoran Perks"
 local function reportAAM()
     if not interfaces.AAM then return end
     local rank = getHRRank() -- your faction's getXXRank() function
-    if not rank then
+    if rank == 0 then
         interfaces.AAM.reportExternalModifiers(FACTION_DISPLAY_NAME, nil)
         return
     end
