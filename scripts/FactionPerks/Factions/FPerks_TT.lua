@@ -45,6 +45,12 @@ local perkTable = {
 }
 
 local appliedStats = { attributes = {}, skills = {} }
+
+local tt1_id = ns .. "_tt_ordinate_aspirant"
+local tt2_id = ns .. "_tt_pilgrim_soul"
+local tt3_id = ns .. "_tt_voice_of_reclamation"
+local tt4_id = ns .. "_tt_hand_of_almsivi"
+
 local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
 
 -- ============================================================
@@ -55,10 +61,7 @@ local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
 -- ============================================================
 local FACTION_DISPLAY_NAME = "Tribunal Temple Perks"
 
-local tt1_id = ns .. "_tt_ordinate_aspirant"
-local tt2_id = ns .. "_tt_pilgrim_soul"
-local tt3_id = ns .. "_tt_voice_of_reclamation"
-local tt4_id = ns .. "_tt_hand_of_almsivi"
+
 
 local function getTTRank()
     if R().hasPerk(tt4_id).check() then return 4 end
@@ -283,7 +286,10 @@ end
 return {
     eventHandlers = {
         [ns .. "_TT_AncestorSpawned"] = ancestorSpawned,
+    },
+        engineHandlers = {
         onSave = onSave,
         onLoad = onLoad,
-    },
+    }
+
 }

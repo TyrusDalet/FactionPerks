@@ -21,6 +21,7 @@
 local ns         = require("scripts.FactionPerks.namespace")
 local utils      = require("scripts.FactionPerks.utils")
 local FactionGroupRank = utils.FactionGroupRank
+local getFactionRank = utils.FactionGroupCurrentRank
 local perkHidden  = utils.perkHidden
 local safeAddSpell  = utils.safeAddSpell
 local safeRemoveSpell = utils.safeRemoveSpell
@@ -31,25 +32,38 @@ local self       = require('openmw.self')
 local core       = require('openmw.core')
 local ui         = require('openmw.ui')
 local ambient    = require('openmw.ambient')
+local shared     = require("scripts.FactionPerks.shared")
+
+
+local HasICSmite3 = false
+local HasICSmite4 = false
 
 local R = utils.requirements
 
 local perkTable = {
     [1] = { attributes = { willpower=3,  personality=3  }, skills = { speechcraft=5,  restoration=5  } },
     [2] = { attributes = { willpower=5,  personality=5  }, skills = { speechcraft=10, restoration=10 } },
-    [3] = { attributes = { willpower=10, personality=10 }, skills = { speechcraft=18, restoration=18 } },
-    [4] = { attributes = { willpower=15, personality=15 }, skills = { speechcraft=25, restoration=25 } },
+    [3] = { attributes = { willpower=10, personality=10 }, skills = { speechcraft=18, restoration=18 }, flags = { hasICSmite3 = true } },
+    [4] = { attributes = { willpower=15, personality=15 }, skills = { speechcraft=25, restoration=25 }, flags = { hasICSmite4 = true } },
+}
+
+-- Flag Handler - allows us to control the state of the HasMT4 flag from multiple locations
+local flagHandlers = {
+    hasICSmite3 = function(v) HasICSmite3 = v end,
+    hasICSmite4 = function(v) HasICSmite4 = v end,
 }
 
 local appliedStats = { attributes = {}, skills = {} }
-
-local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
 
 -- Perk id group
 local ic1_id = ns .. "_ic_lay_worshipper"
 local ic2_id = ns .. "_ic_charitable_hand"
 local ic3_id = ns .. "_ic_divine_favour"
 local ic4_id = ns .. "_ic_blessed_of_the_nine"
+
+local setRank = utils.makeSetRank(perkTable, flagHandlers, appliedStats)
+
+
 
 
 -- ============================================================
@@ -88,12 +102,38 @@ local function reportAAM()
 end
 
 -- ============================================================
---  SMITE FEEDBACK
+--  SMITE FEEDBACK & SmiteLevelChecker
 --  One message per Divine, chosen at random when the smite
 --  fires. Each reflects that Divine's domain and the context
 --  of striking the unholy. Sound uses the vanilla critical
 --  attack cue for a satisfying confirmation.
+--
+-- Also responds to the CheckSmiteLevel event and sends it onto shared.lua
 -- ============================================================
+
+function CheckSmiteLevel(attack)
+    print("Reading Smite Event")
+    local smiteLevel = 0
+    local attackInfo = attack[1]
+    local target = attack[2]
+    local package = {}
+    local rank = 0
+    if HasICSmite3 == true then
+        smiteLevel = 3
+    end
+    if HasICSmite4 == true then
+        smiteLevel = 4
+    end
+    print("Smite Level: "..tostring(smiteLevel))
+
+    rank = getFactionRank("imperialCult")
+
+    package = {attackInfo, rank, smiteLevel}
+
+    print("Sending Smite information")
+    target:sendEvent("DoICSmite", package)
+
+end
 
 local IC_SMITE_MESSAGES = {
     "Akatosh guides your hand.",
@@ -120,11 +160,6 @@ end
 --           Fortify All Attributes power (P4)
 -- ============================================================
 
-local function guildRank(rank)
-    return FactionGroupRank("imperialCult", rank)
-end
-
-
 interfaces.ErnPerkFramework.registerPerk({
     id = ic1_id,
     localizedName = "Lay Worshipper",
@@ -138,7 +173,7 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\healer",
     cost = function() return utils.perkCost(1) end,
     requirements = {
-        guildRank(0),
+        FactionGroupRank("imperialCult", 0),
         R().minimumLevel(1)
     },
     onAdd = function()
@@ -166,7 +201,7 @@ interfaces.ErnPerkFramework.registerPerk({
     cost = function() return utils.perkCost(2) end,
     requirements = {
         R().hasPerk(ic1_id),
-        guildRank(3),
+        FactionGroupRank("imperialCult", 3),
         R().minimumAttributeLevel('willpower', 40),
         R().minimumLevel(5),
     },
@@ -195,7 +230,7 @@ interfaces.ErnPerkFramework.registerPerk({
     cost = function() return utils.perkCost(3) end,
     requirements = {
         R().hasPerk(ic2_id),
-        guildRank(6),
+        FactionGroupRank("imperialCult", 6),
         R().minimumAttributeLevel('willpower', 50),
         R().minimumLevel(10),
     },
@@ -224,7 +259,7 @@ interfaces.ErnPerkFramework.registerPerk({
     cost = function() return utils.perkCost(4) end,
     requirements = {
         R().hasPerk(ic3_id),
-        guildRank(9),
+        FactionGroupRank("imperialCult", 9),
         R().minimumAttributeLevel('willpower', 75),
         R().minimumLevel(15),
     },
@@ -270,8 +305,13 @@ end
 
 return {
     eventHandlers = {
+        FPerks_IC_CheckSmiteLevel = CheckSmiteLevel,
         FPerks_IC_SmiteProc = onSmiteProc,
         onSave = onSave,
         onLoad = onLoad,
     },
+    engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
+    }
 }

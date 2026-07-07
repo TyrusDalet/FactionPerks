@@ -260,8 +260,9 @@ local function onLoad(data)
 end
 
 return {
-    eventHandlers = {
+    engineHandlers = {
         onSave = onSave,
         onLoad = onLoad,
-    },
+    }
+
 }

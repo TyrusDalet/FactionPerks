@@ -363,7 +363,10 @@ end
 return {
     eventHandlers = {
         UiModeChanged = hhOnUiModeChanged,
+    },
+        engineHandlers = {
         onSave = onSave,
         onLoad = onLoad,
-    },
+    }
+
 }

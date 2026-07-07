@@ -244,6 +244,29 @@ local function FactionGroupRank(groupName, rank)
 end
 
 -- ============================================================
+--  FACTION GROUP CURRENT RANK
+--
+--  Searches through the selected Faction Group's individual
+--  ranks, and returns the highest
+-- ============================================================
+
+local function FactionGroupCurrentRank(groupName)
+    local factions = FACTION_GROUPS[groupName]
+    assert(factions, ("Unknown faction group: %s"):format(tostring(groupName)))
+
+    local rank = 0
+    local highestRank = 0
+
+    for _, factionId in ipairs(factions) do
+        rank = types.NPC.getFactionRank(self, factionId)
+        if types.NPC.getFactionRank(self, factionId) > highestRank then
+            highestRank = rank
+        end
+    end
+    return highestRank
+end
+
+-- ============================================================
 --  HONOUR SCALE
 --  Returns a scale factor for Honour The Great House effects.
 --  Pre-cap it grows linearly; post-cap it keeps growing at a
@@ -476,5 +499,6 @@ return {
     requirements    = requirements,
     safeAddSpell    = safeAddSpell,
     safeRemoveSpell = safeRemoveSpell,
+    FactionGroupCurrentRank = FactionGroupCurrentRank,
     FACTION_GROUPS  = FACTION_GROUPS,
 }

@@ -108,7 +108,7 @@ interfaces.Combat.addOnHitHandler(function(attack)
     local rank = getILRank()
     if rank == 0 then return end
     if not attack.attacker or not attack.attacker:isValid() then return end
-    if not attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
+    if  attack.sourceType ~= interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
     if not attack.damage then return end
     if attack.damage then --If the attack has damage inside it
         local healthDmg  = attack.damage.health  or 0 -- Get the health damage dealt

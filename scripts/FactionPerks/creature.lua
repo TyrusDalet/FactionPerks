@@ -8,7 +8,6 @@ Uses fight modifier rather than base so calming is fully reversible
 when the perk is lost via respec or expulsion.
 ]]
 
-local I          = require('openmw.interfaces')
 local ns         = require("scripts.FactionPerks.namespace")
 local pself      = require("openmw.self")
 local types      = require("openmw.types")
@@ -96,15 +95,37 @@ end
 --  against creatures as well as NPCs.
 -- ============================================================
 
-I.Combat.addOnHitHandler(function(attack)
+interfaces.Combat.addOnHitHandler(function(attack)
+    -- Weapon hits only - melee or ranged, not spell damage
+    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
+        attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
+        return
+    end
+
+    -- Player must be the attacker
+    if (attack.attacker and attack.attacker.type ~= types.Player) then return end
+
     FPerks_DoMT4Attack(attack)
-    FPerks_DoICSmite(attack)
+
+      -- Target must be smite-eligible
+    if not FPerks_isSmiteTarget(pself) then return end
+
+    print("Sending Smite Event")
+    local target = pself
+    local payload = {attack, target}
+    attack.attacker:sendEvent("FPerks_IC_CheckSmiteLevel", payload)
 end)
+
+function DoSmiteTrigger(package)
+    FPerks_DoICSmite(package)
+end
 
 return {
     eventHandlers = {
         [ns .. "_TT_CalmAncestor"]    = calmAncestor,
         [ns .. "_TT_RestoreAncestor"] = restoreAncestor,
+        playerSneaking = FPerks_UpdatePlayerSneakStatus,
+        DoICSmite = DoSmiteTrigger,
     },
     engineHandlers = {
         onActive = onActive,

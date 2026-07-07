@@ -1,13 +1,8 @@
 local ns = require("scripts.FactionPerks.namespace")
-
 local interfaces = require("openmw.interfaces")
-
 local types = require('openmw.types')
-
 local self = require('openmw.self')
-
 local core = require('openmw.core')
-
 -- ============================================================
 -- MORAG TONG SNEAK ATTACKS
 -- ============================================================
@@ -20,22 +15,6 @@ function FPerks_UpdatePlayerSneakStatus(currentSneakStatus)
 end
 
 local function MT4AttackSuccessful(attack)
-
-    -- Attacker must be the player. This is the most important guard:
-    -- without it, followers whose NPC scripts received the playerSneaking
-    -- event would pass the checks below and incorrectly trigger lifesteal
-    -- on every weapon hit they make.
-    if not (attack.attacker and attack.attacker.type == types.Player) then
-        return false
-    end
-
-    -- Weapon attack check (melee or ranged only, not spell damage)
-    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then --If it's NOT a successful hit with a weapon, back out
-        return false
-    end
-
-    -- Proceed
-
     -- Player must be sneaking at the moment of the hit
     if not FPerks_PlayerIsSneaking then --If FPerks_PlayerIsSneaking is false, back out
         return false
@@ -97,7 +76,7 @@ local IC_SMITE_CREATURE_TYPES = {
     [types.Creature.TYPE.Daedra] = true,
 }
 
-local function isSmiteTarget(actor)
+function FPerks_isSmiteTarget(actor)
     -- Undead and Daedra by creature type record
     if types.Creature.objectIsInstance(actor) then
         local ctype = types.Creature.record(actor).type
@@ -110,29 +89,20 @@ local function isSmiteTarget(actor)
     return false
 end
 
-function FPerks_DoICSmite(attack)
-    -- Weapon hits only - melee or ranged, not spell damage
-    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
-            attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
-        return
-    end
-
-    -- Player must be the attacker
-    if not (attack.attacker and attack.attacker.type == types.Player) then return end
-
-    -- Read player's spells directly - works from any script context
-    -- since we're reading attack.attacker, not self
-    local playerSpells = types.Actor.spells(attack.attacker)
-    local hasP3 = playerSpells['fperks_ic3_passive'] ~= nil
-    local hasP4 = playerSpells['fperks_ic4_passive'] ~= nil
-    if not hasP3 and not hasP4 then return end
-
-    -- Target must be smite-eligible
-    if not isSmiteTarget(self) then return end
+function FPerks_DoICSmite(package)
+    print("Recieved Smite Information")
+    local attack = package[1]
+    local rank = package[2]
+    local smiteLevel = package[3]
+    
+    -- Checks player is eligible to Smite
+    if smiteLevel < 3 then 
+    print("Not high enough rank in IC to Smite")
+    return end
 
     local cooldown = 0
 
-    if hasP4 then cooldown = 5
+    if smiteLevel == 4 then cooldown = 5
     else cooldown = 10
     end
 
@@ -142,7 +112,6 @@ function FPerks_DoICSmite(attack)
     if lastICSmiteTime and (now - lastICSmiteTime) < cooldown then return end
 
     -- Damage = faction rank x 10
-    local rank = types.NPC.getFactionRank(attack.attacker, 'imperial cult')
     if not rank or rank == 0 then return end
     local dmg = rank * 10
 

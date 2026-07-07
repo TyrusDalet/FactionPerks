@@ -1,4 +1,4 @@
-local I = require('openmw.interfaces')
+local interfaces = require('openmw.interfaces')
 local types = require('openmw.types')
 local pself = require('openmw.self')
 
@@ -16,8 +16,24 @@ require("scripts.FactionPerks.shared")
 -- ============================================================
 
 I.Combat.addOnHitHandler(function(attack)
+    -- Weapon hits only - melee or ranged, not spell damage
+    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
+        attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
+        return
+    end
+
+    -- Player must be the attacker
+    if (attack.attacker and attack.attacker.type ~= types.Player) then return end
+
     FPerks_DoMT4Attack(attack)
-    FPerks_DoICSmite(attack)
+
+      -- Target must be smite-eligible
+    if not FPerks_isSmiteTarget(pself) then return end
+
+    print("Sending Smite Event")
+    local target = pself
+    local payload = {attack, target}
+    attack.attacker:sendEvent("FPerks_IC_CheckSmiteLevel", payload)
 end)
 
 local function takeDamage(data)
@@ -25,9 +41,14 @@ local function takeDamage(data)
     health.current = health.current - data.amount
 end
 
+function DoSmiteTrigger(package)
+    FPerks_DoICSmite(package)
+end
+
 return {
     eventHandlers = {
         playerSneaking = FPerks_UpdatePlayerSneakStatus,
         FPerks_TakeDamage = takeDamage,
+        DoICSmite = DoSmiteTrigger,
     }
 }
