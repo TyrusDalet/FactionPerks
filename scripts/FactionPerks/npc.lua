@@ -15,7 +15,7 @@ require("scripts.FactionPerks.shared")
 --  and has no interaction here.
 -- ============================================================
 
-I.Combat.addOnHitHandler(function(attack)
+interfaces.Combat.addOnHitHandler(function(attack)
     -- Weapon hits only - melee or ranged, not spell damage
     if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
         attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
