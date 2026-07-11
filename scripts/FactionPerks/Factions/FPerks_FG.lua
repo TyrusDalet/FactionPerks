@@ -175,13 +175,13 @@ end)
 
 -- ============================================================
 --  CARTOGRAPHY CONSOLE COMMANDS
---  lua fg debug             - prints debug information
+--  luafg debug             - prints debug information
 -- ============================================================
 
 local function onConsoleCommand(mode, command)
     local lower = command:lower()
 
-    if lower:find("^lua fg debug") then
+    if lower:find("^luafg debug") then
     local s = types.Actor.stats.dynamic.fatigue(self)
     console("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end

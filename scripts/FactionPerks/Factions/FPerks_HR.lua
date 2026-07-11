@@ -175,13 +175,13 @@ function FPerks_DoStrengthOfRedoran(attack)
 end
 -- ============================================================
 --  CARTOGRAPHY CONSOLE COMMANDS
---  lua hr debug             - prints debug information
+--  luahr debug             - prints debug information
 -- ============================================================
 
 local function onConsoleCommand(mode, command)
     local lower = command:lower()
 
-    if lower:find("^lua hr debug") then
+    if lower:find("^luahr debug") then
     local s = types.Actor.stats.dynamic.health(self)
     console("Health: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end

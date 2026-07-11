@@ -168,13 +168,13 @@ end)
 
 -- ============================================================
 --  LEGION CONSOLE COMMANDS
---  lua il debug             - prints debug information
+--  luail debug             - prints debug information
 -- ============================================================
 
 local function onConsoleCommand(mode, command)
     local lower = command:lower()
 
-    if lower:find("^lua il debug") then
+    if lower:find("^luail debug") then
     local s = types.Actor.stats.dynamic.fatigue(self)
     console("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end

@@ -24,8 +24,8 @@
             Per 10 locations:        +5% magicka refund on successful spell cast (max 25%)
 
         Console commands (type in the in-game console):
-            lua mg cartography dump  - prints all stored Places of Power for this character
-            lua mg cartography clear - wipes this character's visited table and resets effects
+            luamg cartography dump  - prints all stored Places of Power for this character
+            luamg cartography clear - wipes this character's visited table and resets effects
 ]]
 
 local ns          = require("scripts.FactionPerks.namespace")
@@ -77,10 +77,10 @@ local mg3_id = ns .. "_mg_arcane_reservoir"
 local mg4_id = ns .. "_mg_archmagisters_peer"
 
 local function getMGRank()
-    if R().hasPerk(mg4_id).check() then return 4 end
-    if R().hasPerk(mg3_id).check() then return 3 end
-    if R().hasPerk(mg2_id).check() then return 2 end
-    if R().hasPerk(mg1_id).check() then return 1 
+    if R.hasPerk(mg4_id).check() then return 4 end
+    if R.hasPerk(mg3_id).check() then return 3 end
+    if R.hasPerk(mg2_id).check() then return 2 end
+    if R.hasPerk(mg1_id).check() then return 1 
     else return 0
     end
 end
@@ -316,15 +316,15 @@ end)
 -- ============================================================
 --  CARTOGRAPHY CONSOLE COMMANDS
 --
---  lua mg cartography dump  - print all stored Places of Power
---  lua mg cartography clear - wipe visited table, reset effects
---  lua mg debug             - prints debug information
+--  luamg cartography dump  - print all stored Places of Power
+--  luamg cartography clear - wipe visited table, reset effects
+--  luamg debug             - prints debug information
 -- ============================================================
 
 local function onConsoleCommand(mode, command)
     local lower = command:lower()
 
-    if lower:find("^lua mg cartography dump") then
+    if lower:find("^luamg cartography dump") then
         local count = getVisitedCount()
         if count == 0 then
             console("MG Cartography: No Places of Power stored.")
@@ -341,7 +341,7 @@ local function onConsoleCommand(mode, command)
             .. " | appliedDetect = " .. appliedDetect
             .. " | appliedMagickaMod = " .. appliedMagickaMod)
 
-    elseif lower:find("^lua mg cartography clear") then
+    elseif lower:find("^luamg cartography clear") then
         removeCartographyEffects()
         visited       = {}
         appliedResist = 0
@@ -349,7 +349,7 @@ local function onConsoleCommand(mode, command)
         print("MG Cartography: Visited table cleared. All bonuses reversed.")
         ui.showMessage("Magical Cartography data cleared.")
 
-    elseif lower:find("^lua mg debug") then
+    elseif lower:find("^luamg debug") then
     local s = types.Actor.stats.dynamic.magicka(self)
     console("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
     console("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
@@ -375,7 +375,7 @@ interfaces.ErnPerkFramework.registerPerk({
     cost = function() return utils.perkCost(1) end,
     requirements = {
         FactionGroupRank("magesGuild",0),
-        R().minimumLevel(1)
+        R.minimumLevel(1)
     },
     onAdd    = function()
         setRank(1)
@@ -405,10 +405,10 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\mage",
     cost = function() return utils.perkCost(2) end,
     requirements = {
-        R().hasPerk(mg1_id),
+        R.hasPerk(mg1_id),
         FactionGroupRank("magesGuild",3),
-        R().minimumAttributeLevel('intelligence', 40),
-        R().minimumLevel(5),
+        R.minimumAttributeLevel('intelligence', 40),
+        R.minimumLevel(5),
     },
     onAdd = function()
         setRank(2)
@@ -441,10 +441,10 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\mage",
     cost = function() return utils.perkCost(3) end,
     requirements = {
-        R().hasPerk(mg2_id),
+        R.hasPerk(mg2_id),
         FactionGroupRank("magesGuild",6),
-        R().minimumAttributeLevel('intelligence', 50),
-        R().minimumLevel(10),
+        R.minimumAttributeLevel('intelligence', 50),
+        R.minimumLevel(10),
     },
     onAdd    = function()
         setRank(3)
@@ -473,10 +473,10 @@ interfaces.ErnPerkFramework.registerPerk({
     art = "textures\\levelup\\mage",
     cost = function() return utils.perkCost(4) end,
     requirements = {
-        R().hasPerk(mg3_id),
+        R.hasPerk(mg3_id),
         FactionGroupRank("magesGuild",9),
-        R().minimumAttributeLevel('intelligence', 75),
-        R().minimumLevel(15),
+        R.minimumAttributeLevel('intelligence', 75),
+        R.minimumLevel(15),
     },
     onAdd    = function()
         setRank(4)

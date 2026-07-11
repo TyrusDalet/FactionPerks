@@ -802,20 +802,20 @@ end
 --  All commands require the target NPC to be selected in the
 --  console (click on the NPC before typing the command).
 --
---  lua eec debug          - print overall state summary
---  lua eec dump           - list every tracked merchant with
+--  luaeec debug          - print overall state summary
+--  luaeec dump           - list every tracked merchant with
 --                           their base, factor, baseGold, and
 --                           appliedRank values
---  lua eec reset          - set the selected NPC's barter gold
+--  luaeec reset          - set the selected NPC's barter gold
 --                           back to their record baseGold and
 --                           remove them from the tracking table
 --                           so Empire's Coffers will reapply
 --                           on next dialogue
---  lua eec set <amount>   - set the selected NPC's barter gold
+--  luaeec set <amount>   - set the selected NPC's barter gold
 --                           to an exact value and clear their
 --                           tracking entry (useful when gold
 --                           has drifted from a known good state)
---  lua eec clear          - restore all nearby tracked merchants
+--  luaeec clear          - restore all nearby tracked merchants
 --                           to their baseGold and wipe the
 --                           tracking table entirely (nuclear
 --                           option; same as losing the perk)
@@ -825,9 +825,9 @@ local function onConsoleCommand(mode, command, selectedObject)
     local lower = command:lower()
 
     -- --------------------------------------------------------
-    --  lua eec debug
+    --  luaeec debug
     -- --------------------------------------------------------
-    if lower:find("^lua eec debug") then
+    if lower:find("^luaeec debug") then
         local count = 0
         for _ in pairs(eecBoostedMerchants) do count = count + 1 end
         console("EEC: hasEECCoffers  = " .. tostring(hasEECCoffers))
@@ -837,9 +837,9 @@ local function onConsoleCommand(mode, command, selectedObject)
         console("EEC: current perk rank: " .. tostring(rank))
 
     -- --------------------------------------------------------
-    --  lua eec dump
+    --  luaeec dump
     -- --------------------------------------------------------
-    elseif lower:find("^lua eec dump") then
+    elseif lower:find("^luaeec dump") then
         local count = 0
         for _ in pairs(eecBoostedMerchants) do count = count + 1 end
         if count == 0 then
@@ -859,13 +859,13 @@ local function onConsoleCommand(mode, command, selectedObject)
         end
 
     -- --------------------------------------------------------
-    --  lua eec reset
+    --  luaeec reset
     --  Restores the selected NPC to their record baseGold and
     --  removes them from tracking. Falls back to reading the
     --  record's baseGold directly if no tracking entry exists,
     --  so the command is useful even for untracked merchants.
     -- --------------------------------------------------------
-    elseif lower:find("^lua eec reset") then
+    elseif lower:find("^luaeec reset") then
         if not selectedObject or not selectedObject:isValid() then
             console("EEC reset: no valid object selected. Click an NPC first.")
             return
@@ -896,12 +896,12 @@ local function onConsoleCommand(mode, command, selectedObject)
         end
 
     -- --------------------------------------------------------
-    --  lua eec set <amount>
+    --  luaeec set <amount>
     --  Sets the selected NPC's barter gold to an exact value.
     --  Clears their tracking entry so Empire's Coffers will
     --  reapply from scratch on next dialogue.
     -- --------------------------------------------------------
-    elseif lower:find("^lua eec set") then
+    elseif lower:find("^luaeec set") then
         if not selectedObject or not selectedObject:isValid() then
             console("EEC set: no valid object selected. Click an NPC first.")
             return
@@ -913,7 +913,7 @@ local function onConsoleCommand(mode, command, selectedObject)
         -- Extract the trailing number from the original (pre-lowered) command.
         local amountStr = command:match("%s+(%d+)%s*$")
         if not amountStr then
-            console("EEC set: usage: lua eec set <amount>")
+            console("EEC set: usage: luaeec set <amount>")
             return
         end
         local amount = tonumber(amountStr)
@@ -938,12 +938,12 @@ local function onConsoleCommand(mode, command, selectedObject)
         end
 
     -- --------------------------------------------------------
-    --  lua eec clear
+    --  luaeec clear
     --  Calls eecClearAllBonuses - identical to losing the perk.
     --  Restores nearby tracked merchants to baseGold and wipes
     --  the entire tracking table.
     -- --------------------------------------------------------
-    elseif lower:find("^lua eec clear") then
+    elseif lower:find("^luaeec clear") then
         console("EEC clear: restoring all nearby tracked merchants and wiping table...")
         eecClearAllBonuses()
         console("EEC clear: done.")
