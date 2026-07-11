@@ -39,7 +39,13 @@ local self        = require('openmw.self')
 local core        = require('openmw.core')
 local ui          = require('openmw.ui')
 
-local R = utils.requirements
+
+local R = utils.requirements()
+
+local function console(message, color)
+    ui.printToConsole(tostring(message), color or ui.CONSOLE_COLOR.Info)
+end
+
 
 local perkTable = {
     [1] = { attributes = { willpower=3,  intelligence=3  }, skills = { destruction=5,  alteration=5  } },
@@ -321,17 +327,17 @@ local function onConsoleCommand(mode, command)
     if lower:find("^lua mg cartography dump") then
         local count = getVisitedCount()
         if count == 0 then
-            print("MG Cartography: No Places of Power stored.")
+            console("MG Cartography: No Places of Power stored.")
             return
         end
-        print("MG Cartography: Stored Places of Power (" .. count .. " total):")
+        console("MG Cartography: Stored Places of Power (" .. count .. " total):")
         local i = 0
         for cellId, cellName in pairs(visited) do
             i = i + 1
-            print("  [" .. i .. "] Name: '" .. tostring(cellName)
+            console("  [" .. i .. "] Name: '" .. tostring(cellName)
                 .. "'  |  ID: " .. tostring(cellId))
         end
-        print("  appliedResist = " .. appliedResist
+        console("  appliedResist = " .. appliedResist
             .. " | appliedDetect = " .. appliedDetect
             .. " | appliedMagickaMod = " .. appliedMagickaMod)
 
@@ -345,10 +351,10 @@ local function onConsoleCommand(mode, command)
 
     elseif lower:find("^lua mg debug") then
     local s = types.Actor.stats.dynamic.magicka(self)
-    print("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
-    print("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
-    print("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
-    print("Visited count: " .. getVisitedCount())
+    console("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
+    console("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+    console("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
+    console("Visited count: " .. getVisitedCount())
     end
 end
 

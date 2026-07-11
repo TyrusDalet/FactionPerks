@@ -33,7 +33,11 @@ local self        = require('openmw.self')
 local ui          = require('openmw.ui')
 local ambient     = require('openmw.ambient')
 
+
 local R = utils.requirements
+local function console(message, color)
+    ui.printToConsole(tostring(message), color or ui.CONSOLE_COLOR.Info)
+end
 
 local perkTable = {
     [1] = { attributes = { strength=3,  endurance=3  }, skills = { mediumarmor=5,  athletics=5 } },
@@ -179,7 +183,7 @@ local function onConsoleCommand(mode, command)
 
     if lower:find("^lua hr debug") then
     local s = types.Actor.stats.dynamic.health(self)
-    print("Health: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+    console("Health: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end
 end
 

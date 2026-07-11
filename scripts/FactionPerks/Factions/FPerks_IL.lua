@@ -38,8 +38,13 @@ local types       = require('openmw.types')
 local self        = require('openmw.self')
 local core        = require('openmw.core')
 local ambient     = require('openmw.ambient')
+local ui          = require('openmw.ui')
+
 
 local R = utils.requirements
+local function console(message, color)
+    ui.printToConsole(tostring(message), color or ui.CONSOLE_COLOR.Info)
+end
 
 local perkTable = {
     [1] = { attributes = { endurance=3,  strength=3  }, skills = { heavyarmor=5,  block=5  } },
@@ -171,7 +176,7 @@ local function onConsoleCommand(mode, command)
 
     if lower:find("^lua il debug") then
     local s = types.Actor.stats.dynamic.fatigue(self)
-    print("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+    console("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end
 end
 
