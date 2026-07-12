@@ -300,12 +300,15 @@ end
 --    skills     = { skillId = value }   -- applied via stat.modifier
 -- ============================================================
 
+local safeAddSpell
+local safeRemoveSpell
+
 local function makeSetRank(perkTable, flagHandlers, appliedStats)
     return function(NewRank)
         for _, rankData in pairs(perkTable) do
             if rankData.passive then
                 for i = 1, #rankData.passive do
-                    types.Actor.spells(self):remove(rankData.passive[i])
+                    safeRemoveSpell(rankData.passive[i])
                 end
             end
             if rankData.flags and flagHandlers then
@@ -339,7 +342,7 @@ local function makeSetRank(perkTable, flagHandlers, appliedStats)
 
         if rankData.passive then
             for i = 1, #rankData.passive do
-                types.Actor.spells(self):add(rankData.passive[i])
+                safeAddSpell(rankData.passive[i])
             end
         end
 
@@ -475,19 +478,29 @@ end
 --  matching the same safe pattern.
 -- ============================================================
 
-local function safeAddSpell(spellId)
+local function validSpellId(spellId)
+    return type(spellId) == "string"
+        and spellId ~= ""
+        and spellId ~= "Empty{}"
+        and core.magic.spells.records[spellId] ~= nil
+end
+
+safeAddSpell = function(spellId)
+    if not validSpellId(spellId) then return end
     local spells = types.Actor.spells(self)
     if not spells[spellId] then
         spells:add(spellId)
     end
 end
 
-local function safeRemoveSpell(spellId)
+safeRemoveSpell = function(spellId)
+    if not validSpellId(spellId) then return end
     local spells = types.Actor.spells(self)
     if spells[spellId] then
         spells:remove(spellId)
     end
 end
+
 
 return {
     getRepCap       = getRepCap,

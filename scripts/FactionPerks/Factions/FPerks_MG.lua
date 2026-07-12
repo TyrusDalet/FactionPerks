@@ -112,6 +112,15 @@ local appliedMagickaMod = 0  -- current value written to stat.modifier
 local appliedResist     = 0  -- current Resist Magicka bonus applied
 local appliedDetect     = 0  -- current Detect Enchantment bonus applied
 local visited           = {} -- map of cellId -> cellName for this character
+local lastAppliedMGRank = nil
+
+local MAGICKA_MOD_BY_RANK = {
+    [0] = 0,
+    [1] = 10,
+    [2] = 20,
+    [3] = 35,
+    [4] = 50,
+}
 
 -- ============================================================
 --  FORTIFY MAGICKA - stat.modifier approach
@@ -177,9 +186,9 @@ local UNIQUE_LOCATIONS = {
     ["braignainesaide, marbaildomuin"] = true,
 }
 
-local function isPlaceOfPower(cellName)
-    if type(cellName) ~= "string" then return false end
-    local lower = cellName:lower()
+local function isPlaceOfPowerKey(cellKey)
+    if type(cellKey) ~= "string" then return false end
+    local lower = cellKey:lower()
     if lower:find("inner shrine",     1, true) then return true end
 
     -- Tries to ensure that any Shrine is included, as long as that's it's only type, and not followed by anything subsequent
@@ -188,6 +197,10 @@ local function isPlaceOfPower(cellName)
     if lower:find("propylon chamber", 1, true) then return true end
     if UNIQUE_LOCATIONS[lower]                 then return true end
     return false
+end
+
+local function isPlaceOfPower(cellName, cellId)
+    return isPlaceOfPowerKey(cellName) or isPlaceOfPowerKey(cellId)
 end
 
 -- ============================================================
@@ -242,16 +255,17 @@ local function checkCurrentCell(currentCell)
     if not currentCell then return end
 
     local cellName = currentCell.name
-    if type(cellName) ~= "string" then return end
-    if cellName == "" then return end
-
-    if not isPlaceOfPower(cellName) then return end
-
     local cellId = currentCell.id
-    if visited[cellId] then return end
+
+    if not isPlaceOfPower(cellName, cellId) then return end
+
+    local visitKey = type(cellId) == "string" and cellId ~= "" and cellId or cellName
+    if type(visitKey) ~= "string" or visitKey == "" then return end
+    if visited[visitKey] then return end
 
     local oldCount = getVisitedCount()
-    visited[cellId] = cellName
+    local displayName = type(cellName) == "string" and cellName ~= "" and cellName or visitKey
+    visited[visitKey] = displayName
     local newCount = oldCount + 1
 
     applyCartographyEffects(newCount)
@@ -269,8 +283,45 @@ local function checkCurrentCell(currentCell)
             .. newCount .. " total)")
     end
 
-    print("MG Cartography: Discovered '" .. cellName
+    print("MG Cartography: Discovered '" .. tostring(displayName)
         .. "' (total: " .. newCount .. ")")
+end
+
+local function applyMGRank(rank, reason)
+    rank = tonumber(rank) or 0
+    if rank < 0 then rank = 0 end
+    if rank > 4 then rank = 4 end
+
+    local targetMagicka = MAGICKA_MOD_BY_RANK[rank] or 0
+    local targetCartography = rank >= 2
+
+    if lastAppliedMGRank == rank
+        and appliedMagickaMod == targetMagicka
+        and hasMGCartography == targetCartography then
+        return
+    end
+
+    setRank(rank > 0 and rank or nil)
+    applyMagickaMod(targetMagicka)
+    hasMGCartography = targetCartography
+    lastAppliedMGRank = rank
+
+    if hasMGCartography then
+        lastCellId = nil
+        cellCheckTimer = 0
+        applyCartographyEffects(getVisitedCount())
+        checkCurrentCell(self.cell)
+    else
+        removeCartographyEffects()
+    end
+
+    reportAAM()
+    print("MG: Applied owned rank " .. tostring(rank)
+        .. " via " .. tostring(reason or "sync"))
+end
+
+local function reconcileOwnedMGRank(reason)
+    applyMGRank(getMGRank(), reason)
 end
 
 -- ============================================================
@@ -350,11 +401,25 @@ local function onConsoleCommand(mode, command)
         ui.showMessage("Magical Cartography data cleared.")
 
     elseif lower:find("^luamg debug") then
-    local s = types.Actor.stats.dynamic.magicka(self)
-    console("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
-    console("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
-    console("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
-    console("Visited count: " .. getVisitedCount())
+        local cell = self.cell
+        local cellName = cell and cell.name or nil
+        local cellId = cell and cell.id or nil
+        local ownedRank = getMGRank()
+        local s = types.Actor.stats.dynamic.magicka(self)
+        console("MG owned rank = " .. tostring(ownedRank))
+        console("MG owns: P1=" .. tostring(R.hasPerk(mg1_id).check())
+            .. " P2=" .. tostring(R.hasPerk(mg2_id).check())
+            .. " P3=" .. tostring(R.hasPerk(mg3_id).check())
+            .. " P4=" .. tostring(R.hasPerk(mg4_id).check()))
+        console("MG hasMGCartography = " .. tostring(hasMGCartography))
+        console("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
+        console("MG expectedMagickaMod = " .. tostring(MAGICKA_MOD_BY_RANK[ownedRank] or 0))
+        console("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        console("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
+        console("Visited count: " .. getVisitedCount())
+        console("Current cell name: " .. tostring(cellName))
+        console("Current cell id: " .. tostring(cellId))
+        console("Current cell is Place of Power: " .. tostring(isPlaceOfPower(cellName, cellId)))
     end
 end
 
@@ -378,14 +443,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R.minimumLevel(1)
     },
     onAdd    = function()
-        setRank(1)
-        applyMagickaMod(10)
-        reportAAM()
+        applyMGRank(1, "mg1 onAdd")
         end,
     onRemove = function()
-        setRank(nil)
-        applyMagickaMod(0)
-        reportAAM()
+        applyMGRank(0, "mg1 onRemove")
         end,
 })
 
@@ -411,20 +472,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R.minimumLevel(5),
     },
     onAdd = function()
-        setRank(2)
-        applyMagickaMod(20)
-        reportAAM()
-        hasMGCartography = true
-        -- appliedResist/appliedDetect already restored from save,
-        -- so applyCartographyEffects computes only the correct delta
-        applyCartographyEffects(getVisitedCount())
+        applyMGRank(2, "mg2 onAdd")
     end,
     onRemove = function()
-        setRank(nil)
-        applyMagickaMod(0)
-        reportAAM()
-        hasMGCartography = false
-        removeCartographyEffects()
+        applyMGRank(0, "mg2 onRemove")
     end,
 })
 
@@ -447,14 +498,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R.minimumLevel(10),
     },
     onAdd    = function()
-        setRank(3)
-        applyMagickaMod(35)
-        reportAAM()
+        applyMGRank(3, "mg3 onAdd")
         end,
     onRemove = function()
-        setRank(nil)
-        applyMagickaMod(0)
-        reportAAM()
+        applyMGRank(0, "mg3 onRemove")
         end,
 })
 
@@ -479,14 +526,10 @@ interfaces.ErnPerkFramework.registerPerk({
         R.minimumLevel(15),
     },
     onAdd    = function()
-        setRank(4)
-        applyMagickaMod(50)
-        reportAAM()
+        applyMGRank(4, "mg4 onAdd")
         end,
     onRemove = function()
-        setRank(nil)
-        applyMagickaMod(0)
-        reportAAM()
+        applyMGRank(0, "mg4 onRemove")
         end,
 })
 
@@ -495,6 +538,7 @@ interfaces.ErnPerkFramework.registerPerk({
 -- ============================================================
 
 local function onUpdate(dt)
+    reconcileOwnedMGRank("onUpdate")
     if not hasMGCartography then return end
 
     cellCheckTimer = cellCheckTimer - dt
@@ -530,6 +574,9 @@ local function onLoad(data)
     appliedResist     = data.appliedResist     or 0
     appliedDetect     = data.appliedDetect     or 0
     visited           = data.visited           or {}
+    lastCellId        = nil
+    cellCheckTimer    = 0
+    lastAppliedMGRank = nil
     print("MG Cartography: Loaded " .. getVisitedCount()
         .. " Places of Power from save.")
     -- Reverse saved modifiers first so setRank starts from zero
