@@ -1,41 +1,30 @@
-local ns = require("scripts.FactionPerks.namespace")
-
 local interfaces = require("openmw.interfaces")
-
 local types = require('openmw.types')
-
 local self = require('openmw.self')
-
 local core = require('openmw.core')
 
+--- Returns the actor-local framework interface after it has attached.
+--- Actor scripts can start before sibling local-script interfaces are visible,
+--- so framework lookups must happen inside handlers, not at module load.
+local function framework()
+    return interfaces.ErnPerkFramework
+end
 -- ============================================================
 -- MORAG TONG SNEAK ATTACKS
 -- ============================================================
 
-local selfIsPlayer = self.type == types.Player
 FPerks_PlayerIsSneaking = false
 
+--- Receives the player's current sneak state for Morag Tong target scripts.
+--- @param currentSneakStatus boolean Whether the player is currently sneaking.
 function FPerks_UpdatePlayerSneakStatus(currentSneakStatus)
     FPerks_PlayerIsSneaking = currentSneakStatus
 end
 
+--- Checks whether a target-side Morag Tong lifesteal hit qualifies.
+--- @param attack table OpenMW combat attack table.
+--- @return boolean successful True when the player was sneaking for this hit.
 local function MT4AttackSuccessful(attack)
-
-    -- Attacker must be the player. This is the most important guard:
-    -- without it, followers whose NPC scripts received the playerSneaking
-    -- event would pass the checks below and incorrectly trigger lifesteal
-    -- on every weapon hit they make.
-    if not (attack.attacker and attack.attacker.type == types.Player) then
-        return false
-    end
-
-    -- Weapon attack check (melee or ranged only, not spell damage)
-    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then --If it's NOT a successful hit with a weapon, back out
-        return false
-    end
-
-    -- Proceed
-
     -- Player must be sneaking at the moment of the hit
     if not FPerks_PlayerIsSneaking then --If FPerks_PlayerIsSneaking is false, back out
         return false
@@ -46,6 +35,8 @@ local function MT4AttackSuccessful(attack)
     return true --If all checks pass, the attack qualifies for lifesteal
 end
 
+--- Applies Morag Tong lifesteal to this target when the hit qualifies.
+--- @param attack table OpenMW combat attack table.
 function FPerks_DoMT4Attack(attack)
 
     if not MT4AttackSuccessful(attack) then return end --If the attack wasn't successful, the modifier isn't applied
@@ -64,10 +55,6 @@ function FPerks_DoMT4Attack(attack)
         ignoreResistances = true,
         ignoreSpellAbsorption = true
         })
-
-        -- message for debugging
-        print("Mephala's Kiss Triggered!")
-
     else
         return
     end
@@ -87,7 +74,7 @@ end
 -- Perk presence is read directly from the player's spell list
 -- via types.Actor.spells(attack.attacker) - readable from any
 -- script context without needing cross-context flags.
--- Called from both npc.lua and creature.lua hit handlers.
+-- Called from actor.lua hit handlers.
 -- ============================================================
 
 local lastICSmiteTime = nil  -- per-instance cooldown; each NPC/creature has its own Lua state
@@ -97,7 +84,10 @@ local IC_SMITE_CREATURE_TYPES = {
     [types.Creature.TYPE.Daedra] = true,
 }
 
-local function isSmiteTarget(actor)
+--- Classifies actors eligible for Imperial Cult Divine Smite.
+--- @param actor GameObject Actor object to test.
+--- @return boolean eligible True for undead, daedra, or vampire actors.
+function FPerks_isSmiteTarget(actor)
     -- Undead and Daedra by creature type record
     if types.Creature.objectIsInstance(actor) then
         local ctype = types.Creature.record(actor).type
@@ -110,29 +100,23 @@ local function isSmiteTarget(actor)
     return false
 end
 
-function FPerks_DoICSmite(attack)
-    -- Weapon hits only - melee or ranged, not spell damage
-    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
-            attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
+--- Applies Imperial Cult Divine Smite to this target after player-side checks.
+--- The flat damage is resolved through `direct.damage.health` before being
+--- written to health, allowing other mods to affect direct damage consistently.
+--- @param package table Tuple: attack, faction rank, smite level.
+function FPerks_DoICSmite(package)
+    local attack = package[1]
+    local rank = package[2]
+    local smiteLevel = package[3]
+    
+    -- Checks player is eligible to Smite
+    if smiteLevel < 3 then 
         return
     end
 
-    -- Player must be the attacker
-    if not (attack.attacker and attack.attacker.type == types.Player) then return end
-
-    -- Read player's spells directly - works from any script context
-    -- since we're reading attack.attacker, not self
-    local playerSpells = types.Actor.spells(attack.attacker)
-    local hasP3 = playerSpells['fperks_ic3_passive'] ~= nil
-    local hasP4 = playerSpells['fperks_ic4_passive'] ~= nil
-    if not hasP3 and not hasP4 then return end
-
-    -- Target must be smite-eligible
-    if not isSmiteTarget(self) then return end
-
     local cooldown = 0
 
-    if hasP4 then cooldown = 5
+    if smiteLevel == 4 then cooldown = 5
     else cooldown = 10
     end
 
@@ -142,17 +126,31 @@ function FPerks_DoICSmite(attack)
     if lastICSmiteTime and (now - lastICSmiteTime) < cooldown then return end
 
     -- Damage = faction rank x 10
-    local rank = types.NPC.getFactionRank(attack.attacker, 'imperial cult')
     if not rank or rank == 0 then return end
-    local dmg = rank * 10
+    local fw = framework()
+    if fw == nil then
+        return
+    end
 
-    -- Apply divine damage directly, bypassing all magic systems
-    local healthStat = types.Actor.stats.dynamic.health(self)
+    local dmg = fw.applyActorResourceDelta({
+        actor = self,
+        resource = "health",
+        operation = fw.RESOURCE_OPERATION.Damage,
+        amount = rank * 10,
+        source = attack.attacker,
+        sourceEffect = "FactionPerks_IC_Smite",
+        damageType = "divine",
+        context = {
+            sourceEffect = "FactionPerks_IC_Smite",
+            damageType = "divine",
+            attack = attack,
+            rank = rank,
+            smiteLevel = smiteLevel,
+        },
+    })
+
     attack.successful = true
-    healthStat.current = healthStat.current - dmg
 
     lastICSmiteTime = now
     attack.attacker:sendEvent("FPerks_IC_SmiteProc", { dmg = dmg })
-
-    print("IC Smite triggered! Damage: " .. tostring(dmg))
 end

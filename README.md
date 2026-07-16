@@ -16,6 +16,7 @@ content=FactionPerks.omwscripts
 content=FactionPerkSpells.ESP
 ```
 
+
 -----------------------------------------------------------------------------------
 
 
@@ -26,6 +27,17 @@ All perks in a faction build off of one another
 If the perks modify the same attribute or skill, the largest effect applies
 
 Otherwise, the effect persists as you take more perks
+
+## Leader Training
+
+When the Leader Training setting is enabled, tier 4 faction perks are hidden
+from the normal perk menu until unlocked through dialogue. The player must be
+rank 10 in the faction, even if requirement checks are otherwise relaxed, and
+the speaker must be a member of the same faction at rank 7 or higher.
+
+The Lua handler listens for the localized topic `responsibilities of leadership`.
+The content plugin must contain a matching topic/dialogue record, following the
+same pattern used by the Enchanters Recharge reference mod.
 
 # Great Houses #
 
@@ -90,7 +102,7 @@ Honour The Great House:
 ### Perk 3: Trade Acumen 
 +10 Per/Agi, +18 Mercantile / Speechcraft
 
-### Perk 4: Councillor’s Ear 
+### Perk 4: Councillor's Ear 
 +15 Per/Agi, +25 Mercantile / Speechcraft
 
 
@@ -199,6 +211,48 @@ Grants Power:
       Fortify all Attributes 50pts for 30s
 
 
+## East Empire Company
+
+### Perk 1: Company Charter
++3 Per/Wil, +5 Mercantile / Speechcraft
+
+### Perk 2: Empire's Coffers
++5 Per/Wil, +10 Mercantile / Speechcraft
+
+Empire's Coffers:
+
+    The first time you speak with a merchant, their available barter gold
+    is permanently boosted by the weight of the Company's credit.
+    Bonus: +50 or +10% of their base gold, whichever is greater.
+    The bonus upgrades automatically when you advance to a higher perk rank,
+    whether the merchant is nearby at the time or on your next visit.
+
+    If the Stock Exchange Framework (Tamriel_Data) is installed:
+    An additional bonus of 0.1% of your EEC portfolio value is added,
+    capped at 20% of the merchant's base gold.
+
+### Perk 3: Established Routes
++10 Per/Wil, +18 Mercantile / Speechcraft
+
+Empire's Coffers increases to +150 or +25% of base gold.
+
+    Stock Exchange cap increases to 50% of base gold.
+
+### Perk 4: Senior Factor
++15 Per/Wil, +25 Mercantile / Speechcraft
+
+Empire's Coffers increases to +250 or +50% of base gold.
+
+    Stock Exchange cap increases to 100% of base gold.
+
+Grants Power:
+
+    Factor's Promise
+
+      Fortify Mercantile +100 for 30s
+      Empire's Coffers is tripled in effectiveness for the duration
+
+
 ## Thieves Guild
 
 ### Perk 1: Light Fingers 
@@ -251,10 +305,10 @@ Counterattack cooldown: 1.5s
 ## Mages Guild
 
 ### Perk 1: Guild Initiate 
-+3 Int/Will, +10 Magicka, +5 Destruction / Alteration
++3 Int/End, +10 Magicka, +5 Destruction / Alteration
 
 ### Perk 2: Scholastic Rigour 
-+5 Int/Will, +20 Magicka, +10 Destruction / Alteration
++5 Int/End, +20 Magicka, +10 Destruction / Alteration
 
 Magical Cartography:
 
@@ -262,12 +316,12 @@ Magical Cartography:
     Every 10 places visted grants 5% magicka refund on spells (max 25%)
 
 ### Perk 3: Arcane Reservoir 
-+10 Int/Will, +35 Magicka, +18 Destruction / Alteration
++10 Int/End, +35 Magicka, +18 Destruction / Alteration
 
 Fortify Maximum Magicka 0.5x INT
 
-### Perk 4: Archmagister’s Peer 
-+15 Int/Will, +50 Magicka, +25 Destruction / Alteration
+### Perk 4: Archmagister's Peer 
++15 Int/End, +50 Magicka, +25 Destruction / Alteration
 
 Fortify Maximum Magicka 1.0x INT
 
