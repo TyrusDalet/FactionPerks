@@ -246,6 +246,7 @@ interfaces.ErnPerkFramework.registerOnHitHandler({
     priority = 300,
 }, function(attack)
     if attack.successful             then return end
+    if attack.attacker == self       then return end
     if not attack.weapon             then return end
     if not (attack.attacker and attack.attacker:isValid()) then return end
     if not R.hasPerk(fg2_id).check() then return end

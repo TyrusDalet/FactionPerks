@@ -150,6 +150,12 @@ interfaces.ErnPerkFramework.registerCalculationHandler({
 }, function(data)
     if not hasStrengthOfRedoran then return false end
     local attack = data.context
+    if not attack or attack.attacker == self then return false end
+    if not (attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Melee or
+        attack.sourceType == interfaces.Combat.ATTACK_SOURCE_TYPES.Ranged) then
+        return false
+    end
+
     local dmg = data.value or 0
     if dmg <= 0 then return false end
 

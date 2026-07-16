@@ -115,6 +115,7 @@ interfaces.ErnPerkFramework.registerOnHitHandler({
 
     local rank = getILRank()
     if rank == 0 then return end
+    if attack.attacker == self then return end
     if not attack.attacker or not attack.attacker:isValid() then return end
     if  attack.sourceType ~= interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
     if not attack.damage then return end
