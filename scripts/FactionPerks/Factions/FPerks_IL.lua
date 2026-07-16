@@ -38,6 +38,7 @@ local types       = require('openmw.types')
 local self        = require('openmw.self')
 local core        = require('openmw.core')
 local ambient     = require('openmw.ambient')
+local async       = require('openmw.async')
 local RESOURCE_OPERATION = interfaces.ErnPerkFramework.RESOURCE_OPERATION
 
 local R = utils.requirements()
@@ -122,7 +123,7 @@ interfaces.ErnPerkFramework.registerOnHitHandler({
     if attack.damage then --If the attack has damage inside it
         local healthDmg  = attack.damage.health  or 0 -- Get the health damage dealt
         local fatigueDmg = attack.damage.fatigue or 0 -- Get the fatigue damage dealt
-        if healthDmg > 0 and fatigueDmg > 0 then return end -- If the attack did ANY damage, then do not return damage
+        if healthDmg > 0 or fatigueDmg > 0 then return end -- If the attack did ANY damage, then do not return damage
     end
 
     ilLastAttacker     = attack.attacker
@@ -140,9 +141,28 @@ interfaces.ErnPerkFramework.registerSkillUseHandler({
 
     local blockSkill = types.NPC.stats.skills.block(self).modified
     local reflectDmg = math.floor(blockSkill * 0.25)
+    local reflectedAttacker = ilLastAttacker
+    local attackerHealthBefore = types.Actor.stats.dynamic.health(reflectedAttacker).current
 
-    ilLastAttacker:sendEvent("FPerks_TakeDamage",
-        utils.directHealthDamagePayload(reflectDmg, self, "FactionPerks_IL_LegionaryResolve", "physical"))
+    core.sendGlobalEvent("ErnPerkFramework_ApplyActorResourceDelta", {
+        actor = reflectedAttacker,
+        resource = "health",
+        operation = RESOURCE_OPERATION.Damage,
+        amount = reflectDmg,
+        source = self,
+        sourceEffect = "FactionPerks_IL_LegionaryResolve",
+        damageType = "physical",
+    })
+
+    async:newUnsavableSimulationTimer(0.1, function()
+        if reflectedAttacker and reflectedAttacker:isValid() then
+            local after = types.Actor.stats.dynamic.health(reflectedAttacker).current
+            utils.debug(2, "IL", "Resolve attacker health before="
+                .. tostring(attackerHealthBefore)
+                .. " after=" .. tostring(after)
+                .. " delta=" .. tostring(attackerHealthBefore - after))
+        end
+    end)
 
     local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
     local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
@@ -195,7 +215,20 @@ local function onConsoleCommand(mode, command)
 
     if lower == "luail debug" then
         local s = types.Actor.stats.dynamic.fatigue(self)
+        local blockSkill = types.NPC.stats.skills.block(self).modified
+        local fw = interfaces.ErnPerkFramework
+        local directDamageHandlers = {}
+        if fw and fw.getCalculationHandlers and fw.CALCULATION then
+            for _, handler in ipairs(fw.getCalculationHandlers(fw.CALCULATION.DIRECT_DAMAGE_HEALTH)) do
+                table.insert(directDamageHandlers, handler.id .. ":" .. handler.operation)
+            end
+        end
         print("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        print("IL rank=" .. getILRank()
+            .. " Block.modified=" .. blockSkill
+            .. " Shield Wall damage=" .. math.floor(blockSkill * 0.25))
+        print("Direct health calculation modifiers: "
+            .. (#directDamageHandlers > 0 and table.concat(directDamageHandlers, ", ") or "none"))
     end
 end
 

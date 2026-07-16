@@ -141,7 +141,9 @@ local function takeDamage(data)
     if fw == nil then
         return
     end
-    fw.applyActorResourceDelta({
+    local health = types.Actor.stats.dynamic.health(pself)
+    local before = health.current
+    local applied = fw.applyActorResourceDelta({
         actor = pself,
         resource = "health",
         operation = fw.RESOURCE_OPERATION.Damage,
@@ -151,6 +153,13 @@ local function takeDamage(data)
         damageType = data.damageType,
         context = data,
     })
+    if data.sourceEffect == "FactionPerks_IL_LegionaryResolve" then
+        print("FactionPerks[IL]: target received Shield Wall amount="
+            .. tostring(data.amount or 0)
+            .. " applied=" .. tostring(applied)
+            .. " healthBefore=" .. tostring(before)
+            .. " healthAfter=" .. tostring(types.Actor.stats.dynamic.health(pself).current))
+    end
 end
 
 --- Forwards Imperial Cult Smite payloads into the shared target-side resolver.
