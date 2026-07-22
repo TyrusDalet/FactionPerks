@@ -1,0 +1,405 @@
+--[[
+    IL:
+        FPerks_IL1_Passive          - +3 Endurance, +3 Strength, +5 Heavy Armour,
+                                      +5 Block, +10 Fortify Fatigue
+        FPerks_IL2_Passive          - +5 Endurance, +5 Strength, +10 Heavy Armour,
+                                      +10 Block, +20 Fortify Fatigue
+        FPerks_IL3_Passive          - +10 Endurance, +10 Strength, +18 Heavy Armour,
+                                      +18 Block, +35 Fortify Fatigue
+        FPerks_IL4_Passive          - +15 Endurance, +15 Strength, +25 Heavy Armour,
+                                      +25 Block, +50 Fortify Fatigue
+
+    NOTE: Fortify Fatigue is applied via stat.modifier so the maximum is raised correctly.
+    appliedFatigueMod is persisted via onSave/onLoad so the delta calculation is correct
+    on reload and bonuses never stack. 
+
+    Non-table spells (granted once, not removed on rank-up):
+        FPerks_IL3_Prowess          - Power (granted at P3, removed on full respec only)
+
+    Legionary's Resolve (P2+):
+        On successful block:
+            - Reflects damage to the attacker based on Block skill
+              (Block skill x 0.25, so 10 at skill 40, 25 at skill 100)
+            - Restores a portion of the fatigue spent blocking:
+                P2: 30% of fatigue cost restored
+                P3: 50% of fatigue cost restored
+                P4: 75% of fatigue cost restored
+]]
+
+local ns          = "FactionPerks"
+local utils       = require("scripts.FactionPerks.utils")
+local FactionGroupRank = utils.FactionGroupRank
+local perkHidden  = utils.perkHidden
+local safeAddSpell  = utils.safeAddSpell
+local safeRemoveSpell = utils.safeRemoveSpell
+local GUILD        = utils.FACTION_GROUPS.imperialLegion
+local interfaces  = require("openmw.interfaces")
+local types       = require('openmw.types')
+local self        = require('openmw.self')
+local core        = require('openmw.core')
+local ambient     = require('openmw.ambient')
+local async       = require('openmw.async')
+local RESOURCE_OPERATION = interfaces.ErnPerkFramework.RESOURCE_OPERATION
+
+local R = utils.requirements()
+
+local perkTable = {
+    [1] = { attributes = { endurance=3,  strength=3  }, skills = { heavyarmor=5,  block=5  } },
+    [2] = { attributes = { endurance=5,  strength=5  }, skills = { heavyarmor=10, block=10 } },
+    [3] = { attributes = { endurance=10, strength=10 }, skills = { heavyarmor=18, block=18 } },
+    [4] = { attributes = { endurance=15, strength=15 },
+            skills = { heavyarmor=25, block=25 },
+            passive = {"FPerks_IL4_Restore_Phys"} },
+}
+
+local appliedStats = { attributes = {}, skills = {} }
+
+
+local il1_id = ns .. "_il_legion_recruit"
+local il2_id = ns .. "_il_shield_wall"
+local il3_id = ns .. "_il_forced_march"
+local il4_id = ns .. "_il_legate"
+
+local setRank = utils.makeSetRank(perkTable, nil, appliedStats)
+
+-- ============================================================
+--  FORTIFY FATIGUE - stat.modifier with onSave/onLoad
+-- ============================================================
+
+local appliedFatigueMod = 0
+
+--- Applies Imperial Legion's Fortify Fatigue modifier as a tracked replacement value.
+--- @param value number Desired total fatigue modifier from this faction.
+local function applyFatigueMod(value)
+    local s = types.Actor.stats.dynamic.fatigue(self)
+    local delta = value - appliedFatigueMod
+    s.modifier = s.modifier + delta
+    if delta < 0 then
+        s.current = math.min(s.current, s.base + s.modifier)
+    end
+    appliedFatigueMod = value
+end
+
+-- ============================================================
+--  LEGIONARY'S RESOLVE - Shield Wall (P2+)
+-- ============================================================
+
+local ilLastAttacker     = nil
+local ilFatigueBeforeHit = 0
+
+local IL_FATIGUE_RESTORE = {
+    [2] = 0.30,
+    [3] = 0.50,
+    [4] = 0.75,
+}
+
+local IL_FATIGUE_PROXY_SCALAR = 0.5
+
+--- Returns the highest active Imperial Legion perk tier.
+--- @return number rank Active tier from 0 to 4.
+local function getILRank()
+    return utils.highestOwnedPerkRank({
+        [1] = il1_id,
+        [2] = il2_id,
+        [3] = il3_id,
+        [4] = il4_id,
+    })
+end
+
+
+interfaces.ErnPerkFramework.registerOnHitHandler({
+    id = "FactionPerks_imperial_legion_resolve",
+    priority = 250,
+}, function(attack)
+    ilLastAttacker     = nil
+    ilFatigueBeforeHit = 0
+
+    local rank = getILRank()
+    if rank == 0 then return end
+    if attack.attacker == self then return end
+    if not attack.attacker or not attack.attacker:isValid() then return end
+    if  attack.sourceType ~= interfaces.Combat.ATTACK_SOURCE_TYPES.Melee then return end
+    if not attack.damage then return end
+    if attack.damage then --If the attack has damage inside it
+        local healthDmg  = attack.damage.health  or 0 -- Get the health damage dealt
+        local fatigueDmg = attack.damage.fatigue or 0 -- Get the fatigue damage dealt
+        if healthDmg > 0 or fatigueDmg > 0 then return end -- If the attack did ANY damage, then do not return damage
+    end
+
+    ilLastAttacker     = attack.attacker
+    ilFatigueBeforeHit = types.Actor.stats.dynamic.fatigue(self).current
+end)
+
+interfaces.ErnPerkFramework.registerSkillUseHandler({
+    id = "FactionPerks_imperial_legion_resolve_block",
+    skill = "block",
+    priority = 200,
+}, function(event)
+    local rank = getILRank()
+    if rank < 2 then return end
+    if not ilLastAttacker or not ilLastAttacker:isValid() then return end
+
+    local blockSkill = types.NPC.stats.skills.block(self).modified
+    local reflectDmg = math.floor(blockSkill * 0.25)
+    local reflectedAttacker = ilLastAttacker
+    local attackerHealthBefore = types.Actor.stats.dynamic.health(reflectedAttacker).current
+
+    core.sendGlobalEvent("ErnPerkFramework_ApplyActorResourceDelta", {
+        actor = reflectedAttacker,
+        resource = "health",
+        operation = RESOURCE_OPERATION.Damage,
+        amount = reflectDmg,
+        source = self,
+        sourceEffect = "FactionPerks_IL_LegionaryResolve",
+        damageType = "physical",
+    })
+
+    async:newUnsavableSimulationTimer(0.1, function()
+        if reflectedAttacker and reflectedAttacker:isValid() then
+            local after = types.Actor.stats.dynamic.health(reflectedAttacker).current
+            utils.debug(2, "IL", "Resolve attacker health before="
+                .. tostring(attackerHealthBefore)
+                .. " after=" .. tostring(after)
+                .. " delta=" .. tostring(attackerHealthBefore - after))
+        end
+    end)
+
+    local fatigueNow  = types.Actor.stats.dynamic.fatigue(self).current
+    local fatigueCost = math.max(0, ilFatigueBeforeHit - fatigueNow)
+
+    if fatigueCost <= 0 then
+        fatigueCost = reflectDmg * IL_FATIGUE_PROXY_SCALAR
+        utils.debug(3, "IL", "Resolve fatigue delta was 0, using proxy=" .. fatigueCost)
+    else
+        utils.debug(3, "IL", "Resolve fatigue delta precise=" .. fatigueCost)
+    end
+
+    local restorePercent = IL_FATIGUE_RESTORE[rank]
+    local fatigueRestore = math.floor(fatigueCost * restorePercent)
+
+    if fatigueRestore > 0 then
+        interfaces.ErnPerkFramework.applyActorResourceDelta({
+            actor = self,
+            resource = "fatigue",
+            operation = RESOURCE_OPERATION.Restore,
+            amount = fatigueRestore,
+            source = self,
+            sourceEffect = "FactionPerks_IL_LegionaryResolve",
+            context = {
+                rank = rank,
+                fatigueCost = fatigueCost,
+            },
+        })
+    end
+
+    ambient.playSound("health damage")
+
+    utils.debug(2, "IL", "Resolve reflected=" .. reflectDmg
+        .. " fatigue restored=" .. fatigueRestore
+        .. " (" .. (restorePercent * 100) .. "% of " .. fatigueCost .. ")")
+
+    ilLastAttacker     = nil
+    ilFatigueBeforeHit = 0
+end)
+
+-- ============================================================
+--  LEGION CONSOLE COMMANDS
+--  luail debug              - prints debug information
+-- ============================================================
+
+--- Handles Imperial Legion debug console commands.
+--- @param mode string Console mode.
+--- @param command string Raw console command.
+local function onConsoleCommand(mode, command)
+    local lower = utils.normalizeConsoleCommand(command):lower()
+
+    if lower == "luail debug" then
+        local s = types.Actor.stats.dynamic.fatigue(self)
+        local blockSkill = types.NPC.stats.skills.block(self).modified
+        local fw = interfaces.ErnPerkFramework
+        local directDamageHandlers = {}
+        if fw and fw.getCalculationHandlers and fw.CALCULATION then
+            for _, handler in ipairs(fw.getCalculationHandlers(fw.CALCULATION.DIRECT_DAMAGE_HEALTH)) do
+                table.insert(directDamageHandlers, handler.id .. ":" .. handler.operation)
+            end
+        end
+        utils.consolePrint("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        utils.consolePrint("IL rank=" .. getILRank()
+            .. " Block.modified=" .. blockSkill
+            .. " Shield Wall damage=" .. math.floor(blockSkill * 0.25))
+        utils.consolePrint("Direct health calculation modifiers: "
+            .. (#directDamageHandlers > 0 and table.concat(directDamageHandlers, ", ") or "none"))
+    end
+end
+
+-- ============================================================
+--  AAM INTEGRATION
+--  Reports current active stat modifiers to AbilitiesAsModifiers
+--  so they appear as a labelled source in attribute/skill tooltips.
+--  Called after every setRank invocation.
+-- ============================================================
+local FACTION_DISPLAY_NAME = "Imperial Legion Perks"
+
+--- Reports current Imperial Legion stat modifiers through framework/AAM interop.
+local reportAAM = utils.makeAAMReporter(FACTION_DISPLAY_NAME, perkTable, getILRank)
+
+-- ============================================================
+--  IMPERIAL LEGION PERKS
+-- ============================================================
+
+--- Builds an Imperial Legion branch-aware faction rank requirement.
+--- @param rank number Zero-based faction rank.
+--- @return table requirement ErnPerkFramework requirement data.
+local function guildRank(rank)
+    return FactionGroupRank("imperialLegion", rank)
+end
+
+interfaces.ErnPerkFramework.registerPerk({
+    id = il1_id,
+    localizedName = "Legion Recruit",
+    category = {"FactionPerks", "Imperial Factions", "Imperial Legion", 1},
+    localizedFlavour = "You have sworn the oath and donned the cuirass. "
+        .. "The Legion's drillmasters have improved your guard.",
+    localizedDescription = "Grants the following stats: (+3 Endurance, +3 Strength, "
+        .. "+5 Heavy Armour, +5 Block, +10 Fortify Fatigue)",
+    hidden = perkHidden(GUILD, 0, 1),
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(1) end,
+    requirements = {
+        guildRank(0),
+        R.minimumLevel(1)
+    },
+    onAdd    = function()
+        setRank(1)
+        applyFatigueMod(10)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        end,
+})
+
+interfaces.ErnPerkFramework.registerPerk({
+    id = il2_id,
+    localizedName = "Shield Wall",
+    category = {"FactionPerks", "Imperial Factions", "Imperial Legion", 2},
+    localizedFlavour = "You have mastered the disciplined defensive formations of the Imperial army. "
+        .. "When you block an attack, the force is turned back against your attacker, "
+        .. "and the effort of blocking costs you less.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+5 Endurance, +5 Strength, "
+        .. "+10 Heavy Armour, +10 Block, +20 Fortify Fatigue)\f"
+        .. "Effect 2: \n Legionary's Resolve: Blocking reflects damage to your attacker "
+        .. "based on your Block skill (Block x 0.25). Restores 30% of fatigue spent blocking.",
+    hidden = perkHidden(GUILD, 3, 5),
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(2) end,
+    requirements = {
+        R.hasPerk(il1_id),
+        guildRank(3),
+        R.minimumAttributeLevel('endurance', 40),
+        R.minimumLevel(5),
+    },
+    onAdd    = function()
+        setRank(2)
+        applyFatigueMod(20)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        end,
+})
+
+interfaces.ErnPerkFramework.registerPerk({
+    id = il3_id,
+    localizedName = "Forced March",
+    category = {"FactionPerks", "Imperial Factions", "Imperial Legion", 3},
+    localizedFlavour = "The Legion demands its soldiers keep pace regardless of terrain. "
+        .. "When the situation demands it, you can push far beyond normal limits.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+10 Endurance, +10 Strength, "
+        .. "+18 Heavy Armour, +18 Block, +35 Fortify Fatigue)\f"
+        .. "Effect 2: \n Grants Legion's Prowess (1/day): Fortify Athletics, Strength, Speed, "
+        .. "Endurance, and Health by 50 for 30s.\f"
+        .. "Effect 3: \n Blocking fatigue restoration increased to 50%.",
+    hidden = perkHidden(GUILD, 6, 10),
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.perkCost(3) end,
+    requirements = {
+        R.hasPerk(il2_id),
+        guildRank(6),
+        R.minimumAttributeLevel('endurance', 50),
+        R.minimumLevel(10),
+    },
+    onAdd = function()
+        setRank(3)
+        applyFatigueMod(35)
+        reportAAM()
+        safeAddSpell("FPerks_IL3_Prowess")
+    end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        safeRemoveSpell("FPerks_IL3_Prowess")
+    end,
+})
+
+interfaces.ErnPerkFramework.registerPerk({
+    id = il4_id,
+    localizedName = "Legate",
+    category = {"FactionPerks", "Imperial Factions", "Imperial Legion", 4},
+    persistentSpells = { "FPerks_IL4_Restore_Phys" },
+    localizedFlavour = "You command the respect of every soldier who serves alongside you. "
+        .. "The Emperor's discipline has forged your body into something that endures.",
+    localizedDescription = "Effect 1: \n Grants the following stats: (+15 Endurance, +15 Strength, "
+        .. "+25 Heavy Armour, +25 Block, +50 Fortify Fatigue)\f"
+        .. "Effect 2: \n Restore 1pt Health and Fatigue per second\f"
+        .. "Effect 3: \n Blocking fatigue restoration increased to 75%.",
+    hidden = utils.leaderTrainingHidden("imperialLegion", perkHidden(GUILD, 9, 15)),
+    art = "textures\\levelup\\knight",
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("imperialLegion", 9, {
+        R.hasPerk(il3_id),
+        guildRank(9),
+        R.minimumAttributeLevel('endurance', 75),
+        R.minimumLevel(15),
+    }),
+    onAdd    = function()
+        setRank(4)
+        applyFatigueMod(50)
+        reportAAM()
+        end,
+    onRemove = function()
+        setRank(nil)
+        applyFatigueMod(0)
+        reportAAM()
+        end,
+})
+
+-- ============================================================
+--  SAVE / LOAD
+-- ============================================================
+
+local function onSave()
+    return {
+        appliedFatigueMod = appliedFatigueMod,
+        appliedStats = appliedStats,
+    }
+end
+
+local function onLoad(data)
+    data = data or {}
+    appliedFatigueMod = data.appliedFatigueMod or 0
+    utils.clearSavedAppliedStats(data.appliedStats, appliedStats)
+end
+
+return {
+    engineHandlers = {
+        onSave = onSave,
+        onLoad = onLoad,
+        onConsoleCommand = onConsoleCommand,
+    }
+}
