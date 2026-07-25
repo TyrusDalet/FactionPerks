@@ -223,11 +223,11 @@ local function onConsoleCommand(mode, command)
                 table.insert(directDamageHandlers, handler.id .. ":" .. handler.operation)
             end
         end
-        print("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
-        print("IL rank=" .. getILRank()
+        utils.consolePrint("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        utils.consolePrint("IL rank=" .. getILRank()
             .. " Block.modified=" .. blockSkill
             .. " Shield Wall damage=" .. math.floor(blockSkill * 0.25))
-        print("Direct health calculation modifiers: "
+        utils.consolePrint("Direct health calculation modifiers: "
             .. (#directDamageHandlers > 0 and table.concat(directDamageHandlers, ", ") or "none"))
     end
 end
@@ -351,6 +351,7 @@ interfaces.ErnPerkFramework.registerPerk({
     id = il4_id,
     localizedName = "Legate",
     category = {"FactionPerks", "Imperial Factions", "Imperial Legion", 4},
+    persistentSpells = { "FPerks_IL4_Restore_Phys" },
     localizedFlavour = "You command the respect of every soldier who serves alongside you. "
         .. "The Emperor's discipline has forged your body into something that endures.",
     localizedDescription = "Effect 1: \n Grants the following stats: (+15 Endurance, +15 Strength, "
@@ -359,15 +360,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Effect 3: \n Blocking fatigue restoration increased to 75%.",
     hidden = utils.leaderTrainingHidden("imperialLegion", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\knight",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("imperialLegion"),
-        utils.leaderTrainingRankRequirement("imperialLegion", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("imperialLegion", 9, {
         R.hasPerk(il3_id),
         guildRank(9),
         R.minimumAttributeLevel('endurance', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd    = function()
         setRank(4)
         applyFatigueMod(50)

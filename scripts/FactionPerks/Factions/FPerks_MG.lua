@@ -382,17 +382,17 @@ local function onConsoleCommand(mode, command)
     if matchesMGCommand(lower, "cartography dump") then
         local count = getVisitedCount()
         if count == 0 then
-            print("MG Cartography: No Places of Power stored.")
+            utils.consolePrint("MG Cartography: No Places of Power stored.")
             return
         end
-        print("MG Cartography: Stored Places of Power (" .. count .. " total):")
+        utils.consolePrint("MG Cartography: Stored Places of Power (" .. count .. " total):")
         local i = 0
         for cellId, cellName in pairs(visited) do
             i = i + 1
-            print("  [" .. i .. "] Name: '" .. tostring(cellName)
+            utils.consolePrint("  [" .. i .. "] Name: '" .. tostring(cellName)
                 .. "'  |  ID: " .. tostring(cellId))
         end
-        print("  appliedResist = " .. appliedResist
+        utils.consolePrint("  appliedResist = " .. appliedResist
             .. " | appliedDetect = " .. appliedDetect
             .. " | appliedMagickaMod = " .. appliedMagickaMod)
 
@@ -401,7 +401,7 @@ local function onConsoleCommand(mode, command)
         visited       = {}
         appliedResist = 0
         appliedDetect = 0
-        print("MG Cartography: Visited table cleared. All bonuses reversed.")
+        utils.consolePrint("MG Cartography: Visited table cleared. All bonuses reversed.")
         ui.showMessage("Magical Cartography data cleared.")
 
     elseif matchesMGCommand(lower, "debug") then
@@ -410,28 +410,28 @@ local function onConsoleCommand(mode, command)
         local cellId = cell and cell.id or nil
         local ownedRank = getMGRank()
         local s = types.Actor.stats.dynamic.magicka(self)
-        print("MG owned rank = " .. tostring(ownedRank))
-        print("MG owns: P1=" .. tostring(interfaces.ErnPerkFramework.playerHasPerk(mg1_id))
+        utils.consolePrint("MG owned rank = " .. tostring(ownedRank))
+        utils.consolePrint("MG owns: P1=" .. tostring(interfaces.ErnPerkFramework.playerHasPerk(mg1_id))
             .. " P2=" .. tostring(interfaces.ErnPerkFramework.playerHasPerk(mg2_id))
             .. " P3=" .. tostring(interfaces.ErnPerkFramework.playerHasPerk(mg3_id))
             .. " P4=" .. tostring(interfaces.ErnPerkFramework.playerHasPerk(mg4_id)))
-        print("MG hasMGCartography = " .. tostring(hasMGCartography))
-        print("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
-        print("MG expectedMagickaMod = " .. tostring(MAGICKA_MOD_BY_RANK[ownedRank] or 0))
-        print("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
-        print("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
-        print("Visited count: " .. getVisitedCount())
-        print("Current cell name: " .. tostring(cellName))
-        print("Current cell id: " .. tostring(cellId))
-        print("Current cell is Place of Power: " .. tostring(isPlaceOfPower(cellName, cellId)))
+        utils.consolePrint("MG hasMGCartography = " .. tostring(hasMGCartography))
+        utils.consolePrint("MG appliedMagickaMod = " .. tostring(appliedMagickaMod))
+        utils.consolePrint("MG expectedMagickaMod = " .. tostring(MAGICKA_MOD_BY_RANK[ownedRank] or 0))
+        utils.consolePrint("Magicka: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        utils.consolePrint("MG Cartography: appliedResist=" .. appliedResist .. " appliedDetect=" .. appliedDetect)
+        utils.consolePrint("Visited count: " .. getVisitedCount())
+        utils.consolePrint("Current cell name: " .. tostring(cellName))
+        utils.consolePrint("Current cell id: " .. tostring(cellId))
+        utils.consolePrint("Current cell is Place of Power: " .. tostring(isPlaceOfPower(cellName, cellId)))
 
     elseif lower == "luamg" or lower == "luamg cartography"
         or lower == "luamagesguild" or lower == "luamagesguild cartography"
         or lower == "luamages guild" or lower == "luamages guild cartography" then
-        print("MG commands:")
-        print("  luamg cartography dump")
-        print("  luamg cartography clear")
-        print("  luamg debug")
+        utils.consolePrint("MG commands:")
+        utils.consolePrint("  luamg cartography dump")
+        utils.consolePrint("  luamg cartography clear")
+        utils.consolePrint("  luamg debug")
     end
 end
 
@@ -495,6 +495,9 @@ interfaces.ErnPerkFramework.registerPerk({
     id = mg3_id,
     localizedName = "Arcane Reservoir",
     category = {"FactionPerks", "Imperial Factions", "Mage's Guild", 3},
+    persistentSpells = function()
+        return getMGRank() == 3 and { "FPerks_MG4_Max_Magicka_1" } or {}
+    end,
     localizedFlavour = "Years of disciplined spellcasting have deepened your reserves. "
         .. "Your magicka pool expands with your intellect.",
     localizedDescription = "Effect 1: \n Grants the following stats: (+10 Intelligence, +10 Willpower, "
@@ -522,6 +525,9 @@ interfaces.ErnPerkFramework.registerPerk({
     id = mg4_id,
     localizedName = "Archmagister's Peer",
     category = {"FactionPerks", "Imperial Factions", "Mage's Guild", 4},
+    persistentSpells = function()
+        return getMGRank() == 4 and { "FPerks_MG4_Max_Magicka_2" } or {}
+    end,
     localizedFlavour = "The senior mages regard you as a genuine equal. "
         .. "Your intellect feeds your power directly.",
     localizedDescription = "Effect 1: \n Grants the following stats: (+15 Intelligence, +15 Willpower, "
@@ -530,15 +536,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "(replaces Arcane Reservoir's 0.5x bonus).",
     hidden = utils.leaderTrainingHidden("magesGuild", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\mage",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("magesGuild"),
-        utils.leaderTrainingRankRequirement("magesGuild", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("magesGuild", 9, {
         R.hasPerk(mg3_id),
         FactionGroupRank("magesGuild",9),
         R.minimumAttributeLevel('intelligence', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd    = function()
         applyMGRank(4, "mg4 onAdd")
         end,

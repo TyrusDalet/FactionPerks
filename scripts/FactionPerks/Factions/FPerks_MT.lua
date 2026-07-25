@@ -192,15 +192,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Effect 3: \n Weapon attacks whilst Sneaking apply a 25pt for 5s Absorb Health effect.",
     hidden = utils.leaderTrainingHidden("moragTong", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\knight",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("moragTong"),
-        utils.leaderTrainingRankRequirement("moragTong", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("moragTong", 9, {
         R.hasPerk(mt3_id),
         FactionGroupRank("moragTong",9),
         R.minimumAttributeLevel('speed', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd = function()
         setRank(4)
         reportAAM()

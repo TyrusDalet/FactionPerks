@@ -16,6 +16,11 @@ content=FactionPerks.omwscripts
 content=FactionPerkSpells.ESP
 ```
 
+The overhaul scripts must be loaded with the matching overhaul framework scripts.
+Do not mix `OverhaulFactionPerks.omwscripts` or SkillPerks with the legacy
+`ErnPerkFramework.omwscripts`; the overhaul mods expect the newer framework
+interop hooks to exist.
+
 
 -----------------------------------------------------------------------------------
 
@@ -28,16 +33,41 @@ If the perks modify the same attribute or skill, the largest effect applies
 
 Otherwise, the effect persists as you take more perks
 
+Continuous spell-backed effects are registered with the framework for periodic
+reconciliation. If Dispel removes Legate's physical restoration, a Mage's Guild
+maximum-magicka effect, or House Telvanni's magicka restoration while its perk
+is still owned, the next perk resync restores the correct current-rank effect.
+Granted spells and once-per-day powers are intentionally excluded.
+
 ## Leader Training
 
 When the Leader Training setting is enabled, tier 4 faction perks are hidden
-from the normal perk menu until unlocked through dialogue. The player must be
+from both perk displays until unlocked through dialogue. In constellation mode,
+the final node appears only after it has been awarded. The player must be
 rank 10 in the faction, even if requirement checks are otherwise relaxed, and
 the speaker must be a member of the same faction at rank 7 or higher.
 
 The Lua handler listens for the localized topic `responsibilities of leadership`.
 The content plugin must contain a matching topic/dialogue record, following the
 same pattern used by the Enchanters Recharge reference mod.
+If that topic record is not loaded, the Lua gate is treated as disabled so tier
+4 perks remain obtainable through the normal menu path.
+
+Each faction also registers its own constellation wireframe and node
+arrangement. These dotted paths trace the established faction emblems without
+displaying the source banners directly. The outline remains faint while the
+faction chain is incomplete and becomes a dense gold light once all four perks,
+including a dialogue-awarded leadership perk, are owned.
+
+The FactionPerks galaxy groups these constellations into nebulae using their
+existing faction sections, such as Dunmeri Factions, Imperial Factions, and
+Great Houses. Nebulae carry their own heading and remain separated by a larger
+buffer than the constellations within them.
+
+## Debugging
+
+Debug Verbosity controls Lua log output: `0` off, `1` important state changes,
+`2` detailed perk effect flow, `3` trace-level calculation and polling logs.
 
 # Great Houses #
 

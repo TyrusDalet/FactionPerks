@@ -651,6 +651,9 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht3_id,
     localizedName = "Self-Made Power",
     category = {"FactionPerks", "Great Houses", "House Telvanni", 3},
+    persistentSpells = function()
+        return getHTRank() == 3 and { "FPerks_HT3_Restore_Magicka_1" } or {}
+    end,
     localizedFlavour = "House Telvanni respects only power earned, never granted. "
         .. "You have shaped yourself through relentless study.",
     localizedDescription = "Effect 1: \n Grants the following stats: (+10 Intelligence, +10 Willpower, "
@@ -679,6 +682,9 @@ interfaces.ErnPerkFramework.registerPerk({
     id = ht4_id,
     localizedName = "Telvanni Lord",
     category = {"FactionPerks", "Great Houses", "House Telvanni", 4},
+    persistentSpells = function()
+        return getHTRank() == 4 and { "FPerks_HT4_Restore_Magicka_2" } or {}
+    end,
     localizedFlavour = "You are acknowledged by the Telvanni masters - a rare concession from those "
         .. "who acknowledge no one. The heights are yours to claim.",
     localizedDescription = "Effect 1: \n Grants the following stats: (+15 Intelligence, +15 Willpower, "
@@ -687,15 +693,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Restore Magicka 2pt/s.",
     hidden = utils.leaderTrainingHidden("telvanni", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\mage",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("telvanni"),
-        utils.leaderTrainingRankRequirement("telvanni", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("telvanni", 9, {
         R.hasPerk(ht3_id),
         FactionGroupRank("telvanni",9),
         R.minimumAttributeLevel('intelligence', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd    = function()
         setRank(4)
         reportAAM()

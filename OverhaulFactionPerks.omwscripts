@@ -1,6 +1,7 @@
 GLOBAL:scripts/FactionPerks/global.lua
 PLAYER:scripts/FactionPerks/settings_init.lua
 PLAYER:scripts/FactionPerks/leader_training.lua
+PLAYER:scripts/FactionPerks/constellations.lua
 NPC:scripts/FactionPerks/actor.lua
 CREATURE:scripts/FactionPerks/actor.lua
 PLAYER:scripts/FactionPerks/Factions/FPerks_TG.lua

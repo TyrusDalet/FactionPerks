@@ -300,15 +300,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "+25 Mercantile, +25 Speechcraft)",
     hidden = utils.leaderTrainingHidden("hlaalu", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\healer",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("hlaalu"),
-        utils.leaderTrainingRankRequirement("hlaalu", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("hlaalu", 9, {
         R.hasPerk(hh3_id),
         FactionGroupRank("hlaalu",9),
         R.minimumAttributeLevel('personality', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd    = function()
         setRank(4)
         reportAAM()

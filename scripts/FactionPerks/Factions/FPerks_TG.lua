@@ -230,15 +230,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Effect 2: \n 25% additional Chameleon while sneaking (50% total with Fence Network).",
     hidden = utils.leaderTrainingHidden("thievesGuild", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\acrobat",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("thievesGuild"),
-        utils.leaderTrainingRankRequirement("thievesGuild", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("thievesGuild", 9, {
         R.hasPerk(tg3_id),
         FactionGroupRank("thievesGuild",9),
         R.minimumAttributeLevel('agility', 75),
         R.minimumLevel(15),
-    },
+    }),
    onAdd = function()
         setRank(4)
         reportAAM()

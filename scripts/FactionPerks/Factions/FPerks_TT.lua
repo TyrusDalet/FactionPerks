@@ -221,15 +221,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "and 2 Bonelords for 60s.",
     hidden = utils.leaderTrainingHidden("temple", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\healer",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("temple"),
-        utils.leaderTrainingRankRequirement("temple", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("temple", 9, {
         R.hasPerk(tt3_id),
         FactionGroupRank("temple",9),
         R.minimumAttributeLevel('willpower', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd = function()
         setRank(4)
         reportAAM()

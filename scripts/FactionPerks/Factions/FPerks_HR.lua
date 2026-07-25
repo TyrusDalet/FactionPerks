@@ -186,7 +186,7 @@ local function onConsoleCommand(mode, command)
 
     if lower == "luahr debug" then
         local s = types.Actor.stats.dynamic.health(self)
-        print("Health: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        utils.consolePrint("Health: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end
 end
 
@@ -294,15 +294,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "+50 Fortify Health, +25 Medium Armour, +25 Athletics)",
     hidden = utils.leaderTrainingHidden("redoran", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\knight",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("redoran"),
-        utils.leaderTrainingRankRequirement("redoran", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("redoran", 9, {
         R.hasPerk(hr3_id),
         FactionGroupRank("redoran",9),
         R.minimumAttributeLevel('endurance', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd    = function()
         setRank(4)
         applyHealthMod(50)

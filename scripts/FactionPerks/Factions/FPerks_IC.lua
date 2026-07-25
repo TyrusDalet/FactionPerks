@@ -245,15 +245,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Effect 3: \n Divine Smite cooldown reduced to 5s per target.",
     hidden = utils.leaderTrainingHidden("imperialCult", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\healer",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("imperialCult"),
-        utils.leaderTrainingRankRequirement("imperialCult", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("imperialCult", 9, {
         R.hasPerk(ic3_id),
         FactionGroupRank("imperialCult", 9),
         R.minimumAttributeLevel('willpower', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd = function()
         setRank(4)
         reportAAM()

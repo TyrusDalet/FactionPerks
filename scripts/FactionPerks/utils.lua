@@ -1,5 +1,7 @@
 --[[
     FactionPerks utils.lua
+    Copyright (C) 2025 Erin Pentecost
+    2026 Robbie Barker
 
     Shared utilities for player-context faction scripts.
     Actor-context combat helpers live in shared.lua and actor.lua.
@@ -9,9 +11,14 @@ local core = require("openmw.core")
 local types = require("openmw.types")
 local self = require("openmw.self")
 local interfaces = require("openmw.interfaces")
+local ui = require("openmw.ui")
 local settings = require("scripts.FactionPerks.settings")
 
 local MOD_NAME = "FactionPerks"
+local localization = core.l10n(MOD_NAME)
+local LEADER_TRAINING_TOPIC = string.lower(localization("leaderTrainingTopic"))
+local leaderTrainingTopicExistsCached = nil
+local perkCost
 
 -- ============================================================
 --  REPUTATION CAPS
@@ -121,10 +128,31 @@ local function currentDebugVerbosity()
     return settings.debugVerbosity or 0
 end
 
+--- Checks whether the companion content plugin supplied the leader topic.
+--- Lua can add a known topic to the player's journal, but the topic must
+--- already exist as dialogue content for NPC responses to be available.
+--- @return boolean exists True when the leader-training topic record is loaded.
+local function leaderTrainingTopicExists()
+    if leaderTrainingTopicExistsCached ~= nil then
+        return leaderTrainingTopicExistsCached
+    end
+
+    local ok, record = pcall(function()
+        return core.dialogue
+            and core.dialogue.topic
+            and core.dialogue.topic.records
+            and core.dialogue.topic.records[LEADER_TRAINING_TOPIC]
+    end)
+    leaderTrainingTopicExistsCached = ok and record ~= nil
+    return leaderTrainingTopicExistsCached
+end
+
 --- Checks whether tier 4 leader-training acquisition is active.
+--- If the setting is enabled without the companion topic plugin loaded, the
+--- gate is treated as disabled so P4 perks cannot be hidden forever.
 --- @return boolean enabled True when P4 perks must be unlocked through dialogue.
 local function leaderTrainingEnabled()
-    return settings.leaderTrainingEnabled == true
+    return settings.leaderTrainingEnabled == true and leaderTrainingTopicExists()
 end
 
 --- Checks current player membership, excluding expelled memberships.
@@ -581,6 +609,65 @@ local function leaderTrainingRankRequirement(groupName, rank)
     return req
 end
 
+--- Returns the acquisition cost for a leader-trained tier 4 perk.
+--- When leader training is active, these perks are dialogue rewards and must
+--- not spend generic perk points. When disabled, they use the normal cost mode.
+--- @param tier number Normal tier cost.
+--- @return number cost Effective cost.
+local function leaderTrainingPerkCost(tier)
+    if leaderTrainingEnabled() then
+        return 0
+    end
+    return perkCost(tier)
+end
+
+--- Adds an omit predicate that hides legacy menu requirements while leader
+--- training is active. Existing omit predicates are preserved.
+--- @param req table Requirement object to mutate.
+--- @return table req The same requirement object.
+local function omitWhenLeaderTrainingEnabled(req)
+    local previousOmit = req.omit
+    req.omit = function()
+        if leaderTrainingEnabled() then
+            return true
+        end
+        if type(previousOmit) == "function" then
+            return previousOmit()
+        end
+        return previousOmit == true
+    end
+    return req
+end
+
+--- Builds the requirement list for a leader-trained tier 4 perk.
+--- While leader training is enabled, the hidden leadership-instruction token
+--- prevents menu purchases and the strict rank 10 requirement validates the
+--- dialogue grant. While disabled, both are omitted and the normal legacy menu
+--- requirements are restored.
+--- @param groupName string Key in FACTION_GROUPS.
+--- @param rank number Zero-based required faction rank.
+--- @param legacyRequirements table Legacy menu acquisition requirements.
+--- @return table requirements Final requirement list.
+local function leaderTrainingPerkRequirements(groupName, rank, legacyRequirements)
+    local reqs = {
+        leaderTrainingRequirement(groupName),
+        leaderTrainingRankRequirement(groupName, rank),
+    }
+    for _, req in ipairs(legacyRequirements or {}) do
+        table.insert(reqs, omitWhenLeaderTrainingEnabled(req))
+    end
+    -- Constellation mode deliberately ignores normal progression visibility,
+    -- so externally granted leadership endpoints need a separate explicit
+    -- signal. The framework still counts this hidden node when deciding whether
+    -- the faction's completed symbol should light up.
+    reqs.graph = {
+        hiddenUntilOwned = function()
+            return leaderTrainingEnabled()
+        end,
+    }
+    return reqs
+end
+
 -- ============================================================
 --  PERK COSTS
 --  Default mode uses the tier number as the point cost.
@@ -591,7 +678,7 @@ end
 --- Resolves a tier's point cost under the current FactionPerks cost mode.
 --- @param tier number Default tier cost.
 --- @return number cost Effective perk point cost.
-local function perkCost(tier)
+perkCost = function(tier)
     local mode = currentCostMode()
     if mode == 2 then
         return 1
@@ -773,6 +860,14 @@ local function normalizeConsoleCommand(command)
     return command:gsub("%s+", " ")
 end
 
+--- Prints command output to the visible in-game console.
+--- Use this for player-invoked debug/dump commands; keep log-only diagnostics
+--- on print()/debug() so they stay in the Lua log.
+--- @param message any Text or value to display.
+local function consolePrint(message)
+    ui.printToConsole(tostring(message), ui.CONSOLE_COLOR.Default)
+end
+
 return {
     MOD_NAME        = MOD_NAME,
     getRepCap       = getRepCap,
@@ -783,10 +878,13 @@ return {
     hasStrictFactionGroupRank = hasStrictFactionGroupRank,
     perkCost        = perkCost,
     perkHidden      = perkHidden,
+    leaderTrainingTopicExists = leaderTrainingTopicExists,
     leaderTrainingEnabled = leaderTrainingEnabled,
     leaderTrainingHidden = leaderTrainingHidden,
     leaderTrainingRequirement = leaderTrainingRequirement,
     leaderTrainingRankRequirement = leaderTrainingRankRequirement,
+    leaderTrainingPerkCost = leaderTrainingPerkCost,
+    leaderTrainingPerkRequirements = leaderTrainingPerkRequirements,
     requirements    = requirements,
     safeAddSpell    = safeAddSpell,
     safeRemoveSpell = safeRemoveSpell,
@@ -797,6 +895,7 @@ return {
     clearSavedAppliedStats = clearSavedAppliedStats,
     directHealthDamagePayload = directHealthDamagePayload,
     normalizeConsoleCommand = normalizeConsoleCommand,
+    consolePrint = consolePrint,
     FactionGroupCurrentRank = FactionGroupCurrentRank,
     FACTION_GROUPS  = FACTION_GROUPS,
 }

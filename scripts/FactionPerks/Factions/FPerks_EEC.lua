@@ -711,15 +711,13 @@ interfaces.ErnPerkFramework.registerPerk({
             or ""),
     hidden = utils.leaderTrainingHidden("eastEmpireCompany", perkHidden(GUILD, 8, 15)),
     art = "textures\\levelup\\healer",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("eastEmpireCompany"),
-        utils.leaderTrainingRankRequirement("eastEmpireCompany", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("eastEmpireCompany", 9, {
         R.hasPerk(eec3_id),
         FactionGroupRank("eastEmpireCompany",8),
         R.minimumAttributeLevel('personality', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd = function()
         setRank(4)
         reportAAM()
@@ -805,11 +803,11 @@ local function onConsoleCommand(mode, command, selectedObject)
     if lower == "luaeec debug" then
         local count = 0
         for _ in pairs(eecBoostedMerchants) do count = count + 1 end
-        print("EEC: hasEECCoffers  = " .. tostring(hasEECCoffers))
-        print("EEC: eecFactorActive = " .. tostring(eecFactorActive))
-        print("EEC: tracked merchants: " .. tostring(count))
+        utils.consolePrint("EEC: hasEECCoffers  = " .. tostring(hasEECCoffers))
+        utils.consolePrint("EEC: eecFactorActive = " .. tostring(eecFactorActive))
+        utils.consolePrint("EEC: tracked merchants: " .. tostring(count))
         local rank = getEECCoffersRank()
-        print("EEC: current perk rank: " .. tostring(rank))
+        utils.consolePrint("EEC: current perk rank: " .. tostring(rank))
 
     -- --------------------------------------------------------
     --  luaeec dump
@@ -818,14 +816,14 @@ local function onConsoleCommand(mode, command, selectedObject)
         local count = 0
         for _ in pairs(eecBoostedMerchants) do count = count + 1 end
         if count == 0 then
-            print("EEC: No merchants tracked.")
+            utils.consolePrint("EEC: No merchants tracked.")
             return
         end
-        print("EEC: Tracked merchants (" .. tostring(count) .. "):")
+        utils.consolePrint("EEC: Tracked merchants (" .. tostring(count) .. "):")
         local i = 0
         for npcId, entry in pairs(eecBoostedMerchants) do
             i = i + 1
-            print("  [" .. i .. "]"
+            utils.consolePrint("  [" .. i .. "]"
                 .. "  id="           .. tostring(npcId)
                 .. "  baseBonus="    .. tostring(entry.baseBonus)
                 .. "  totalApplied=" .. tostring(entry.totalApplied)
@@ -842,11 +840,11 @@ local function onConsoleCommand(mode, command, selectedObject)
     -- --------------------------------------------------------
     elseif lower == "luaeec reset" then
         if not selectedObject or not selectedObject:isValid() then
-            print("EEC reset: no valid object selected. Click an NPC first.")
+            utils.consolePrint("EEC reset: no valid object selected. Click an NPC first.")
             return
         end
         if not types.NPC.objectIsInstance(selectedObject) then
-            print("EEC reset: selected object is not an NPC.")
+            utils.consolePrint("EEC reset: selected object is not an NPC.")
             return
         end
         local npcId = selectedObject.id
@@ -860,12 +858,12 @@ local function onConsoleCommand(mode, command, selectedObject)
         })
         if entry then
             eecBoostedMerchants[npcId] = nil
-            print("EEC reset: " .. tostring(npcId)
+            utils.consolePrint("EEC reset: " .. tostring(npcId)
                 .. " gold set to baseGold " .. tostring(targetGold)
                 .. ". Tracking entry cleared; Empire's Coffers will"
                 .. " reapply on next dialogue.")
         else
-            print("EEC reset: " .. tostring(npcId)
+            utils.consolePrint("EEC reset: " .. tostring(npcId)
                 .. " was not tracked. Gold set to record baseGold "
                 .. tostring(targetGold) .. ".")
         end
@@ -878,22 +876,22 @@ local function onConsoleCommand(mode, command, selectedObject)
     -- --------------------------------------------------------
     elseif lower == "luaeec set" or lower:find("^luaeec set%s+") then
         if not selectedObject or not selectedObject:isValid() then
-            print("EEC set: no valid object selected. Click an NPC first.")
+            utils.consolePrint("EEC set: no valid object selected. Click an NPC first.")
             return
         end
         if not types.NPC.objectIsInstance(selectedObject) then
-            print("EEC set: selected object is not an NPC.")
+            utils.consolePrint("EEC set: selected object is not an NPC.")
             return
         end
         -- Extract the trailing number from the normalized command.
         local amountStr = lower:match("^luaeec set%s+(%d+)$")
         if not amountStr then
-            print("EEC set: usage: luaeec set <amount>")
+            utils.consolePrint("EEC set: usage: luaeec set <amount>")
             return
         end
         local amount = tonumber(amountStr)
         if not amount or amount < 0 then
-            print("EEC set: amount must be a non-negative integer.")
+            utils.consolePrint("EEC set: amount must be a non-negative integer.")
             return
         end
         local npcId = selectedObject.id
@@ -903,12 +901,12 @@ local function onConsoleCommand(mode, command, selectedObject)
         })
         if eecBoostedMerchants[npcId] then
             eecBoostedMerchants[npcId] = nil
-            print("EEC set: " .. tostring(npcId) .. " gold set to "
+            utils.consolePrint("EEC set: " .. tostring(npcId) .. " gold set to "
                 .. tostring(amount)
                 .. ". Tracking entry cleared; Empire's Coffers will"
                 .. " reapply on next dialogue.")
         else
-            print("EEC set: " .. tostring(npcId) .. " gold set to "
+            utils.consolePrint("EEC set: " .. tostring(npcId) .. " gold set to "
                 .. tostring(amount) .. ". (No tracking entry existed.)")
         end
 
@@ -919,9 +917,9 @@ local function onConsoleCommand(mode, command, selectedObject)
     --  the entire tracking table.
     -- --------------------------------------------------------
     elseif lower == "luaeec clear" then
-        print("EEC clear: restoring all nearby tracked merchants and wiping table...")
+        utils.consolePrint("EEC clear: restoring all nearby tracked merchants and wiping table...")
         eecClearAllBonuses()
-        print("EEC clear: done.")
+        utils.consolePrint("EEC clear: done.")
     end
 end
 

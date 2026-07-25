@@ -295,7 +295,7 @@ local function onConsoleCommand(mode, command)
 
     if lower == "luafg debug" then
         local s = types.Actor.stats.dynamic.fatigue(self)
-        print("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
+        utils.consolePrint("Fatigue: base=" .. s.base .. " modifier=" .. s.modifier .. " current=" .. s.current)
     end
 end
 
@@ -405,15 +405,13 @@ interfaces.ErnPerkFramework.registerPerk({
         .. "Effect 2: \n Counter Attack cooldown reduced to 1.5s.",
     hidden = utils.leaderTrainingHidden("fightersGuild", perkHidden(GUILD, 9, 15)),
     art = "textures\\levelup\\knight",
-    cost = function() return utils.perkCost(4) end,
-    requirements = {
-        utils.leaderTrainingRequirement("fightersGuild"),
-        utils.leaderTrainingRankRequirement("fightersGuild", 9),
+    cost = function() return utils.leaderTrainingPerkCost(4) end,
+    requirements = utils.leaderTrainingPerkRequirements("fightersGuild", 9, {
         R.hasPerk(fg3_id),
         FactionGroupRank("fightersGuild",9),
         R.minimumAttributeLevel('strength', 75),
         R.minimumLevel(15),
-    },
+    }),
     onAdd    = function()
         setRank(4)
         applyHealthMod(50)

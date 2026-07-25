@@ -11,7 +11,6 @@ local interfaces = require("openmw.interfaces")
 local self = require("openmw.self")
 local types = require("openmw.types")
 local ui = require("openmw.ui")
-local settings = require("scripts.FactionPerks.settings")
 local utils = require("scripts.FactionPerks.utils")
 
 local MOD_NAME = "FactionPerks"
@@ -20,7 +19,7 @@ local TOPIC = string.lower(localization("leaderTrainingTopic"))
 local PLAYER_REQUIRED_RANK = 9
 local SPEAKER_REQUIRED_RANK = 7
 
-local unlocked = {}
+local grantInProgress = {}
 local topicAdded = false
 
 local LEADER_ORDER = {
@@ -146,7 +145,7 @@ end
 --- Handles the leader-training topic selection and grants the matching P4 perk.
 --- @param event table DialogueResponse event data.
 local function onDialogueResponse(event)
-    if not settings.leaderTrainingEnabled or event.recordId ~= TOPIC then
+    if not utils.leaderTrainingEnabled() or event.recordId ~= TOPIC then
         return
     end
 
@@ -171,14 +170,14 @@ local function onDialogueResponse(event)
         return
     end
 
-    unlocked[key] = true
+    grantInProgress[key] = true
     local granted, reason = framework.grantPerk(data.perkID, {
         checkRequirements = true,
         checkCost = false,
     })
+    grantInProgress[key] = nil
     if not granted then
         if reason == "requirements" then
-            unlocked[key] = nil
             ui.showMessage(localization("leaderTrainingRequirementsMissing", {
                 speaker = speakerName,
                 perkName = perk:name(),
@@ -198,28 +197,36 @@ end
 
 --- Makes the shared topic known to the player when the feature is enabled.
 local function onUpdate()
-    if settings.leaderTrainingEnabled and not topicAdded then
+    if utils.leaderTrainingEnabled() and not topicAdded then
         self.type.addTopic(self, TOPIC)
         topicAdded = true
     end
 end
 
---- Returns whether a leader-training key has been completed.
+--- Returns whether a leader perk may currently satisfy its instruction token.
+--- The token exists only during the dialogue grant or while the perk is already
+--- owned. Respeccing therefore locks the menu entry until the conversation is
+--- completed again instead of leaving a permanent free-purchase permission.
 --- @param key string Leader-training key.
---- @return boolean completed True after the dialogue path successfully granted the perk.
+--- @return boolean unlocked True during its dialogue grant or while owned.
 local function isUnlocked(key)
-    return unlocked[key] == true
+    if grantInProgress[key] then
+        return true
+    end
+
+    local data = LEADER_PERKS[key]
+    local framework = interfaces.ErnPerkFramework
+    return data ~= nil
+        and framework ~= nil
+        and framework.playerHasPerk(data.perkID)
 end
 
 local function onSave()
-    return {
-        unlocked = unlocked,
-    }
+    return {}
 end
 
-local function onLoad(data)
-    data = data or {}
-    unlocked = data.unlocked or {}
+local function onLoad(_)
+    grantInProgress = {}
 end
 
 return {
