@@ -147,6 +147,7 @@ interfaces.ErnPerkFramework.registerCalculationHandler({
     calculation = CALCULATION.HIT_DAMAGE_HEALTH,
     operation = "Modifier",
     priority = 100,
+    direction = interfaces.ErnPerkFramework.HIT_DIRECTION.Incoming,
 }, function(data)
     if not hasStrengthOfRedoran then return false end
     local attack = data.context

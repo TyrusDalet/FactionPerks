@@ -185,6 +185,7 @@ end
 interfaces.ErnPerkFramework.registerOnHitHandler({
     id = "FactionPerks_imperial_legion_resolve",
     priority = 250,
+    direction = interfaces.ErnPerkFramework.HIT_DIRECTION.Incoming,
 }, function(attack)
     local rank = getILRank()
     if rank < 2 then return end

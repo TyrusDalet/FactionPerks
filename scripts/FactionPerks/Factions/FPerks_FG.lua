@@ -244,6 +244,7 @@ end
 interfaces.ErnPerkFramework.registerOnHitHandler({
     id = "FactionPerks_fighters_guild_counter_attack",
     priority = 300,
+    direction = interfaces.ErnPerkFramework.HIT_DIRECTION.Incoming,
 }, function(attack)
     if attack.successful             then return end
     if attack.attacker == self       then return end
